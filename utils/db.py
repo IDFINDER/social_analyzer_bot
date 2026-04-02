@@ -5,6 +5,9 @@
 
 import os
 import logging
+import hashlib
+import random
+import string
 from datetime import datetime, date, timedelta
 from supabase import create_client, Client
 
@@ -230,11 +233,6 @@ def get_user_account(user_id, platform):
 def save_user_account(user_id, platform, account_identifier, is_active=True):
     """حفظ أو تحديث حساب مستخدم"""
     try:
-        # جلب معلومات المستخدم
-        user = get_user_info(user_id)
-        username = user.get('username', '') if user else ''
-        first_name = user.get('first_name', '') if user else ''
-        
         supabase.table('user_social_accounts').upsert({
             'user_id': user_id,
             'platform': platform,
@@ -350,7 +348,16 @@ def increment_gemini_usage(user_id):
         return False
 
 
-# ========== دوال صفحة البايو ==========
+# ========== دوال صفحة البايو (نسخة متطورة) ==========
+
+def generate_bio_url(user_id):
+    """إنشاء رابط فريد مشفر للمستخدم"""
+    random_part = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+    time_part = datetime.now().timestamp()
+    hash_input = f"{user_id}_{random_part}_{time_part}"
+    url_hash = hashlib.md5(hash_input.encode()).hexdigest()[:12]
+    return f"bio_{url_hash}"
+
 
 def get_bio_page(user_id):
     """جلب صفحة البايو للمستخدم"""
@@ -364,29 +371,68 @@ def get_bio_page(user_id):
         return None
 
 
-def create_or_update_bio_page(user_id, display_name, accounts, custom_links=None):
-    """إنشاء أو تحديث صفحة البايو"""
+def get_bio_page_by_url(page_url):
+    """جلب صفحة البايو بواسطة الرابط"""
     try:
-        import hashlib
-        # إنشاء رابط فريد
-        hash_input = f"{user_id}_{datetime.now().timestamp()}"
-        page_url_hash = hashlib.md5(hash_input.encode()).hexdigest()[:12]
-        page_url = f"bio_{page_url_hash}"
+        response = supabase.table('bio_pages').select('*').eq('page_url', page_url).eq('is_enabled', True).execute()
+        if response.data:
+            return response.data[0]
+        return None
+    except Exception as e:
+        logger.error(f"Error getting bio page by url: {e}")
+        return None
+
+
+def create_or_update_bio_page(user_id, display_name, accounts, custom_links=None, bio=None):
+    """إنشاء أو تحديث صفحة البايو (نسخة متطورة)"""
+    try:
+        # التحقق من وجود صفحة مسبقاً
+        existing = supabase.table('bio_pages').select('page_url').eq('user_id', user_id).execute()
         
-        supabase.table('bio_pages').upsert({
-            'user_id': user_id,
-            'display_name': display_name,
-            'accounts': accounts,
-            'custom_links': custom_links or [],
-            'page_url': page_url,
-            'is_enabled': True,
-            'updated_at': datetime.now().isoformat()
-        }).execute()
+        if existing.data:
+            page_url = existing.data[0]['page_url']
+            # تحديث البيانات
+            supabase.table('bio_pages').update({
+                'display_name': display_name,
+                'bio': bio or '',
+                'accounts': accounts,
+                'custom_links': custom_links or [],
+                'updated_at': datetime.now().isoformat()
+            }).eq('user_id', user_id).execute()
+            logger.info(f"✅ تم تحديث صفحة البايو للمستخدم {user_id}")
+        else:
+            page_url = generate_bio_url(user_id)
+            # إنشاء صفحة جديدة
+            supabase.table('bio_pages').insert({
+                'user_id': user_id,
+                'display_name': display_name,
+                'bio': bio or '',
+                'accounts': accounts,
+                'custom_links': custom_links or [],
+                'page_url': page_url,
+                'is_enabled': True,
+                'views_count': 0,
+                'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat()
+            }).execute()
+            logger.info(f"✅ تم إنشاء صفحة بايو جديدة للمستخدم {user_id}")
         
         return page_url
     except Exception as e:
         logger.error(f"Error creating/updating bio page: {e}")
         return None
+
+
+def increment_bio_views(page_url):
+    """زيادة عدد مشاهدات صفحة البايو"""
+    try:
+        supabase.table('bio_pages').update({
+            'views_count': supabase.raw('views_count + 1')
+        }).eq('page_url', page_url).execute()
+        return True
+    except Exception as e:
+        logger.error(f"Error incrementing bio views: {e}")
+        return False
 
 
 def disable_bio_page(user_id):
