@@ -532,30 +532,32 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     is_premium = user_info['status'] == 'premium' if user_info else False
     
     help_text = f"""
-🆘 **مساعدة بوت تحليل الحسابات الاجتماعية**
+🆘 <b>مساعدة بوت تحليل الحسابات الاجتماعية</b>
 
-🔹 **لتحليل حساب:**
+🔹 <b>لتحليل حساب:</b>
 • اضغط على زر 🎯 تحليل حساباتي
 • اختر المنصة المطلوبة
 • سيتم تحليل الحساب المسجل تلقائياً
 
-🔹 **للتسجيل أو تعديل البيانات:**
+🔹 <b>للتسجيل أو تعديل البيانات:</b>
 • اضغط على 📝 بياناتي لعرض الحسابات المسجلة
 • اضغط على ✏️ تعديل بياناتي لتعديل الحسابات
 
-💰 **نظام الاستخدام:**
+💰 <b>نظام الاستخدام:</b>
 • الخطة المجانية: {FREE_LIMIT} تحليل يومياً
 • الخطة المميزة: غير محدود
 
-📋 **الأوامر:**
+📋 <b>الأوامر:</b>
 /start - بدء الاستخدام
 /help - هذه المساعدة
 /mystats - إحصائياتي الشخصية
 /premium - الاشتراك المميز
 /mydata - عرض بياناتي
+/edit - تعديل بياناتي
 
-👨‍💻 **المطور:** @E_Alshabany
+👨‍💻 <b>المطور:</b> @E_Alshabany
 """
+    await update.message.reply_text(help_text, parse_mode='HTML', reply_markup=get_main_keyboard(is_premium))
     await update.message.reply_text(help_text, parse_mode='Markdown', reply_markup=get_main_keyboard(is_premium))
 
 
