@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 Social Media Analyzer Bot - تحليل حسابات السوشيال ميديا
 @Social_Media_tools_bot
@@ -12,7 +12,7 @@ import asyncio
 from datetime import datetime, date, timedelta
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler, ConversationHandler
-from flask import Flask, request
+from flask import Flask, request, render_template
 
 # إضافة مجلد utils إلى المسار
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -21,7 +21,7 @@ from utils.db import (
     increment_usage, can_analyze, get_remaining_analyses, get_total_analyses,
     get_user_social_accounts, get_user_account, save_user_account, delete_user_account,
     can_use_gemini, increment_gemini_usage,
-    get_bio_page, create_or_update_bio_page, disable_bio_page
+    get_bio_page, create_or_update_bio_page, disable_bio_page, get_bio_page_by_url, increment_bio_views
 )
 from utils.youtube_analyzer import get_channel_details, format_channel_report
 from utils.gemini_ai import get_channel_recommendations, get_username_recommendations
@@ -70,6 +70,18 @@ logger = logging.getLogger(__name__)
 # تخزين مؤقت لبيانات المستخدم أثناء التسجيل
 user_registration_data = {}
 
+# ========== دوال المساعدة ==========
+
+def get_platform_icon(platform):
+    """الحصول على أيقونة المنصة"""
+    icons = {
+        'youtube': '🎬',
+        'instagram': '📸',
+        'tiktok': '🎵',
+        'facebook': '📘'
+    }
+    return icons.get(platform, '🔗')
+
 # ========== لوحات المفاتيح ==========
 
 def get_main_keyboard(is_premium=False):
@@ -90,13 +102,18 @@ def get_analysis_keyboard():
         [InlineKeyboardButton("📸 انستقرام (قريباً)", callback_data="analyze_instagram")],
         [InlineKeyboardButton("🎵 تيك توك (قريباً)", callback_data="analyze_tiktok")],
         [InlineKeyboardButton("📘 فيسبوك (قريباً)", callback_data="analyze_facebook")],
-        [InlineKeyboardButton("🔙 رجوع", callback_data="main_menu")]
+        [InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
 def get_premium_keyboard():
     """لوحة الاشتراك المميز"""
     keyboard = [[InlineKeyboardButton("💎 اشتراك مميز - 10$ مدى الحياة", web_app=WebAppInfo(url=f"https://{RENDER_URL}/payment"))]]
+    return InlineKeyboardMarkup(keyboard)
+
+def get_edit_keyboard(platform):
+    """لوحة تعديل الحساب مع زر رجوع"""
+    keyboard = [[InlineKeyboardButton("🔙 رجوع للقائمة الرئيسية", callback_data="main_menu")]]
     return InlineKeyboardMarkup(keyboard)
 
 # ========== أوامر البوت ==========
@@ -373,17 +390,6 @@ async def ask_facebook(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
-def get_platform_icon(platform):
-    """الحصول على أيقونة المنصة"""
-    icons = {
-        'youtube': '🎬',
-        'instagram': '📸',
-        'tiktok': '🎵',
-        'facebook': '📘'
-    }
-    return icons.get(platform, '🔗')
-
-
 async def my_data_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """عرض بيانات المستخدم"""
     user_id = update.effective_user.id
@@ -413,7 +419,7 @@ async def my_data_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         bio_page = get_bio_page(user_id)
         if bio_page and bio_page.get('is_enabled'):
             text += f"\n📄 **صفحة البايو:**\n"
-            text += f"🔗 {RENDER_URL}/bio/{bio_page['page_url']}"
+            text += f"🔗 https://{RENDER_URL}/bio/{bio_page['page_url']}"
     
     await update.message.reply_text(text, parse_mode='Markdown', reply_markup=get_main_keyboard(is_premium))
 
@@ -428,7 +434,7 @@ async def edit_data_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if platform in accounts:
             keyboard.append([InlineKeyboardButton(f"✏️ تعديل {platform.capitalize()}", callback_data=f"edit_{platform}")])
     
-    keyboard.append([InlineKeyboardButton("🔙 رجوع", callback_data="main_menu")])
+    keyboard.append([InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")])
     
     await update.message.reply_text(
         "✏️ **اختر الحساب الذي تريد تعديله:**",
@@ -551,6 +557,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 👨‍💻 **المطور:** @E_Alshabany
 """
     await update.message.reply_text(help_text, parse_mode='Markdown', reply_markup=get_main_keyboard(is_premium))
+
+
 async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """بدء عملية التحليل"""
     user_id = update.effective_user.id
@@ -753,9 +761,16 @@ async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     
+    # تحويل تنسيق الحسابات إلى الشكل المطلوب لصفحة البايو
+    formatted_accounts = {}
+    for platform, acc in accounts.items():
+        formatted_accounts[platform] = {
+            'account_identifier': acc['account_identifier']
+        }
+    
     # إنشاء صفحة البايو
     display_name = user_info.get('first_name', 'مستخدم')
-    page_url = create_or_update_bio_page(user_id, display_name, accounts)
+    page_url = create_or_update_bio_page(user_id, display_name, formatted_accounts)
     
     if page_url:
         await update.message.reply_text(
@@ -810,18 +825,18 @@ async def handle_username_check(update: Update, context: ContextTypes.DEFAULT_TY
     username = update.message.text.strip()
     context.user_data['awaiting_username'] = False
     
-    await update.message.reply_text(f"🔍 جاري فحص اليوزرنيم: @{escape_html(username)}...")
-    
-    # هنا سيتم إضافة منطق فحص اليوزرنيم عبر APIs المنصات
-    # حالياً نعرض رسالة تجريبية
-    
-    recommendations = await get_username_recommendations('youtube', username, username)
-    
-    response = f"🔍 **نتيجة فحص اليوزرنيم @{escape_html(username)}**\n\n"
-    response += f"✅ الاسم متاح! (تجريبياً)\n\n"
-    response += f"🤖 **توصيات الذكاء الاصطناعي:**\n{recommendations}"
-    
-    await update.message.reply_text(response, parse_mode='Markdown')
+    await update.message.reply_text(
+        f"🔍 **نتيجة فحص اليوزرنيم @{escape_html(username)}**\n\n"
+        f"📊 **النتائج:**\n"
+        f"• 🎬 يوتيوب: ⏳ قيد التطوير\n"
+        f"• 📸 انستقرام: ⏳ قيد التطوير\n"
+        f"• 🎵 تيك توك: ⏳ قيد التطوير\n"
+        f"• 📘 فيسبوك: ⏳ قيد التطوير\n\n"
+        f"💎 **هذه الميزة ستعمل قريباً!**\n"
+        f"سيتمكن المستخدمون المميزون من فحص توافر اليوزرنيم على جميع المنصات دفعة واحدة.\n\n"
+        f"🚀 **قريباً في التحديث القادم**",
+        parse_mode='Markdown'
+    )
 
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -847,59 +862,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "main_menu":
         user_info = get_user_info(user_id)
         is_premium = user_info['status'] == 'premium' if user_info else False
-        # إرسال رسالة جديدة بدلاً من تعديل القديمة
-        await query.message.reply_text(
-            "🏠 **القائمة الرئيسية**\n\nاختر ما تريد:",
-            parse_mode='Markdown',
-            reply_markup=get_main_keyboard(is_premium)
-        )
-        await query.delete_message()
-    
-    # ========== زر المساعدة ==========
-    elif data == "help":
-        user_info = get_user_info(user_id)
-        is_premium = user_info['status'] == 'premium' if user_info else False
-        help_text = f"""
-🆘 **مساعدة بوت تحليل الحسابات الاجتماعية**
-
-🔹 **لتحليل حساب:**
-• اضغط على زر 🎯 تحليل حساباتي
-• اختر المنصة المطلوبة
-
-🔹 **للتسجيل أو تعديل البيانات:**
-• اضغط على 📝 بياناتي لعرض الحسابات المسجلة
-• اضغط على ✏️ تعديل بياناتي لتعديل الحسابات
-
-💰 **نظام الاستخدام:**
-• الخطة المجانية: {FREE_LIMIT} تحليل يومياً
-• الخطة المميزة: غير محدود
-
-📋 **الأوامر:**
-/start - بدء الاستخدام
-/help - هذه المساعدة
-/mystats - إحصائياتي الشخصية
-/premium - الاشتراك المميز
-/mydata - عرض بياناتي
-
-👨‍💻 **المطور:** @E_Alshabany
-"""
-        await query.message.reply_text(help_text, parse_mode='Markdown', reply_markup=get_main_keyboard(is_premium))
-        await query.delete_message()
-    
-    # ========== زر صفحة البايو ==========
-    elif data == "bio_page":
-        await bio_page_command(update, context)
-        await query.delete_message()
-    
-    # ========== زر فحص اليوزرنيم ==========
-    elif data == "username_check":
-        await username_check_command(update, context)
-        await query.delete_message()
-    
-    # ========== زر الرجوع من قائمة التعديل ==========
-    elif data == "back_to_main":
-        user_info = get_user_info(user_id)
-        is_premium = user_info['status'] == 'premium' if user_info else False
         await query.message.reply_text(
             "🏠 **القائمة الرئيسية**\n\nاختر ما تريد:",
             parse_mode='Markdown',
@@ -915,8 +877,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data.startswith("edit_"):
         platform = data.split('_')[1]
         context.user_data['editing_platform'] = platform
-        # إضافة زر رجوع
-        keyboard = [[InlineKeyboardButton("🔙 رجوع", callback_data="back_to_main")]]
+        keyboard = [[InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")]]
         await query.edit_message_text(
             f"✏️ **تعديل حساب {platform.capitalize()}**\n\n"
             f"أرسل المعرف الجديد أو الرابط:",
@@ -1020,99 +981,141 @@ def payment_page():
 def bio_page(page_url):
     """صفحة البايو الشخصية"""
     try:
-        response = supabase.table('bio_pages').select('*').eq('page_url', page_url).eq('is_enabled', True).execute()
-        if not response.data:
+        bio = get_bio_page_by_url(page_url)
+        if not bio:
             return "Page not found", 404
         
-        bio = response.data[0]
         user_info = get_user_info(bio['user_id'])
-        
         if not user_info:
             return "User not found", 404
         
-        html = f"""
-        <!DOCTYPE html>
-        <html dir="rtl" lang="ar">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>{escape_html(bio['display_name'])} - صفحة البايو</title>
-            <style>
-                * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-                body {{
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    min-height: 100vh;
-                    padding: 20px;
-                }}
-                .container {{
-                    max-width: 500px;
-                    margin: 0 auto;
-                }}
-                .card {{
-                    background: white;
-                    border-radius: 20px;
-                    padding: 30px;
-                    text-align: center;
-                    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-                }}
-                .name {{
-                    font-size: 24px;
-                    font-weight: bold;
-                    margin-bottom: 10px;
-                }}
-                .username {{
-                    color: #666;
-                    margin-bottom: 20px;
-                }}
-                .button {{
-                    display: block;
-                    background: #f0f0f0;
-                    padding: 12px 20px;
-                    margin: 10px 0;
-                    border-radius: 10px;
-                    text-decoration: none;
-                    color: #333;
-                    transition: all 0.3s;
-                }}
-                .button:hover {{
-                    background: #e0e0e0;
-                    transform: scale(1.02);
-                }}
-                .youtube {{ background: #ff0000; color: white; }}
-                .instagram {{ background: #e4405f; color: white; }}
-                .tiktok {{ background: #000000; color: white; }}
-                .facebook {{ background: #1877f2; color: white; }}
-                .footer {{
-                    text-align: center;
-                    margin-top: 20px;
-                    color: white;
-                    font-size: 12px;
-                }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="card">
-                    <div class="name">{escape_html(bio['display_name'])}</div>
-                    <div class="username">@{user_info.get('username', '')}</div>
-        """
+        # زيادة عدد المشاهدات
+        increment_bio_views(page_url)
         
         accounts = bio.get('accounts', {})
-        for platform, acc in accounts.items():
-            icon = get_platform_icon(platform)
-            html += f'<a href="https://{platform}.com/{acc["account_identifier"]}" class="button {platform}" target="_blank">{icon} {platform.capitalize()}</a>'
+        custom_links = bio.get('custom_links', [])
         
-        html += f"""
-                    <div class="footer">
-                        تم الإنشاء عبر @Social_Media_tools_bot
+        # تصميم الصفحة
+        html = f"""
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{escape_html(bio['display_name'])} | صفحة البايو</title>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }}
+        .container {{ max-width: 500px; margin: 0 auto; }}
+        .card {{
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }}
+        .avatar {{
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }}
+        .name {{ font-size: 24px; font-weight: bold; margin-bottom: 5px; color: #2c3e50; }}
+        .username {{ color: #666; margin-bottom: 20px; font-size: 14px; }}
+        .divider {{ height: 1px; background: #e0e0e0; margin: 20px 0; }}
+        .button {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f5f5f5;
+            padding: 12px 20px;
+            margin: 10px 0;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.3s;
+        }}
+        .button:hover {{ transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }}
+        .button-left {{ display: flex; align-items: center; gap: 12px; }}
+        .button-icon {{ font-size: 24px; }}
+        .button-name {{ font-weight: 500; color: #333; }}
+        .button-username {{ font-size: 12px; color: #666; }}
+        .button-right {{ background: #667eea; color: white; padding: 6px 15px; border-radius: 20px; font-size: 12px; }}
+        .youtube-bg .button-right {{ background: #ff0000; }}
+        .instagram-bg .button-right {{ background: #e4405f; }}
+        .tiktok-bg .button-right {{ background: #000000; }}
+        .facebook-bg .button-right {{ background: #1877f2; }}
+        .footer {{ text-align: center; margin-top: 20px; font-size: 12px; color: white; }}
+        .footer a {{ color: #ffd700; text-decoration: none; }}
+        @media (max-width: 600px) {{ .card {{ padding: 20px; }} .name {{ font-size: 20px; }} }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="avatar">👤</div>
+            <div class="name">{escape_html(bio['display_name'])}</div>
+            <div class="username">@{escape_html(user_info.get('username', ''))}</div>
+            <div class="divider"></div>
+"""
+        
+        # إضافة الحسابات
+        platform_info = {
+            'youtube': {'icon': '🎬', 'name': 'YouTube', 'url': 'https://youtube.com/@'},
+            'instagram': {'icon': '📸', 'name': 'Instagram', 'url': 'https://instagram.com/'},
+            'tiktok': {'icon': '🎵', 'name': 'TikTok', 'url': 'https://tiktok.com/@'},
+            'facebook': {'icon': '📘', 'name': 'Facebook', 'url': 'https://facebook.com/'}
+        }
+        
+        for platform, acc in accounts.items():
+            info = platform_info.get(platform, {'icon': '🔗', 'name': platform.capitalize(), 'url': 'https://'})
+            identifier = acc.get('account_identifier', '')
+            full_url = f"{info['url']}{identifier}"
+            html += f"""
+            <a href="{full_url}" class="button {platform}-bg" target="_blank">
+                <div class="button-left">
+                    <span class="button-icon">{info['icon']}</span>
+                    <div>
+                        <div class="button-name">{info['name']}</div>
+                        <div class="button-username">@{identifier}</div>
                     </div>
                 </div>
-            </div>
-        </body>
-        </html>
-        """
+                <div class="button-right">فتح</div>
+            </a>
+"""
         
+        # إضافة الروابط المخصصة
+        for link in custom_links:
+            html += f"""
+            <a href="{link.get('url', '#')}" class="button" target="_blank">
+                <div class="button-left">
+                    <span class="button-icon">🔗</span>
+                    <div>
+                        <div class="button-name">{escape_html(link.get('title', 'رابط مخصص'))}</div>
+                    </div>
+                </div>
+                <div class="button-right">فتح</div>
+            </a>
+"""
+        
+        html += f"""
+            <div class="footer">
+                <a href="https://t.me/Social_Media_tools_bot">@Social_Media_tools_bot</a> - أنشئ صفحة بايو خاصتك
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+"""
         return html
         
     except Exception as e:
@@ -1163,10 +1166,10 @@ def main():
     print("="*60)
     print("📊 Social Media Analyzer Bot - النسخة المميزة")
     print("🤖 @Social_Media_tools_bot")
-    print("✅ أوامر: /start /help /mystats /premium /mydata")
+    print("✅ أوامر: /start /help /mystats /premium /mydata /edit")
     print(f"✅ نظام المدفوعات: مجاني {FREE_LIMIT} تحليل - مميز غير محدود")
     print("✅ قاعدة بيانات: Supabase (متكاملة مع النظام الموحد)")
-    print("✅ الذكاء الاصطناعي: Gemini API")
+    print("✅ الذكاء الاصطناعي: Gemini API (قيد التطوير)")
     print("="*60)
     
     application.run_polling(allowed_updates=Update.ALL_TYPES)
