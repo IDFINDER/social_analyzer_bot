@@ -1,25 +1,22 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
-دوال الذكاء الاصطناعي باستخدام Gemini API
+دوال الذكاء الاصطناعي باستخدام Gemini API (بدون مكتبة خارجية)
 """
 
 import os
 import logging
-import google.generativeai as genai
+import requests
+import json
 
 logger = logging.getLogger(__name__)
 
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
-
-# تهيئة Gemini
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
 
 
 async def get_channel_recommendations(channel_details):
     """
-    الحصول على توصيات لتحسين القناة باستخدام Gemini
+    الحصول على توصيات لتحسين القناة باستخدام Gemini API
     """
     if not GEMINI_API_KEY:
         return "⚠️ خدمة الذكاء الاصطناعي غير متاحة حالياً."
@@ -38,8 +35,23 @@ async def get_channel_recommendations(channel_details):
         اجعل النصائح قصيرة ومباشرة باللغة العربية.
         """
         
-        response = model.generate_content(prompt)
-        return response.text
+        response = requests.post(
+            f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
+            headers={"Content-Type": "application/json"},
+            json={
+                "contents": [{
+                    "parts": [{"text": prompt}]
+                }]
+            },
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            return data['candidates'][0]['content']['parts'][0]['text']
+        else:
+            logger.error(f"Gemini API error: {response.status_code} - {response.text}")
+            return "⚠️ عذراً، حدث خطأ في جلب التوصيات. حاول مرة أخرى لاحقاً."
         
     except Exception as e:
         logger.error(f"Error getting Gemini recommendations: {e}")
@@ -68,8 +80,22 @@ async def get_username_recommendations(platform, current_username, target_userna
         اجعل الرد مختصراً باللغة العربية.
         """
         
-        response = model.generate_content(prompt)
-        return response.text
+        response = requests.post(
+            f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
+            headers={"Content-Type": "application/json"},
+            json={
+                "contents": [{
+                    "parts": [{"text": prompt}]
+                }]
+            },
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            return data['candidates'][0]['content']['parts'][0]['text']
+        else:
+            return "⚠️ عذراً، حدث خطأ في جلب التوصيات."
         
     except Exception as e:
         logger.error(f"Error getting username recommendations: {e}")
@@ -101,8 +127,22 @@ async def get_bio_page_suggestions(user_data, accounts):
         اجعل الرد مختصراً باللغة العربية.
         """
         
-        response = model.generate_content(prompt)
-        return response.text
+        response = requests.post(
+            f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
+            headers={"Content-Type": "application/json"},
+            json={
+                "contents": [{
+                    "parts": [{"text": prompt}]
+                }]
+            },
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            return data['candidates'][0]['content']['parts'][0]['text']
+        else:
+            return "⚠️ عذراً، حدث خطأ في جلب الاقتراحات."
         
     except Exception as e:
         logger.error(f"Error getting bio page suggestions: {e}")
