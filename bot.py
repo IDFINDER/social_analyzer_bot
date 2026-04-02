@@ -121,9 +121,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     accounts = get_user_social_accounts(user.id)
     
     if accounts:
-    # مستخدم مسجل مسبقاً
-    is_premium = user_data['status'] == 'premium'
-    remaining = get_remaining_analyses(user.id)
+    is_premium = user_data['status'] == 'premium'  # ← 4 مسافات
+    remaining = get_remaining_analyses(user.id)   # ← 4 مسافات
     total = get_total_analyses(user.id)
     
     if is_premium:
