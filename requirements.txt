@@ -1,0 +1,6 @@
+google-api-python-client==2.190.0
+python-telegram-bot==22.6
+requests==2.31.0
+flask==3.0.0
+supabase>=2.0.0
+google-generativeai==0.7.0
