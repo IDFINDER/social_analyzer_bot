@@ -121,9 +121,37 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     accounts = get_user_social_accounts(user.id)
     
     if accounts:
-        # مستخدم مسجل مسبقاً (نفس الكود السابق)
-        # ...
-        return ConversationHandler.END
+    # مستخدم مسجل مسبقاً
+    is_premium = user_data['status'] == 'premium'
+    remaining = get_remaining_analyses(user.id)
+    total = get_total_analyses(user.id)
+    
+    if is_premium:
+        status_text = "👑 مميز"
+        limit_text = "غير محدود"
+    else:
+        status_text = "🎁 مجاني"
+        limit_text = f"{remaining}/{FREE_LIMIT}"
+    
+    welcome_text = f"""
+🌐 **مرحباً بعودتك {user.first_name}!**
+
+💎 **حالتك:** {status_text}
+📊 **التحليلات المتبقية اليوم:** {limit_text}
+📈 **إجمالي التحليلات:** {total}
+
+📱 **حساباتك المسجلة:**
+"""
+    for platform, acc in accounts.items():
+        welcome_text += f"• {get_platform_icon(platform)} {platform.capitalize()}: {acc['account_identifier']}\n"
+    
+    welcome_text += """
+🎯 **ماذا تريد أن تفعل؟**
+• اضغط على 🎯 تحليل حساباتي
+• أو استخدم الأزرار أدناه
+"""
+    await update.message.reply_text(welcome_text, parse_mode='Markdown', reply_markup=get_main_keyboard(is_premium))
+    return ConversationHandler.END
     else:
         # مستخدم جديد - بدء التسجيل
         await update.message.reply_text(
