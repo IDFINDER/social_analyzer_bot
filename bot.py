@@ -828,7 +828,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """معالجة الأزرار"""
     query = update.callback_query
     data = query.data
+    user_id = query.from_user.id
     
+    # ========== أزرار التحليل ==========
     if data == "analyze_youtube":
         await analyze_youtube(update, context, query)
     
@@ -841,26 +843,85 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "analyze_facebook":
         await query.answer("📘 هذه الميزة قيد التطوير حالياً", show_alert=True)
     
+    # ========== زر القائمة الرئيسية ==========
     elif data == "main_menu":
-        user_id = query.from_user.id
         user_info = get_user_info(user_id)
         is_premium = user_info['status'] == 'premium' if user_info else False
-        await query.edit_message_text(
+        # إرسال رسالة جديدة بدلاً من تعديل القديمة
+        await query.message.reply_text(
             "🏠 **القائمة الرئيسية**\n\nاختر ما تريد:",
             parse_mode='Markdown',
             reply_markup=get_main_keyboard(is_premium)
         )
+        await query.delete_message()
     
+    # ========== زر المساعدة ==========
+    elif data == "help":
+        user_info = get_user_info(user_id)
+        is_premium = user_info['status'] == 'premium' if user_info else False
+        help_text = f"""
+🆘 **مساعدة بوت تحليل الحسابات الاجتماعية**
+
+🔹 **لتحليل حساب:**
+• اضغط على زر 🎯 تحليل حساباتي
+• اختر المنصة المطلوبة
+
+🔹 **للتسجيل أو تعديل البيانات:**
+• اضغط على 📝 بياناتي لعرض الحسابات المسجلة
+• اضغط على ✏️ تعديل بياناتي لتعديل الحسابات
+
+💰 **نظام الاستخدام:**
+• الخطة المجانية: {FREE_LIMIT} تحليل يومياً
+• الخطة المميزة: غير محدود
+
+📋 **الأوامر:**
+/start - بدء الاستخدام
+/help - هذه المساعدة
+/mystats - إحصائياتي الشخصية
+/premium - الاشتراك المميز
+/mydata - عرض بياناتي
+
+👨‍💻 **المطور:** @E_Alshabany
+"""
+        await query.message.reply_text(help_text, parse_mode='Markdown', reply_markup=get_main_keyboard(is_premium))
+        await query.delete_message()
+    
+    # ========== زر صفحة البايو ==========
+    elif data == "bio_page":
+        await bio_page_command(update, context)
+        await query.delete_message()
+    
+    # ========== زر فحص اليوزرنيم ==========
+    elif data == "username_check":
+        await username_check_command(update, context)
+        await query.delete_message()
+    
+    # ========== زر الرجوع من قائمة التعديل ==========
+    elif data == "back_to_main":
+        user_info = get_user_info(user_id)
+        is_premium = user_info['status'] == 'premium' if user_info else False
+        await query.message.reply_text(
+            "🏠 **القائمة الرئيسية**\n\nاختر ما تريد:",
+            parse_mode='Markdown',
+            reply_markup=get_main_keyboard(is_premium)
+        )
+        await query.delete_message()
+    
+    # ========== توصيات الذكاء الاصطناعي ==========
     elif data.startswith("ai_recommendations"):
         await ai_recommendations(update, context)
     
+    # ========== تعديل الحسابات ==========
     elif data.startswith("edit_"):
         platform = data.split('_')[1]
         context.user_data['editing_platform'] = platform
+        # إضافة زر رجوع
+        keyboard = [[InlineKeyboardButton("🔙 رجوع", callback_data="back_to_main")]]
         await query.edit_message_text(
             f"✏️ **تعديل حساب {platform.capitalize()}**\n\n"
             f"أرسل المعرف الجديد أو الرابط:",
-            parse_mode='Markdown'
+            parse_mode='Markdown',
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
 
