@@ -650,7 +650,7 @@ async def analyze_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
         with open(filename, 'w', encoding='utf-8') as f:
             f.write(file_content)
         
-        await message.reply_text(message_text, parse_mode='Markdown')
+        await message.reply_text(message_text, parse_mode='HTML')
         
         with open(filename, 'rb') as f:
             await message.reply_document(
@@ -661,7 +661,7 @@ async def analyze_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
         
         os.remove(filename)
     else:
-        await message.reply_text(message_text, parse_mode='Markdown')
+        await message.reply_text(message_text, parse_mode='HTML')
     
     # عرض خيار إضافة توصيات AI للمميزين
     if is_premium:
