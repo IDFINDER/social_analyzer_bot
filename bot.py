@@ -125,6 +125,11 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     remaining = get_remaining_analyses(user.id)   # ← 4 مسافات
     total = get_total_analyses(user.id)
     
+    if accounts:
+    is_premium = user_data['status'] == 'premium'
+    remaining = get_remaining_analyses(user.id)
+    total = get_total_analyses(user.id)
+    
     if is_premium:
         status_text = "👑 مميز"
         limit_text = "غير محدود"
