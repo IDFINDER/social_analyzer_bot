@@ -132,8 +132,8 @@ def format_channel_report(channel_details, user_id=None, is_premium=False, remai
     from .helpers import clean_filename, escape_html
     
     # بناء الرسالة النصية
-    message = f"✅ **تم تحليل القناة بنجاح!**\n\n"
-    message += f"📺 **القناة:** {escape_html(channel_details['title'])}\n"
+    message = f"✅ <b>تم تحليل القناة بنجاح!</b>\n\n"
+    message += f"📺 <b>القناة:</b> {escape_html(channel_details['title'])}\n"
     message += f"🆔 **اليوزر:** @{escape_html(channel_details['custom_url'])}\n"
     message += f"📅 **الإنشاء:** {channel_details['published_at']}\n"
     message += f"🌍 **البلد:** {channel_details['country']}\n\n"
