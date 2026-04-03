@@ -384,14 +384,19 @@ def get_bio_page_by_url(page_url):
 
 
 def create_or_update_bio_page(user_id, display_name, accounts, custom_links=None, bio=None):
-    """إنشاء أو تحديث صفحة البايو (نسخة متطورة)"""
+    """إنشاء أو تحديث صفحة البايو (بدون تكرار)"""
     try:
+        import hashlib
+        import random
+        import string
+        from datetime import datetime
+        
         # التحقق من وجود صفحة مسبقاً
         existing = supabase.table('bio_pages').select('page_url').eq('user_id', user_id).execute()
         
         if existing.data:
+            # تحديث الصفحة الموجودة
             page_url = existing.data[0]['page_url']
-            # تحديث البيانات
             supabase.table('bio_pages').update({
                 'display_name': display_name,
                 'bio': bio or '',
@@ -401,8 +406,13 @@ def create_or_update_bio_page(user_id, display_name, accounts, custom_links=None
             }).eq('user_id', user_id).execute()
             logger.info(f"✅ تم تحديث صفحة البايو للمستخدم {user_id}")
         else:
-            page_url = generate_bio_url(user_id)
             # إنشاء صفحة جديدة
+            random_part = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+            time_part = datetime.now().timestamp()
+            hash_input = f"{user_id}_{random_part}_{time_part}"
+            url_hash = hashlib.md5(hash_input.encode()).hexdigest()[:12]
+            page_url = f"bio_{url_hash}"
+            
             supabase.table('bio_pages').insert({
                 'user_id': user_id,
                 'display_name': display_name,
