@@ -741,14 +741,14 @@ async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if not is_premium:
         await update.message.reply_text(
-            "💎 **صفحة البايو**\n\n"
+            "💎 <b>صفحة البايو</b>\n\n"
             "هذه الميزة متاحة فقط للمستخدمين المميزين!\n\n"
-            "💎 **مميزات صفحة البايو:**\n"
+            "💎 <b>مميزات صفحة البايو:</b>\n"
             "• صفحة شخصية تعرض جميع حساباتك\n"
             "• روابط مختصرة لكل منصة\n"
             "• تصميم احترافي قابل للمشاركة\n\n"
             "للاشتراك: /premium",
-            parse_mode='Markdown',
+            parse_mode='HTML',
             reply_markup=get_premium_keyboard()
         )
         return
@@ -759,6 +759,7 @@ async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "❌ لم تقم بتسجيل أي حسابات بعد.\n\n"
             "للتسجيل، أرسل /start",
+            parse_mode='HTML',
             reply_markup=get_main_keyboard(True)
         )
         return
@@ -776,17 +777,18 @@ async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if page_url:
         await update.message.reply_text(
-            f"✅ **تم إنشاء صفحة البايو بنجاح!**\n\n"
-            f"🔗 **رابط صفحتك:**\n"
+            f"✅ <b>تم إنشاء صفحة البايو بنجاح!</b>\n\n"
+            f"🔗 <b>رابط صفحتك:</b>\n"
             f"https://{RENDER_URL}/bio/{page_url}\n\n"
             f"📌 يمكنك مشاركة هذا الرابط مع الآخرين\n"
             f"🔄 لتحديث الصفحة، أضف أو عدل حساباتك ثم استخدم هذا الأمر مرة أخرى",
-            parse_mode='Markdown',
+            parse_mode='HTML',
             reply_markup=get_main_keyboard(True)
         )
     else:
         await update.message.reply_text(
             "❌ حدث خطأ في إنشاء صفحة البايو. حاول مرة أخرى لاحقاً.",
+            parse_mode='HTML',
             reply_markup=get_main_keyboard(True)
         )
 
