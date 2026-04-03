@@ -1,134 +1,37 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الاشتراك المميز - بوت تحليل الحسابات</title>
+    <title>الاشتراك المميز</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Tahoma', 'Arial', sans-serif;
+            font-family: 'Tahoma', Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
             color: #fff;
         }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
         .card {
             background: rgba(255,255,255,0.1);
             backdrop-filter: blur(10px);
             border-radius: 20px;
             padding: 30px;
-            margin-bottom: 20px;
             text-align: center;
         }
-        h1 {
-            color: #ffd700;
-            margin-bottom: 20px;
-            font-size: 2em;
-        }
-        .price {
-            font-size: 3em;
-            color: #ffd700;
-            margin: 20px 0;
-        }
-        .features {
-            text-align: right;
-            margin: 30px 0;
-            padding: 0 20px;
-        }
-        .features li {
-            margin: 12px 0;
-            list-style: none;
-            font-size: 1.1em;
-        }
-        .features li::before {
-            content: "✅ ";
-            color: #4ecdc4;
-        }
-        .payment-methods {
-            background: rgba(255,255,255,0.05);
-            border-radius: 15px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        .method {
-            display: inline-block;
-            background: rgba(255,255,255,0.1);
-            padding: 8px 15px;
-            border-radius: 25px;
-            margin: 5px;
-            font-size: 0.9em;
-        }
-        .number {
-            font-size: 1.8em;
-            font-weight: bold;
-            color: #ffd700;
-            background: rgba(0,0,0,0.3);
-            padding: 15px;
-            border-radius: 15px;
-            margin: 20px 0;
-            direction: ltr;
-            text-align: center;
-            letter-spacing: 2px;
-        }
-        .copy-btn {
-            background: #4ecdc4;
-            color: #1a1a2e;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 1em;
-            margin: 10px 0;
-            transition: all 0.3s;
-        }
-        .copy-btn:hover {
-            background: #45b7aa;
-            transform: scale(1.05);
-        }
-        .note {
-            font-size: 0.9em;
-            color: #aaa;
-            margin: 20px 0;
-        }
-        .contact {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255,255,255,0.2);
-        }
-        .contact a {
-            color: #ffd700;
-            text-decoration: none;
-        }
-        .button {
-            display: inline-block;
-            background: #ff6b6b;
-            color: white;
-            padding: 12px 30px;
-            border-radius: 10px;
-            text-decoration: none;
-            margin: 10px;
-            transition: all 0.3s;
-        }
-        .button:hover {
-            background: #ff4757;
-            transform: scale(1.05);
-        }
-        .back-btn {
-            background: #4a5568;
-        }
-        .back-btn:hover {
-            background: #2d3748;
-        }
+        h1 { color: #ffd700; margin-bottom: 20px; }
+        .price { font-size: 3em; color: #ffd700; margin: 20px 0; }
+        .features { text-align: right; margin: 30px 0; padding: 0 20px; }
+        .features li { margin: 12px 0; list-style: none; }
+        .features li::before { content: "✅ "; color: #4ecdc4; }
+        .payment-methods { background: rgba(255,255,255,0.05); border-radius: 15px; padding: 20px; margin: 20px 0; }
+        .method { display: inline-block; background: rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 25px; margin: 5px; }
+        .number { font-size: 1.8em; font-weight: bold; color: #ffd700; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 15px; margin: 20px 0; direction: ltr; }
+        .copy-btn { background: #4ecdc4; color: #1a1a2e; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; }
+        .button { display: inline-block; background: #ff6b6b; color: white; padding: 12px 30px; border-radius: 10px; text-decoration: none; margin: 10px; }
+        .back-btn { background: #4a5568; }
         .toast {
             visibility: hidden;
             min-width: 250px;
@@ -143,40 +46,22 @@
             transform: translateX(-50%);
             z-index: 1;
         }
-        .toast.show {
-            visibility: visible;
-            animation: fadein 0.5s, fadeout 0.5s 2.5s;
-        }
-        @keyframes fadein {
-            from {bottom: 0; opacity: 0;}
-            to {bottom: 30px; opacity: 1;}
-        }
-        @keyframes fadeout {
-            from {bottom: 30px; opacity: 1;}
-            to {bottom: 0; opacity: 0;}
-        }
-        @media (max-width: 600px) {
-            .container { padding: 10px; }
-            .card { padding: 20px; }
-            .number { font-size: 1.2em; }
-            .price { font-size: 2em; }
-        }
+        .toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="card">
             <h1>💎 الاشتراك المميز</h1>
-            <div class="price">
-                $10 <span style="font-size: 0.5em;">مدى الحياة</span>
-            </div>
+            <div class="price">$10 <span style="font-size: 0.5em;">مدى الحياة</span></div>
             
             <div class="features">
                 <li>📊 تحليل غير محدود للحسابات</li>
                 <li>🤖 توصيات الذكاء الاصطناعي (5 يومياً)</li>
                 <li>📄 صفحة بايو شخصية</li>
                 <li>🔍 فحص توافر اليوزرنيم</li>
-                <li>⚡ دعم أولوية في المعالجة</li>
             </div>
             
             <div class="payment-methods">
@@ -191,16 +76,8 @@
             <div class="number" id="paymentNumber">772130931</div>
             <button class="copy-btn" onclick="copyNumber()">📋 نسخ الرقم</button>
             
-            <div class="note">
-                ⚠️ بعد التحويل، تواصل مع المطور على تلجرام لإرسال صورة الإيصال وتفعيل الاشتراك.
-            </div>
-            
             <a href="https://t.me/E_Alshabany" class="button">📩 تواصل مع المطور</a>
             <a href="/" class="button back-btn">🏠 العودة للرئيسية</a>
-            
-            <div class="contact">
-                <p>👨‍💻 للمساعدة: <a href="https://t.me/E_Alshabany">@E_Alshabany</a></p>
-            </div>
         </div>
     </div>
     
