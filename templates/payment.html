@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الاشتراك المميز - بوتات الأدوات الاجتماعية</title>
+    <title>الاشتراك المميز - بوت تحليل الحسابات</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -13,68 +13,40 @@
             padding: 20px;
             color: #2c3e50;
         }
-        .container { max-width: 650px; margin: 0 auto; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
         .card {
             background: white;
-            border-radius: 24px;
-            padding: 35px;
+            border-radius: 20px;
+            padding: 30px;
             margin-bottom: 20px;
             text-align: center;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
-        h1 { 
+        h1 {
             background: linear-gradient(135deg, #667eea, #764ba2);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
             margin-bottom: 20px;
-            font-size: 2.2em;
+            font-size: 2em;
         }
-        .price { 
-            font-size: 3.5em; 
-            color: #48bb78; 
-            margin: 20px 0;
-            font-weight: bold;
-        }
-        .price small { font-size: 0.4em; color: #6c757d; }
+        .price { font-size: 3em; color: #48bb78; margin: 20px 0; }
         .features {
             text-align: right;
             margin: 30px 0;
             background: #f8f9fa;
-            border-radius: 20px;
-            padding: 25px;
+            border-radius: 15px;
+            padding: 20px;
         }
-        .features h3 { 
-            color: #2c3e50; 
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        .bot-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #e9ecef;
-        }
-        .bot-row:last-child { border-bottom: none; }
-        .bot-name {
+        .features li {
+            margin: 12px 0;
+            list-style: none;
             font-size: 1.1em;
-            font-weight: 500;
         }
-        .bot-limit {
-            color: #48bb78;
-            font-weight: 500;
-        }
-        .badge {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8em;
-        }
+        .features li::before { content: "✅ "; color: #48bb78; }
         .payment-methods {
             background: #f8f9fa;
-            border-radius: 20px;
+            border-radius: 15px;
             padding: 20px;
             margin: 20px 0;
         }
@@ -87,7 +59,7 @@
             font-size: 0.9em;
         }
         .number {
-            font-size: 2em;
+            font-size: 1.8em;
             font-weight: bold;
             color: #48bb78;
             background: #f8f9fa;
@@ -97,26 +69,24 @@
             direction: ltr;
             text-align: center;
             letter-spacing: 2px;
-            font-family: monospace;
         }
         .copy-btn {
             background: #48bb78;
             color: white;
             border: none;
-            padding: 12px 25px;
-            border-radius: 12px;
+            padding: 10px 20px;
+            border-radius: 10px;
             cursor: pointer;
             font-size: 1em;
             margin: 10px 0;
             transition: all 0.3s;
-            font-weight: 500;
         }
         .copy-btn:hover { background: #38a169; transform: scale(1.02); }
         .warning {
             background: #fff3cd;
-            border-right: 4px solid #ffc107;
+            border-right: 3px solid #ffc107;
             padding: 15px;
-            border-radius: 12px;
+            border-radius: 10px;
             margin: 20px 0;
             text-align: right;
             color: #856404;
@@ -126,11 +96,10 @@
             background: #48bb78;
             color: white;
             padding: 12px 30px;
-            border-radius: 12px;
+            border-radius: 10px;
             text-decoration: none;
             margin: 10px;
             transition: all 0.3s;
-            font-weight: 500;
         }
         .button:hover { background: #38a169; transform: scale(1.02); }
         .back-btn { background: #6c757d; }
@@ -148,13 +117,13 @@
             bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 100;
+            z-index: 1;
         }
         .toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
         @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
         @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
         
-        /* Loading Screen */
+        /* شاشة التحميل */
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -168,8 +137,8 @@
             z-index: 10000;
         }
         .loader {
-            width: 60px;
-            height: 60px;
+            width: 48px;
+            height: 48px;
             border: 4px solid #e9ecef;
             border-top: 4px solid #667eea;
             border-radius: 50%;
@@ -180,21 +149,20 @@
             100% { transform: rotate(360deg); }
         }
         .loading-text {
-            margin-top: 20px;
+            margin-top: 15px;
             color: #6c757d;
             font-size: 14px;
         }
         @media (max-width: 600px) {
             .container { padding: 10px; }
             .card { padding: 20px; }
-            .number { font-size: 1.3em; }
-            .price { font-size: 2.5em; }
-            .bot-row { flex-direction: column; gap: 5px; text-align: center; }
+            .number { font-size: 1.2em; }
+            .price { font-size: 2em; }
         }
     </style>
 </head>
 <body>
-    <!-- Loading Screen -->
+    <!-- شاشة تحميل -->
     <div class="loading-overlay" id="loadingOverlay">
         <div style="text-align: center;">
             <div class="loader"></div>
@@ -202,32 +170,18 @@
         </div>
     </div>
 
-    <!-- Main Content -->
+    <!-- المحتوى الرئيسي -->
     <div class="container" id="mainContent" style="display: none;">
         <div class="card">
             <h1>💎 الاشتراك المميز</h1>
-            <div class="price">
-                $10 <small>مدى الحياة</small>
-            </div>
+            <div class="price">$10 <span style="font-size: 0.5em;">مدى الحياة</span></div>
             
             <div class="features">
-                <h3>🎯 يشمل هذا الاشتراك جميع البوتات:</h3>
-                <div class="bot-row">
-                    <span class="bot-name">📸 بوت تحميل صور يوتيوب</span>
-                    <span class="bot-limit">غير محدود</span>
-                </div>
-                <div class="bot-row">
-                    <span class="bot-name">🎬 بوت استخراج روابط يوتيوب</span>
-                    <span class="bot-limit">غير محدود</span>
-                </div>
-                <div class="bot-row">
-                    <span class="bot-name">📊 بوت تحليل يوتيوب</span>
-                    <span class="bot-limit">غير محدود</span>
-                </div>
-                <div class="bot-row">
-                    <span class="bot-name">🎵 بوت كلمات الأغاني والأناشيد</span>
-                    <span class="bot-limit">غير محدود</span>
-                </div>
+                <li>📊 تحليل غير محدود للحسابات</li>
+                <li>🤖 توصيات الذكاء الاصطناعي (5 يومياً)</li>
+                <li>📄 صفحة بايو شخصية</li>
+                <li>🔍 فحص توافر اليوزرنيم</li>
+                <li>⚡ دعم أولوية في المعالجة</li>
             </div>
             
             <div class="payment-methods">
@@ -243,7 +197,7 @@
             <button class="copy-btn" onclick="copyNumber()">📋 نسخ الرقم</button>
             
             <div class="warning">
-                ⚠️ <strong>تنبيه مهم:</strong> بعد التحويل، تواصل مع المطور على تلجرام لإرسال صورة الإيصال. سيتم تفعيل اشتراكك في <strong>جميع البوتات الأربعة</strong> خلال 24 ساعة.
+                ⚠️ <strong>تنبيه:</strong> بعد التحويل، تواصل مع المطور على تلجرام لإرسال صورة الإيصال وتفعيل الاشتراك.
             </div>
             
             <a href="https://t.me/E_Alshabany" class="button">📩 تواصل مع المطور</a>
@@ -251,8 +205,7 @@
             
             <div class="footer">
                 <p>👨‍💻 للمساعدة: <a href="https://t.me/E_Alshabany" style="color: #667eea;">@E_Alshabany</a></p>
-                <p>🚀 اشتراك واحد - أربع بوتات - استخدام غير محدود</p>
-                <p>✨ الخطة المجانية: 5 عمليات يومياً لكل بوت</p>
+                <p>🚀 اشتراك واحد - جميع البوتات - استخدام غير محدود</p>
             </div>
         </div>
     </div>
