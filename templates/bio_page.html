@@ -1,62 +1,112 @@
-@app.route('/bio/<page_url>')
-def bio_page(page_url):
-    """صفحة البايو الشخصية"""
-    try:
-        bio = get_bio_page_by_url(page_url)
-        if not bio:
-            return "Page not found", 404
-        
-        user_info = get_user_info(bio['user_id'])
-        if not user_info:
-            return "User not found", 404
-        
-        # زيادة عدد المشاهدات
-        increment_bio_views(page_url)
-        
-        accounts = bio.get('accounts', {})
-        custom_links = bio.get('custom_links', [])
-        
-        # تجهيز بيانات الحسابات للقالب
-        platform_icons = {
-            'youtube': 'https://upload.wikimedia.org/wikipedia/commons/b/b8/YouTube_Logo_2017.svg',
-            'instagram': 'https://upload.wikimedia.org/wikipedia/commons/a/a5/Instagram_icon.png',
-            'tiktok': 'https://upload.wikimedia.org/wikipedia/commons/0/0a/TikTok_logo.svg',
-            'facebook': 'https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg'
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ display_name }} | صفحة البايو</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 30px;
         }
-        platform_names = {
-            'youtube': 'YouTube',
-            'instagram': 'Instagram',
-            'tiktok': 'TikTok',
-            'facebook': 'Facebook'
+        .container { max-width: 550px; margin: 0 auto; }
+        .card {
+            background: white;
+            border-radius: 25px;
+            padding: 35px 25px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            text-align: center;
         }
-        
-        accounts_list = []
-        for platform, acc in accounts.items():
-            identifier = acc.get('account_identifier', '')
-            if identifier:
-                accounts_list.append({
-                    'platform': platform,
-                    'name': platform_names.get(platform, platform.capitalize()),
-                    'url': f"https://{platform}.com/{identifier}",
-                    'icon': platform_icons.get(platform, '')
-                })
-        
-        custom_links_list = []
-        for link in custom_links:
-            custom_links_list.append({
-                'title': link.get('title', 'رابط مخصص'),
-                'url': link.get('url', '#')
-            })
-        
-        return render_template(
-            'bio_page.html',
-            display_name=bio['display_name'],
-            username=user_info.get('username', ''),
-            bio=bio.get('bio', ''),
-            accounts=accounts_list,
-            custom_links=custom_links_list
-        )
-        
-    except Exception as e:
-        logger.error(f"Error in bio_page: {e}")
-        return f"Internal error: {e}", 500
+        .avatar {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 45px;
+            color: white;
+        }
+        .name { font-size: 28px; font-weight: bold; color: #2c3e50; margin-bottom: 5px; }
+        .username { font-size: 14px; color: #7f8c8d; margin-bottom: 25px; }
+        .bio { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 15px; 
+            margin: 20px 0;
+            color: #555;
+            line-height: 1.6;
+        }
+        .divider { height: 1px; background: #e0e0e0; margin: 20px 0; }
+        .account-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 85%;
+            margin: 12px auto;
+            padding: 12px 20px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            color: white;
+        }
+        .account-btn:hover { transform: translateY(-2px); opacity: 0.9; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .account-icon { width: 24px; height: 24px; }
+        .youtube { background: #ff0000; }
+        .instagram { background: #e4405f; }
+        .tiktok { background: #000000; }
+        .facebook { background: #1877f2; }
+        .custom-link { background: #667eea; }
+        .footer { text-align: center; margin-top: 25px; font-size: 13px; color: white; }
+        .footer a { color: #ffd700; text-decoration: none; font-weight: bold; }
+        @media (max-width: 600px) {
+            body { padding: 15px; }
+            .card { padding: 25px 15px; }
+            .name { font-size: 24px; }
+            .account-btn { width: 95%; padding: 10px 15px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="avatar">👤</div>
+            <div class="name">{{ display_name }}</div>
+            <div class="username">@{{ username }}</div>
+            
+            {% if bio %}
+            <div class="bio">{{ bio }}</div>
+            {% endif %}
+            
+            {% if accounts %}
+            <div class="divider"></div>
+            {% endif %}
+            
+            {% for account in accounts %}
+            <a href="{{ account.url }}" class="account-btn {{ account.platform }}" target="_blank">
+                <img src="{{ account.icon }}" class="account-icon" alt="{{ account.name }}">
+                {{ account.name }}
+            </a>
+            {% endfor %}
+            
+            {% for link in custom_links %}
+            <a href="{{ link.url }}" class="account-btn custom-link" target="_blank">
+                🔗 {{ link.title }}
+            </a>
+            {% endfor %}
+        </div>
+        <div class="footer">
+            لإنشاء صفحة بايو مثل هذه 
+            <a href="https://t.me/Social_Media_tools_bot" target="_blank">اضغط هنا وانتقل للبوت</a>
+        </div>
+    </div>
+</body>
+</html>
