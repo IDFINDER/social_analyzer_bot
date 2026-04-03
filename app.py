@@ -36,23 +36,27 @@ def health():
 @app.route('/payment')
 def payment_page():
     """صفحة الدفع الموحدة"""
-    return render_template('payment.html', free_limit=FREE_LIMIT)
+    try:
+        return render_template('payment.html', free_limit=FREE_LIMIT)
+    except Exception as e:
+        logger.error(f"Payment page error: {e}")
+        return f"Error loading payment page: {e}", 500
 
 
 @app.route('/bio/<page_url>')
 def bio_page(page_url):
     """صفحة البايو الشخصية"""
     try:
-        logger.info(f"🔍 تم استدعاء صفحة البايو للرابط: {page_url}")
+        logger.info(f"🔍 Bio page requested: {page_url}")
         
         bio = get_bio_page_by_url(page_url)
         if not bio:
-            logger.warning(f"❌ صفحة البايو غير موجودة: {page_url}")
-            return "Page not found", 404
+            logger.warning(f"❌ Bio not found: {page_url}")
+            return f"Page not found: {page_url}", 404
         
         user_info = get_user_info(bio['user_id'])
         if not user_info:
-            logger.warning(f"❌ المستخدم غير موجود: {bio['user_id']}")
+            logger.warning(f"❌ User not found: {bio['user_id']}")
             return "User not found", 404
         
         # زيادة عدد المشاهدات
@@ -79,7 +83,6 @@ def bio_page(page_url):
         for platform, acc in accounts.items():
             identifier = acc.get('account_identifier', '')
             if identifier:
-                # إزالة @ من بداية المعرف إذا وجدت
                 if identifier.startswith('@'):
                     identifier = identifier[1:]
                 accounts_list.append({
@@ -89,7 +92,6 @@ def bio_page(page_url):
                     'icon': platform_icons.get(platform, '')
                 })
         
-        # تصميم HTML
         html = f"""
 <!DOCTYPE html>
 <html lang="ar">
@@ -105,10 +107,7 @@ def bio_page(page_url):
             min-height: 100vh;
             padding: 30px;
         }}
-        .container {{
-            max-width: 550px;
-            margin: 0 auto;
-        }}
+        .container {{ max-width: 550px; margin: 0 auto; }}
         .card {{
             background: white;
             border-radius: 25px;
@@ -128,22 +127,9 @@ def bio_page(page_url):
             font-size: 45px;
             color: white;
         }}
-        .name {{
-            font-size: 28px;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }}
-        .username {{
-            font-size: 14px;
-            color: #7f8c8d;
-            margin-bottom: 25px;
-        }}
-        .divider {{
-            height: 1px;
-            background: #e0e0e0;
-            margin: 20px 0;
-        }}
+        .name {{ font-size: 28px; font-weight: bold; color: #2c3e50; margin-bottom: 5px; }}
+        .username {{ font-size: 14px; color: #7f8c8d; margin-bottom: 25px; }}
+        .divider {{ height: 1px; background: #e0e0e0; margin: 20px 0; }}
         .account-btn {{
             display: flex;
             align-items: center;
@@ -159,34 +145,15 @@ def bio_page(page_url):
             transition: all 0.3s ease;
             color: white;
         }}
-        .account-btn:hover {{
-            transform: translateY(-2px);
-            opacity: 0.9;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }}
-        .account-icon {{
-            width: 24px;
-            height: 24px;
-        }}
+        .account-btn:hover {{ transform: translateY(-2px); opacity: 0.9; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }}
+        .account-icon {{ width: 24px; height: 24px; }}
         .youtube {{ background: #ff0000; }}
         .instagram {{ background: #e4405f; }}
         .tiktok {{ background: #000000; }}
         .facebook {{ background: #1877f2; }}
         .custom-link {{ background: #667eea; }}
-        .footer {{
-            text-align: center;
-            margin-top: 25px;
-            font-size: 13px;
-            color: white;
-        }}
-        .footer a {{
-            color: #ffd700;
-            text-decoration: none;
-            font-weight: bold;
-        }}
-        .footer a:hover {{
-            text-decoration: underline;
-        }}
+        .footer {{ text-align: center; margin-top: 25px; font-size: 13px; color: white; }}
+        .footer a {{ color: #ffd700; text-decoration: none; font-weight: bold; }}
         @media (max-width: 600px) {{
             body {{ padding: 15px; }}
             .card {{ padding: 25px 15px; }}
