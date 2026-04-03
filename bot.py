@@ -558,7 +558,6 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 👨‍💻 <b>المطور:</b> @E_Alshabany
 """
     await update.message.reply_text(help_text, parse_mode='HTML', reply_markup=get_main_keyboard(is_premium))
-    await update.message.reply_text(help_text, parse_mode='Markdown', reply_markup=get_main_keyboard(is_premium))
 
 
 async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
