@@ -27,21 +27,6 @@ from utils.youtube_analyzer import get_channel_details, format_channel_report
 from utils.gemini_ai import get_channel_recommendations, get_username_recommendations
 from utils.helpers import escape_html
 
-# ========== Flask Health Check ==========
-app = Flask(__name__)
-PORT = int(os.environ.get('PORT', 10000))
-
-@app.route('/')
-@app.route('/health')
-@app.route('/healthcheck')
-def health():
-    return "OK", 200
-
-def run_flask():
-    app.run(host='0.0.0.0', port=PORT, debug=False)
-
-threading.Thread(target=run_flask, daemon=True).start()
-# =========================================
 
 # ========== متغيرات البيئة ==========
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
