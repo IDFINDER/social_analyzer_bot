@@ -113,7 +113,7 @@ def get_premium_keyboard():
 
 def get_edit_keyboard(platform):
     """لوحة تعديل الحساب مع زر رجوع"""
-    keyboard = [[InlineKeyboardButton("🔙 رجوع للقائمة الرئيسية", callback_data="main_menu")]]
+    keyboard = [[InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")]]
     return InlineKeyboardMarkup(keyboard)
 
 # ========== أوامر البوت ==========
@@ -150,39 +150,39 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             limit_text = f"{remaining}/{FREE_LIMIT}"
         
         welcome_text = f"""
-🌐 **مرحباً بعودتك {user.first_name}!**
+🌐 <b>مرحباً بعودتك {user.first_name}!</b>
 
-💎 **حالتك:** {status_text}
-📊 **التحليلات المتبقية اليوم:** {limit_text}
-📈 **إجمالي التحليلات:** {total}
+💎 <b>حالتك:</b> {status_text}
+📊 <b>التحليلات المتبقية اليوم:</b> {limit_text}
+📈 <b>إجمالي التحليلات:</b> {total}
 
-📱 **حساباتك المسجلة:**
+📱 <b>حساباتك المسجلة:</b>
 """
         for platform, acc in accounts.items():
-            welcome_text += f"• {get_platform_icon(platform)} {platform.capitalize()}: {acc['account_identifier']}\n"
+            welcome_text += f"• {get_platform_icon(platform)} {platform.capitalize()}: @{acc['account_identifier']}\n"
         
         welcome_text += """
-🎯 **ماذا تريد أن تفعل؟**
+🎯 <b>ماذا تريد أن تفعل؟</b>
 • اضغط على 🎯 تحليل حساباتي
 • أو استخدم الأزرار أدناه
 """
-        await update.message.reply_text(welcome_text, parse_mode='Markdown', reply_markup=get_main_keyboard(is_premium))
+        await update.message.reply_text(welcome_text, parse_mode='HTML', reply_markup=get_main_keyboard(is_premium))
         return ConversationHandler.END
     
     else:
         # مستخدم جديد - بدء التسجيل
         await update.message.reply_text(
-            f"🌐 **مرحباً بك {user.first_name} في بوت تحليل الحسابات الاجتماعية!**\n\n"
-            f"📊 **ماذا يمكنني أن أفعل؟**\n"
+            f"🌐 <b>مرحباً بك {user.first_name} في بوت تحليل الحسابات الاجتماعية!</b>\n\n"
+            f"📊 <b>ماذا يمكنني أن أفعل؟</b>\n"
             f"• تحليل قنوات يوتيوب\n"
             f"• تحليل حسابات انستقرام (قريباً)\n"
             f"• تحليل حسابات تيك توك (قريباً)\n"
             f"• تحليل حسابات فيسبوك (قريباً)\n\n"
-            f"💰 **الخطة المجانية:** {FREE_LIMIT} تحليل يومياً\n"
-            f"👑 **الخطة المميزة:** 10$ مدى الحياة (غير محدود)\n\n"
-            f"📝 **لنبدأ بتسجيل بياناتك...**\n\n"
+            f"💰 <b>الخطة المجانية:</b> {FREE_LIMIT} تحليل يومياً\n"
+            f"👑 <b>الخطة المميزة:</b> 10$ مدى الحياة (غير محدود)\n\n"
+            f"📝 <b>لنبدأ بتسجيل بياناتك...</b>\n\n"
             f"ما هو الاسم الذي تريد أن أناديك به؟",
-            parse_mode='Markdown'
+            parse_mode='HTML'
         )
         return ASK_NAME
 
@@ -339,15 +339,15 @@ async def skip_facebook(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # عرض ملخص الحسابات
     accounts = get_user_social_accounts(user.id)
-    summary = f"✅ **تم تسجيل بياناتك بنجاح!**\n\n📊 **ملخص حساباتك:**\n"
+    summary = f"✅ <b>تم تسجيل بياناتك بنجاح!</b>\n\n📊 <b>ملخص حساباتك:</b>\n"
     for platform, acc in accounts.items():
-        summary += f"• {get_platform_icon(platform)} {platform.capitalize()}: {acc['account_identifier']}\n"
+        summary += f"• {get_platform_icon(platform)} {platform.capitalize()}: @{acc['account_identifier']}\n"
     
-    summary += f"\n💰 **خطتك الحالية:** مجانية ({FREE_LIMIT} تحليل يومياً)\n"
-    summary += f"💎 **للبحث غير المحدود:** /premium\n\n"
-    summary += f"🎯 **للبدء، اضغط على 🎯 تحليل حساباتي**"
+    summary += f"\n💰 <b>خطتك الحالية:</b> مجانية ({FREE_LIMIT} تحليل يومياً)\n"
+    summary += f"💎 <b>للبحث غير المحدود:</b> /premium\n\n"
+    summary += f"🎯 <b>للبدء، اضغط على 🎯 تحليل حساباتي</b>"
     
-    await update.message.reply_text(summary, parse_mode='Markdown', reply_markup=get_main_keyboard(False))
+    await update.message.reply_text(summary, parse_mode='HTML', reply_markup=get_main_keyboard(False))
     return ConversationHandler.END
 
 
@@ -359,7 +359,7 @@ async def ask_facebook(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = user_registration_data.get(user_id, {})
     data['facebook'] = facebook_input
     
-    # حفظ جميع الحسابات
+    # حفظ جميع الح accounts
     user = update.effective_user
     accounts_to_save = [
         ('youtube', data.get('youtube')),
@@ -378,15 +378,15 @@ async def ask_facebook(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # عرض ملخص الحسابات
     accounts = get_user_social_accounts(user.id)
-    summary = f"✅ **تم تسجيل بياناتك بنجاح!**\n\n📊 **ملخص حساباتك:**\n"
+    summary = f"✅ <b>تم تسجيل بياناتك بنجاح!</b>\n\n📊 <b>ملخص حساباتك:</b>\n"
     for platform, acc in accounts.items():
-        summary += f"• {get_platform_icon(platform)} {platform.capitalize()}: {acc['account_identifier']}\n"
+        summary += f"• {get_platform_icon(platform)} {platform.capitalize()}: @{acc['account_identifier']}\n"
     
-    summary += f"\n💰 **خطتك الحالية:** مجانية ({FREE_LIMIT} تحليل يومياً)\n"
-    summary += f"💎 **للبحث غير المحدود:** /premium\n\n"
-    summary += f"🎯 **للبدء، اضغط على 🎯 تحليل حساباتي**"
+    summary += f"\n💰 <b>خطتك الحالية:</b> مجانية ({FREE_LIMIT} تحليل يومياً)\n"
+    summary += f"💎 <b>للبحث غير المحدود:</b> /premium\n\n"
+    summary += f"🎯 <b>للبدء، اضغط على 🎯 تحليل حساباتي</b>"
     
-    await update.message.reply_text(summary, parse_mode='Markdown', reply_markup=get_main_keyboard(False))
+    await update.message.reply_text(summary, parse_mode='HTML', reply_markup=get_main_keyboard(False))
     return ConversationHandler.END
 
 
@@ -406,22 +406,22 @@ async def my_data_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_info = get_user_info(user_id)
     is_premium = user_info['status'] == 'premium' if user_info else False
     
-    text = f"📝 **بياناتي الشخصية**\n\n"
-    text += f"👤 **الاسم:** {user_info['first_name'] if user_info else '-'}\n"
-    text += f"🆔 **المعرف:** @{user_info['username'] if user_info else '-'}\n"
-    text += f"💎 **الخطة:** {'👑 مميز' if is_premium else '🎁 مجاني'}\n\n"
-    text += f"📱 **حساباتي المسجلة:**\n"
+    text = f"📝 <b>بياناتي الشخصية</b>\n\n"
+    text += f"👤 <b>الاسم:</b> {user_info['first_name'] if user_info else '-'}\n"
+    text += f"🆔 <b>المعرف:</b> @{user_info['username'] if user_info else '-'}\n"
+    text += f"💎 <b>الخطة:</b> {'👑 مميز' if is_premium else '🎁 مجاني'}\n\n"
+    text += f"📱 <b>حساباتي المسجلة:</b>\n"
     
     for platform, acc in accounts.items():
-        text += f"• {get_platform_icon(platform)} {platform.capitalize()}: {acc['account_identifier']}\n"
+        text += f"• {get_platform_icon(platform)} {platform.capitalize()}: @{acc['account_identifier']}\n"
     
     if is_premium:
         bio_page = get_bio_page(user_id)
         if bio_page and bio_page.get('is_enabled'):
-            text += f"\n📄 **صفحة البايو:**\n"
+            text += f"\n📄 <b>صفحة البايو:</b>\n"
             text += f"🔗 https://{RENDER_URL}/bio/{bio_page['page_url']}"
     
-    await update.message.reply_text(text, parse_mode='Markdown', reply_markup=get_main_keyboard(is_premium))
+    await update.message.reply_text(text, parse_mode='HTML', reply_markup=get_main_keyboard(is_premium))
 
 
 async def edit_data_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -437,8 +437,8 @@ async def edit_data_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard.append([InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")])
     
     await update.message.reply_text(
-        "✏️ **اختر الحساب الذي تريد تعديله:**",
-        parse_mode='Markdown',
+        "✏️ <b>اختر الحساب الذي تريد تعديله:</b>",
+        parse_mode='HTML',
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
@@ -456,27 +456,27 @@ async def my_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         gemini_remaining = gemini_usage[1] if isinstance(gemini_usage, tuple) and len(gemini_usage) > 1 else 0
         
         text = f"""
-📊 **إحصائياتي الشخصية**
+📊 <b>إحصائياتي الشخصية</b>
 
-👤 **المستخدم:** {user_info['first_name'] if user_info else '-'}
-💎 **نوع الخطة:** 👑 مميز
-📈 **إجمالي التحليلات:** {total}
-🤖 **توصيات AI المتبقية اليوم:** {gemini_remaining}/5
-📄 **صفحة البايو:** ✅ مفعلة
-🔍 **فحص اليوزرنيم:** ✅ متاح
+👤 <b>المستخدم:</b> {user_info['first_name'] if user_info else '-'}
+💎 <b>نوع الخطة:</b> 👑 مميز
+📈 <b>إجمالي التحليلات:</b> {total}
+🤖 <b>توصيات AI المتبقية اليوم:</b> {gemini_remaining}/5
+📄 <b>صفحة البايو:</b> ✅ مفعلة
+🔍 <b>فحص اليوزرنيم:</b> ✅ متاح
 """
     else:
         text = f"""
-📊 **إحصائياتي الشخصية**
+📊 <b>إحصائياتي الشخصية</b>
 
-👤 **المستخدم:** {user_info['first_name'] if user_info else '-'}
-💎 **نوع الخطة:** 🎁 مجاني
-📊 **التحليلات المتبقية اليوم:** {remaining}/{FREE_LIMIT}
-📈 **إجمالي التحليلات:** {total}
-💎 **للترقية إلى خطة مميزة:** /premium
+👤 <b>المستخدم:</b> {user_info['first_name'] if user_info else '-'}
+💎 <b>نوع الخطة:</b> 🎁 مجاني
+📊 <b>التحليلات المتبقية اليوم:</b> {remaining}/{FREE_LIMIT}
+📈 <b>إجمالي التحليلات:</b> {total}
+💎 <b>للترقية إلى خطة مميزة:</b> /premium
 """
     
-    await update.message.reply_text(text, parse_mode='Markdown', reply_markup=get_main_keyboard(is_premium))
+    await update.message.reply_text(text, parse_mode='HTML', reply_markup=get_main_keyboard(is_premium))
 
 
 async def premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -487,42 +487,42 @@ async def premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if is_premium:
         text = """
-👑 **أنت مشترك في الخطة المميزة!**
+👑 <b>أنت مشترك في الخطة المميزة!</b>
 
-✅ **مميزات الاشتراك المميز:**
+✅ <b>مميزات الاشتراك المميز:</b>
 • تحليل غير محدود لجميع الحسابات
 • توصيات الذكاء الاصطناعي (5 يومياً)
 • صفحة بايو شخصية
 • فحص توافر اليوزرنيم
 • دعم أولوية في المعالجة
 
-📅 **الاشتراك نشط حالياً**
+📅 <b>الاشتراك نشط حالياً</b>
 
 شكراً لدعمك! 🙏
 """
-        await update.message.reply_text(text, parse_mode='Markdown', reply_markup=get_main_keyboard(True))
+        await update.message.reply_text(text, parse_mode='HTML', reply_markup=get_main_keyboard(True))
     else:
         remaining = get_remaining_analyses(user_id)
         text = f"""
-💎 **الاشتراك المميز**
+💎 <b>الاشتراك المميز</b>
 
-🎁 **مميزات الخطة المميزة:**
+🎁 <b>مميزات الخطة المميزة:</b>
 • ✅ تحليل غير محدود
 • ✅ توصيات الذكاء الاصطناعي
 • ✅ صفحة بايو شخصية
 • ✅ فحص توافر اليوزرنيم
 • ✅ دعم أولوية في المعالجة
 
-💰 **السعر:**
-• **10 دولار مدى الحياة**
+💰 <b>السعر:</b>
+• <b>10 دولار مدى الحياة</b>
 
-📊 **حالتك الحالية:**
+📊 <b>حالتك الحالية:</b>
 • نوع الخطة: مجانية
 • التحليلات المتبقية اليوم: {remaining}/{FREE_LIMIT}
 
-🔽 **للاشتراك، اضغط على الزر أدناه:**
+🔽 <b>للاشتراك، اضغط على الزر أدناه:</b>
 """
-        await update.message.reply_text(text, parse_mode='Markdown', reply_markup=get_premium_keyboard())
+        await update.message.reply_text(text, parse_mode='HTML', reply_markup=get_premium_keyboard())
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -583,19 +583,19 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not can_analyze_bool and not is_premium:
         keyboard = [[InlineKeyboardButton("💎 اشتراك مميز", url=HUB_BOT_URL)]]
         await update.message.reply_text(
-            f"⚠️ **لقد وصلت للحد اليومي!**\n\n"
-            f"📊 **الحد المسموح:** {FREE_LIMIT} تحليل يومياً\n"
-            f"✅ **التحليلات اليوم:** {current_uses}\n"
-            f"🎯 **المتبقي:** {FREE_LIMIT - current_uses}\n\n"
-            f"💎 **للتحليل غير المحدود، اشترك في الخطة المميزة!**",
-            parse_mode='Markdown',
+            f"⚠️ <b>لقد وصلت للحد اليومي!</b>\n\n"
+            f"📊 <b>الحد المسموح:</b> {FREE_LIMIT} تحليل يومياً\n"
+            f"✅ <b>التحليلات اليوم:</b> {current_uses}\n"
+            f"🎯 <b>المتبقي:</b> {FREE_LIMIT - current_uses}\n\n"
+            f"💎 <b>للتحليل غير المحدود، اشترك في الخطة المميزة!</b>",
+            parse_mode='HTML',
             reply_markup=keyboard
         )
         return
     
     await update.message.reply_text(
-        "🎯 **اختر المنصة التي تريد تحليلها:**",
-        parse_mode='Markdown',
+        "🎯 <b>اختر المنصة التي تريد تحليلها:</b>",
+        parse_mode='HTML',
         reply_markup=get_analysis_keyboard()
     )
 
@@ -676,8 +676,8 @@ async def analyze_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
     if is_premium:
         keyboard = [[InlineKeyboardButton("🤖 توصيات الذكاء الاصطناعي", callback_data=f"ai_recommendations_{channel_details['channel_id']}")]]
         await message.reply_text(
-            "🤖 **هل تريد الحصول على توصيات لتحسين قناتك؟**",
-            parse_mode='Markdown',
+            "🤖 <b>هل تريد الحصول على توصيات لتحسين قناتك؟</b>",
+            parse_mode='HTML',
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
@@ -727,9 +727,9 @@ async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE)
     # الحصول على التوصيات
     recommendations = await get_channel_recommendations(channel_details)
     
-    response = f"🤖 **توصيات الذكاء الاصطناعي:**\n\n{recommendations}\n\n📊 **المتبقي اليوم:** {remaining - 1}/5 توصيات"
+    response = f"🤖 <b>توصيات الذكاء الاصطناعي:</b>\n\n{recommendations}\n\n📊 <b>المتبقي اليوم:</b> {remaining - 1}/5 توصيات"
     
-    await query.edit_message_text(response, parse_mode='Markdown')
+    await query.edit_message_text(response, parse_mode='HTML')
 
 
 async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -800,22 +800,22 @@ async def username_check_command(update: Update, context: ContextTypes.DEFAULT_T
     
     if not is_premium:
         await update.message.reply_text(
-            "🔍 **فحص توافر اليوزرنيم**\n\n"
+            "🔍 <b>فحص توافر اليوزرنيم</b>\n\n"
             "هذه الميزة متاحة فقط للمستخدمين المميزين!\n\n"
-            "💎 **مميزات فحص اليوزرنيم:**\n"
+            "💎 <b>مميزات فحص اليوزرنيم:</b>\n"
             "• فحص توافر الاسم في جميع المنصات\n"
             "• اقتراحات ذكية لتحسين الاسم\n"
             "• توصيات لتوحيد الاسم بين المنصات\n\n"
             "للاشتراك: /premium",
-            parse_mode='Markdown',
+            parse_mode='HTML',
             reply_markup=get_premium_keyboard()
         )
         return
     
     await update.message.reply_text(
-        "🔍 **فحص توافر اليوزرنيم**\n\n"
+        "🔍 <b>فحص توافر اليوزرنيم</b>\n\n"
         "أرسل اليوزرنيم الذي تريد التحقق منه (بدون @):",
-        parse_mode='Markdown'
+        parse_mode='HTML'
     )
     context.user_data['awaiting_username'] = True
 
@@ -829,16 +829,16 @@ async def handle_username_check(update: Update, context: ContextTypes.DEFAULT_TY
     context.user_data['awaiting_username'] = False
     
     await update.message.reply_text(
-        f"🔍 **نتيجة فحص اليوزرنيم @{escape_html(username)}**\n\n"
-        f"📊 **النتائج:**\n"
+        f"🔍 <b>نتيجة فحص اليوزرنيم @{escape_html(username)}</b>\n\n"
+        f"📊 <b>النتائج:</b>\n"
         f"• 🎬 يوتيوب: ⏳ قيد التطوير\n"
         f"• 📸 انستقرام: ⏳ قيد التطوير\n"
         f"• 🎵 تيك توك: ⏳ قيد التطوير\n"
         f"• 📘 فيسبوك: ⏳ قيد التطوير\n\n"
-        f"💎 **هذه الميزة ستعمل قريباً!**\n"
+        f"💎 <b>هذه الميزة ستعمل قريباً!</b>\n"
         f"سيتمكن المستخدمون المميزون من فحص توافر اليوزرنيم على جميع المنصات دفعة واحدة.\n\n"
-        f"🚀 **قريباً في التحديث القادم**",
-        parse_mode='Markdown'
+        f"🚀 <b>قريباً في التحديث القادم</b>",
+        parse_mode='HTML'
     )
 
 
@@ -866,8 +866,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_info = get_user_info(user_id)
         is_premium = user_info['status'] == 'premium' if user_info else False
         await query.message.reply_text(
-            "🏠 **القائمة الرئيسية**\n\nاختر ما تريد:",
-            parse_mode='Markdown',
+            "🏠 <b>القائمة الرئيسية</b>\n\nاختر ما تريد:",
+            parse_mode='HTML',
             reply_markup=get_main_keyboard(is_premium)
         )
         await query.delete_message()
@@ -882,9 +882,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['editing_platform'] = platform
         keyboard = [[InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")]]
         await query.edit_message_text(
-            f"✏️ **تعديل حساب {platform.capitalize()}**\n\n"
+            f"✏️ <b>تعديل حساب {platform.capitalize()}</b>\n\n"
             f"أرسل المعرف الجديد أو الرابط:",
-            parse_mode='Markdown',
+            parse_mode='HTML',
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
@@ -968,6 +968,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "❓ عذراً، لم أتعرف على طلبك.\n\n"
         "📌 يمكنك استخدام الأزرار أدناه أو إرسال /help للمساعدة.",
+        parse_mode='HTML',
         reply_markup=get_main_keyboard(is_premium)
     )
 
