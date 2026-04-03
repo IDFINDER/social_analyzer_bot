@@ -436,9 +436,17 @@ def create_or_update_bio_page(user_id, display_name, accounts, custom_links=None
 def increment_bio_views(page_url):
     """زيادة عدد مشاهدات صفحة البايو"""
     try:
-        supabase.table('bio_pages').update({
-            'views_count': supabase.raw('views_count + 1')
-        }).eq('page_url', page_url).execute()
+        # الحل الصحيح لزيادة العداد
+        response = supabase.table('bio_pages').select('views_count').eq('page_url', page_url).execute()
+        
+        if response.data:
+            current_views = response.data[0].get('views_count', 0)
+            new_views = current_views + 1
+            
+            supabase.table('bio_pages').update({
+                'views_count': new_views
+            }).eq('page_url', page_url).execute()
+            
         return True
     except Exception as e:
         logger.error(f"Error incrementing bio views: {e}")
