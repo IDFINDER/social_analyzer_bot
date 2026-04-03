@@ -1002,7 +1002,6 @@ def bio_page(page_url):
         accounts = bio.get('accounts', {})
         custom_links = bio.get('custom_links', [])
         
-        # تصميم الصفحة المبسط
         html = f"""
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
