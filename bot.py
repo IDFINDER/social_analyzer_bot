@@ -1125,7 +1125,71 @@ def bio_page(page_url):
     except Exception as e:
         logger.error(f"Error in bio_page: {e}")
         return "Internal error", 500
+@app.route('/test-bio')
+def test_bio():
+    """صفحة اختبار للتأكد من أن Flask يعمل"""
+    return "✅ Flask يعمل بشكل صحيح!"
 
+@app.route('/bio/<page_url>')
+def bio_page(page_url):
+    """صفحة البايو الشخصية"""
+    try:
+        print(f"🔍 تم استدعاء صفحة البايو للرابط: {page_url}")
+        
+        bio = get_bio_page_by_url(page_url)
+        
+        if not bio:
+            return f"❌ لم يتم العثور على صفحة للرابط: {page_url}", 404
+        
+        user_info = get_user_info(bio['user_id'])
+        if not user_info:
+            return "User not found", 404
+        
+        # زيادة عدد المشاهدات
+        increment_bio_views(page_url)
+        
+        accounts = bio.get('accounts', {})
+        custom_links = bio.get('custom_links', [])
+        
+        # تصميم الصفحة المبسط (للتجربة)
+        html = f"""
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{escape_html(bio['display_name'])} | صفحة البايو</title>
+    <style>
+        body {{ font-family: Arial; text-align: center; padding: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }}
+        .card {{ background: white; color: #333; max-width: 500px; margin: 0 auto; padding: 30px; border-radius: 20px; }}
+        .avatar {{ font-size: 50px; }}
+        .name {{ font-size: 24px; font-weight: bold; }}
+        .button {{ display: block; background: #667eea; color: white; padding: 10px; margin: 10px 0; border-radius: 10px; text-decoration: none; }}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="avatar">👤</div>
+        <div class="name">{escape_html(bio['display_name'])}</div>
+        <div class="username">@{escape_html(user_info.get('username', ''))}</div>
+"""
+        
+        for platform, acc in accounts.items():
+            identifier = acc.get('account_identifier', '')
+            html += f'<a href="https://{platform}.com/{identifier}" class="button" target="_blank">📱 {platform.capitalize()}: @{identifier}</a>'
+        
+        html += f"""
+        <div style="margin-top: 20px; font-size: 12px;">
+            <a href="https://t.me/Social_Media_tools_bot" style="color: #667eea;">@Social_Media_tools_bot</a>
+        </div>
+    </div>
+</body>
+</html>
+"""
+        return html
+        
+    except Exception as e:
+        return f"❌ خطأ: {e}", 500
 
 # ========== الدالة الرئيسية ==========
 
