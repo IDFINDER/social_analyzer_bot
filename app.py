@@ -153,7 +153,19 @@ def save_theme():
     except Exception as e:
         logger.error(f"Error in save_theme: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
+# إضافة مسار لخدمة ملفات الثيمات (للتأكد من وجودها)
+@app.route('/static/themes/<path:filename>')
+def serve_theme(filename):
+    """خدمة ملفات الثيمات من مجلد themes"""
+    from flask import send_from_directory
+    return send_from_directory('static/themes', filename)
 
+# إضافة مسار لخدمة الملفات الثابتة العامة
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    """خدمة الملفات الثابتة"""
+    from flask import send_from_directory
+    return send_from_directory('static', filename)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=PORT, debug=False)
