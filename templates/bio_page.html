@@ -5,21 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ display_name }} | صفحة البايو</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Tajawal', 'Segoe UI', Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 30px;
         }
-        .container { max-width: 550px; margin: 0 auto; }
-        .card {
-            background: white;
-            border-radius: 25px;
+        
+        .container {
+            max-width: 550px;
+            margin: auto;
+            background: #fff;
             padding: 35px 25px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            border-radius: 25px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
             text-align: center;
         }
+        
+        /* الصورة الرمزية */
         .avatar {
             width: 100px;
             height: 100px;
@@ -29,20 +38,43 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 45px;
+            font-size: 48px;
             color: white;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
         }
-        .name { font-size: 28px; font-weight: bold; color: #2c3e50; margin-bottom: 5px; }
-        .username { font-size: 14px; color: #7f8c8d; margin-bottom: 25px; }
-        .bio { 
-            background: #f8f9fa; 
-            padding: 15px; 
-            border-radius: 15px; 
+        
+        h1 {
+            font-size: 28px;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        
+        .username {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+            direction: ltr;
+        }
+        
+        .bio {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-radius: 15px;
             margin: 20px 0;
             color: #555;
-            line-height: 1.6;
+            line-height: 1.7;
+            font-size: 14px;
+            text-align: center;
         }
-        .divider { height: 1px; background: #e0e0e0; margin: 20px 0; }
+        
+        .divider {
+            height: 1px;
+            background: linear-gradient(to right, transparent, #e0e0e0, transparent);
+            margin: 25px 0;
+        }
+        
+        /* أزرار الحسابات */
         .account-btn {
             display: flex;
             align-items: center;
@@ -57,56 +89,151 @@
             font-weight: 500;
             transition: all 0.3s ease;
             color: white;
+            border: none;
+            cursor: pointer;
         }
-        .account-btn:hover { transform: translateY(-2px); opacity: 0.9; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
-        .account-icon { width: 24px; height: 24px; }
+        
+        .account-btn:hover {
+            transform: translateY(-3px);
+            opacity: 0.92;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+        
+        .account-icon {
+            width: 24px;
+            height: 24px;
+        }
+        
+        /* ألوان المنصات */
         .youtube { background: #ff0000; }
-        .instagram { background: #e4405f; }
+        .instagram { background: #e1306c; }
         .tiktok { background: #000000; }
         .facebook { background: #1877f2; }
-        .custom-link { background: #667eea; }
-        .footer { text-align: center; margin-top: 25px; font-size: 13px; color: white; }
-        .footer a { color: #ffd700; text-decoration: none; font-weight: bold; }
+        .twitter { background: #1da1f2; }
+        .snapchat { background: #fffc00; color: #000; }
+        .linkedin { background: #0077b5; }
+        .github { background: #333; }
+        .telegram { background: #0088cc; }
+        .whatsapp { background: #25d366; }
+        .custom-link { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        /* تذييل الصفحة */
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 13px;
+            color: #888;
+        }
+        
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        /* عدد المشاهدات */
+        .views {
+            margin-top: 15px;
+            font-size: 11px;
+            color: #bbb;
+        }
+        
+        /* توافق مع الجوال */
         @media (max-width: 600px) {
-            body { padding: 15px; }
-            .card { padding: 25px 15px; }
-            .name { font-size: 24px; }
-            .account-btn { width: 95%; padding: 10px 15px; }
+            body {
+                padding: 15px;
+            }
+            .container {
+                padding: 25px 15px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+            .account-btn {
+                width: 95%;
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+            .avatar {
+                width: 80px;
+                height: 80px;
+                font-size: 38px;
+            }
+        }
+        
+        /* تأثير ظهور الصفحة */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .container {
+            animation: fadeInUp 0.6s ease-out;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="card">
-            <div class="avatar">👤</div>
-            <div class="name">{{ display_name }}</div>
-            <div class="username">@{{ username }}</div>
-            
-            {% if bio %}
-            <div class="bio">{{ bio }}</div>
-            {% endif %}
-            
-            {% if accounts %}
-            <div class="divider"></div>
-            {% endif %}
-            
-            {% for account in accounts %}
-            <a href="{{ account.url }}" class="account-btn {{ account.platform }}" target="_blank">
-                <img src="{{ account.icon }}" class="account-icon" alt="{{ account.name }}">
-                {{ account.name }}
-            </a>
-            {% endfor %}
-            
-            {% for link in custom_links %}
-            <a href="{{ link.url }}" class="account-btn custom-link" target="_blank">
-                🔗 {{ link.title }}
-            </a>
-            {% endfor %}
+        <!-- الصورة الرمزية -->
+        <div class="avatar">
+            👤
         </div>
+        
+        <!-- الاسم -->
+        <h1>{{ display_name }}</h1>
+        
+        <!-- اليوزرنيم -->
+        <div class="username">@{{ username }}</div>
+        
+        <!-- السيرة الذاتية (إذا وجدت) -->
+        {% if bio %}
+        <div class="bio">
+            {{ bio }}
+        </div>
+        {% endif %}
+        
+        <!-- قسم الروابط (يظهر فقط إذا وجدت حسابات) -->
+        {% if accounts %}
+        <div class="divider"></div>
+        {% endif %}
+        
+        <!-- أزرار الحسابات -->
+        {% for account in accounts %}
+        <a href="{{ account.url }}" class="account-btn {{ account.platform }}" target="_blank" rel="noopener noreferrer">
+            <img src="{{ account.icon }}" class="account-icon" alt="{{ account.name }}">
+            {{ account.name }}
+        </a>
+        {% endfor %}
+        
+        <!-- الروابط المخصصة -->
+        {% for link in custom_links %}
+        <a href="{{ link.url }}" class="account-btn custom-link" target="_blank" rel="noopener noreferrer">
+            🔗 {{ link.title }}
+        </a>
+        {% endfor %}
+        
+        <!-- تذييل الصفحة -->
         <div class="footer">
             لإنشاء صفحة بايو مثل هذه 
             <a href="https://t.me/Social_Media_tools_bot" target="_blank">اضغط هنا وانتقل للبوت</a>
         </div>
+        
+        <!-- عدد المشاهدات (اختياري - أضفه إذا أردت) -->
+        <!-- <div class="views">👁️ {{ views_count }} مشاهدة</div> -->
     </div>
 </body>
 </html>
