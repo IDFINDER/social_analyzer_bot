@@ -7,10 +7,11 @@ import os
 import sys
 import logging
 from flask import Flask, render_template, request, jsonify
+from datetime import datetime
 
 # إضافة مجلد utils إلى المسار
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from utils.db import get_bio_page_by_url, get_user_info, increment_bio_views
+from utils.db import get_bio_page_by_url, get_user_info, increment_bio_views, supabase
 from utils.helpers import escape_html
 
 # إعدادات logging
@@ -99,19 +100,29 @@ def bio_page(page_url):
                 'url': link.get('url', '#')
             })
         
-        # استخدام القالب بدلاً من HTML المضمن
+        # الحصول على اسم الثيم (افتراضي إذا لم يكن موجوداً)
+        theme_name = bio.get('theme_name', 'default')
+        
+        # استخدام القالب
         return render_template(
             'bio_page.html',
             display_name=bio['display_name'],
             username=user_info.get('username', ''),
             bio=bio.get('bio', ''),
             accounts=accounts_list,
-            custom_links=custom_links_list
+            custom_links=custom_links_list,
+            avatar_url=bio.get('avatar_url', None),
+            views_count=bio.get('views_count', 0),
+            theme_name=theme_name,
+            user_id=bio['user_id'],
+            is_premium=(user_info.get('status') == 'premium')
         )
         
     except Exception as e:
         logger.error(f"Error in bio_page: {e}")
         return f"Internal error: {e}", 500
+
+
 @app.route('/api/save_theme', methods=['POST'])
 def save_theme():
     """API لحفظ ثيم صفحة البايو"""
@@ -129,9 +140,6 @@ def save_theme():
             return jsonify({'status': 'error', 'message': 'قالب غير صالح'}), 400
         
         # تحديث قاعدة البيانات
-        from utils.db import supabase
-        from datetime import datetime
-        
         result = supabase.table('bio_pages').update({
             'theme_name': theme_name,
             'updated_at': datetime.now().isoformat()
@@ -145,6 +153,7 @@ def save_theme():
     except Exception as e:
         logger.error(f"Error in save_theme: {e}")
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=PORT, debug=False)
