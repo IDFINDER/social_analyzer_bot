@@ -50,7 +50,7 @@ def bio_page(page_url):
     try:
         logger.info(f"🔍 Bio page requested: {page_url}")
         
-        bio = get_bio_page_by_url(page_url)
+        bio = get_bio_page_by_page_url(page_url)
         if not bio:
             logger.warning(f"❌ Bio not found: {page_url}")
             return "Page not found", 404
