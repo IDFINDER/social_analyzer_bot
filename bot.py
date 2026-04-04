@@ -795,27 +795,49 @@ async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def show_bio_management(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int = None, page_url: str = None):
     """عرض إدارة صفحة البايو"""
-    # إصلاح: استخراج user_id بشكل صحيح من جميع أنواع التحديثات
+    # إصلاح: استخراج user_id بشكل صحيح
     if user_id is None:
-        # التحقق من وجود callback_query (زر مضغوط)
         if update.callback_query:
             user_id = update.callback_query.from_user.id
-        # التحقق من وجود message (رسالة عادية)
         elif update.effective_user:
             user_id = update.effective_user.id
         else:
             await update.message.reply_text("❌ حدث خطأ: لم يتم التعرف على المستخدم")
             return
     
-    # استخدام user_id الرقمي لجلب البيانات
+    # محاولة جلب صفحة البايو بطرق مختلفة
     bio_page = get_bio_page(user_id)
     
+    # إذا لم توجد، حاول جلبها عبر page_url إذا كان متوفراً
+    if not bio_page and page_url:
+        bio_page = get_bio_page_by_page_url(page_url)
+    
+    # إذا لا تزال غير موجودة، ابحث في قاعدة البيانات مباشرة (حل بديل)
     if not bio_page:
-        # محاولة إعلام المستخدم بطريقة مناسبة
+        try:
+            from utils.db import supabase
+            response = supabase.table('bio_pages').select('*').eq('user_id', str(user_id)).execute()
+            if response.data:
+                bio_page = response.data[0]
+            else:
+                # حاول البحث كـ int
+                response = supabase.table('bio_pages').select('*').eq('user_id', int(user_id)).execute()
+                if response.data:
+                    bio_page = response.data[0]
+        except Exception as e:
+            logger.error(f"Error searching bio page: {e}")
+    
+    if not bio_page:
+        error_msg = "❌ لم يتم العثور على صفحة البايو.\n\n"
+        error_msg += "💡 تأكد من:\n"
+        error_msg += "• أنك مشترك في الخطة المميزة\n"
+        error_msg += "• أن لديك حسابات مسجلة\n"
+        error_msg += "• ثم اضغط على '📄 صفحة البايو' مرة أخرى"
+        
         if update.callback_query:
-            await update.callback_query.edit_message_text("❌ لم يتم العثور على صفحة البايو")
+            await update.callback_query.edit_message_text(error_msg, parse_mode='HTML')
         else:
-            await update.message.reply_text("❌ لم يتم العثور على صفحة البايو")
+            await update.message.reply_text(error_msg, parse_mode='HTML')
         return
     
     if page_url is None:
@@ -825,7 +847,6 @@ async def show_bio_management(update: Update, context: ContextTypes.DEFAULT_TYPE
     views_count = bio_page.get('views_count', 0)
     flask_url = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
     
-    # دالة مساعدة لعرض اسم الثيم بشكل جميل
     def get_theme_display(theme):
         themes = {
             'default': '☀️ فاتح',
@@ -863,7 +884,6 @@ https://{flask_url}/bio/{page_url}
 💡 يمكنك تعديل أي من الإعدادات أدناه
 """
     
-    # التحقق من نوع التحديث (رسالة أو callback)
     if hasattr(update, 'callback_query') and update.callback_query:
         await update.callback_query.edit_message_text(
             text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard)
