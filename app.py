@@ -6,7 +6,7 @@ Flask Server for Social Media Analyzer Bot
 import os
 import sys
 import logging
-from flask import Flask, render_template
+from flask import Flask, render_template, request, jsonify
 
 # إضافة مجلد utils إلى المسار
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
