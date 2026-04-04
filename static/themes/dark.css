@@ -1,0 +1,118 @@
+/* dark.css - القالب الداكن لصفحة البايو */
+/* هذا القالب يعمل مع نفس هيكل HTML */
+
+/* خلفية الصفحة - متدرجة داكنة */
+body {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+/* بطاقة المحتوى */
+.container {
+    background: #1e1e2e;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* الصورة الرمزية */
+.avatar {
+    background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.avatar-placeholder {
+    background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+}
+
+/* اسم المستخدم */
+h1 {
+    color: #ffffff;
+}
+
+/* اليوزرنيم */
+.username {
+    color: #a0a0a0;
+}
+
+/* النبذة (bio) */
+.bio {
+    background: #2a2a3a;
+    color: #d0d0d0;
+    border: 1px solid #3a3a4a;
+}
+
+/* الخط الفاصل */
+.divider {
+    background: linear-gradient(to right, transparent, #3a3a4a, transparent);
+}
+
+/* بطاقات الإحصائيات */
+.stat-card {
+    background: #2a2a3a;
+    border: 1px solid #3a3a4a;
+}
+
+.stat-value {
+    color: #4facfe;
+}
+
+.stat-label {
+    color: #888;
+}
+
+/* أزرار الحسابات - الألوان الأصلية محفوظة مع تحسين للداكن */
+.account-btn {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.account-btn:hover {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+/* الروابط المخصصة - تدرج أزرق/نيون للداكن */
+.custom-link {
+    background: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+    border: 1px solid #4facfe;
+}
+
+.custom-link:hover {
+    background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+}
+
+/* التذييل */
+.footer {
+    border-top-color: #3a3a4a;
+    color: #666;
+}
+
+.footer a {
+    color: #4facfe;
+}
+
+/* عدد المشاهدات */
+.views {
+    color: #555;
+}
+
+/* زر تغيير الثيم (للمميزين) */
+.theme-picker {
+    background: #2a2a3a;
+    color: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.theme-picker:hover {
+    background: #3a3a4a;
+}
+
+/* نافذة اختيار الألوان */
+.color-picker-content {
+    background: #1e1e2e;
+    color: white;
+}
+
+.save-theme {
+    background: #4facfe;
+}
+
+.save-theme:hover {
+    background: #3a8fd0;
+}
