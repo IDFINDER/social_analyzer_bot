@@ -718,7 +718,7 @@ async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """إنشاء صفحة البايو"""
+    """إنشاء صفحة البايو وإدارتها"""
     user_id = update.effective_user.id
     user_info = get_user_info(user_id)
     is_premium = user_info['status'] == 'premium' if user_info else False
@@ -760,20 +760,81 @@ async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     page_url = create_or_update_bio_page(user_id, display_name, formatted_accounts)
     
     if page_url:
-        await update.message.reply_text(
-            f"✅ <b>تم إنشاء صفحة البايو بنجاح!</b>\n\n"
-            f"🔗 <b>رابط صفحتك:</b>\n"
-            f"https://{RENDER_URL}/bio/{page_url}\n\n"
-            f"📌 يمكنك مشاركة هذا الرابط مع الآخرين\n"
-            f"🔄 لتحديث الصفحة، أضف أو عدل حساباتك ثم استخدم هذا الأمر مرة أخرى",
-            parse_mode='HTML',
-            reply_markup=get_main_keyboard(True)
-        )
+        # عرض إدارة صفحة البايو بدلاً من الرسالة البسيطة
+        await show_bio_management(update, user_id, page_url)
     else:
         await update.message.reply_text(
             "❌ حدث خطأ في إنشاء صفحة البايو. حاول مرة أخرى لاحقاً.",
             parse_mode='HTML',
             reply_markup=get_main_keyboard(True)
+        )
+
+
+async def show_bio_management(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int = None, page_url: str = None):
+    """عرض إدارة صفحة البايو"""
+    # إذا كانت الدالة مستدعاة من bio_page_command
+    if user_id is None:
+        user_id = update.effective_user.id
+        page_url = None
+    
+    bio_page = get_bio_page(user_id)
+    if not bio_page:
+        await update.message.reply_text("❌ لم يتم العثور على صفحة البايو")
+        return
+    
+    if page_url is None:
+        page_url = bio_page.get('page_url')
+    
+    theme_name = bio_page.get('theme_name', 'default')
+    views_count = bio_page.get('views_count', 0)
+    RENDER_URL = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
+    
+    # دالة مساعدة لعرض اسم الثيم بشكل جميل
+    def get_theme_display(theme):
+        themes = {
+            'default': '☀️ فاتح',
+            'dark': '🌙 داكن'
+        }
+        return themes.get(theme, '☀️ فاتح')
+    
+    keyboard = [
+        [InlineKeyboardButton(f"🎨 الثيم الحالي: {get_theme_display(theme_name)}", callback_data="bio_change_theme")],
+        [InlineKeyboardButton("📝 تعديل النبذة", callback_data="bio_edit_bio")],
+        [InlineKeyboardButton("🖼️ تغيير الصورة الشخصية", callback_data="bio_change_avatar")],
+        [InlineKeyboardButton("➕ إضافة رابط مخصص", callback_data="bio_add_link")],
+        [InlineKeyboardButton("🗑️ حذف رابط مخصص", callback_data="bio_remove_link")],
+        [InlineKeyboardButton("🔗 عرض رابط الصفحة", callback_data="bio_show_link")],
+        [InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")]
+    ]
+    
+    bio_text = bio_page.get('bio', 'لا يوجد')
+    if len(bio_text) > 100:
+        bio_text = bio_text[:100] + "..."
+    
+    text = f"""
+📄 <b>إدارة صفحة البايو</b>
+
+🔗 <b>رابط صفحتك:</b>
+https://{RENDER_URL}/bio/{page_url}
+
+👁️ <b>عدد المشاهدات:</b> {views_count}
+
+🎨 <b>الثيم الحالي:</b> {get_theme_display(theme_name)}
+
+📝 <b>النبذة الحالية:</b>
+{bio_text}
+
+💡 يمكنك تعديل أي من الإعدادات أدناه
+"""
+    
+    # التحقق من نوع التحديث (رسالة أو callback)
+    if hasattr(update, 'callback_query') and update.callback_query:
+        await update.callback_query.edit_message_text(
+            text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    else:
+        await update.message.reply_text(
+            text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
 
