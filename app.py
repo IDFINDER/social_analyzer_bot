@@ -112,7 +112,39 @@ def bio_page(page_url):
     except Exception as e:
         logger.error(f"Error in bio_page: {e}")
         return f"Internal error: {e}", 500
-
+@app.route('/api/save_theme', methods=['POST'])
+def save_theme():
+    """API لحفظ ثيم صفحة البايو"""
+    try:
+        data = request.get_json()
+        user_id = data.get('user_id')
+        theme_name = data.get('theme_name')
+        
+        if not user_id or not theme_name:
+            return jsonify({'status': 'error', 'message': 'بيانات ناقصة'}), 400
+        
+        # التحقق من أن القالب موجود
+        valid_themes = ['default', 'dark']
+        if theme_name not in valid_themes:
+            return jsonify({'status': 'error', 'message': 'قالب غير صالح'}), 400
+        
+        # تحديث قاعدة البيانات
+        from utils.db import supabase
+        from datetime import datetime
+        
+        result = supabase.table('bio_pages').update({
+            'theme_name': theme_name,
+            'updated_at': datetime.now().isoformat()
+        }).eq('user_id', user_id).execute()
+        
+        if result.data:
+            return jsonify({'status': 'ok', 'message': 'تم حفظ الثيم بنجاح'})
+        else:
+            return jsonify({'status': 'error', 'message': 'لم يتم العثور على صفحة البايو'}), 404
+            
+    except Exception as e:
+        logger.error(f"Error in save_theme: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=PORT, debug=False)
