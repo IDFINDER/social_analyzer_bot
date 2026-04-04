@@ -461,8 +461,13 @@ def disable_bio_page(user_id):
             'is_enabled': False,
             'updated_at': datetime.now().isoformat()
         }).eq('user_id', user_id).execute()
+        return True
+    except Exception as e:
+        logger.error(f"Error disabling bio page: {e}")
+        return False
 
-        def update_bio_theme(user_id, theme_name):
+
+def update_bio_theme(user_id, theme_name):
     """تحديث ثيم صفحة البايو"""
     try:
         supabase.table('bio_pages').update({
@@ -473,6 +478,7 @@ def disable_bio_page(user_id):
     except Exception as e:
         logger.error(f"Error updating theme: {e}")
         return False
+
 
 def update_bio_text(user_id, bio_text):
     """تحديث النبذة المختصرة"""
@@ -486,6 +492,7 @@ def update_bio_text(user_id, bio_text):
         logger.error(f"Error updating bio: {e}")
         return False
 
+
 def update_bio_avatar(user_id, avatar_url):
     """تحديث الصورة الشخصية"""
     try:
@@ -497,6 +504,7 @@ def update_bio_avatar(user_id, avatar_url):
     except Exception as e:
         logger.error(f"Error updating avatar: {e}")
         return False
+
 
 def add_custom_link(user_id, title, url):
     """إضافة رابط مخصص"""
@@ -514,6 +522,7 @@ def add_custom_link(user_id, title, url):
         logger.error(f"Error adding custom link: {e}")
         return False
 
+
 def remove_custom_link(user_id, link_index):
     """حذف رابط مخصص"""
     try:
@@ -528,8 +537,4 @@ def remove_custom_link(user_id, link_index):
         return True
     except Exception as e:
         logger.error(f"Error removing custom link: {e}")
-        return False
-        return True
-    except Exception as e:
-        logger.error(f"Error disabling bio page: {e}")
         return False
