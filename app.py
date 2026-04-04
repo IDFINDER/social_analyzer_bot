@@ -112,4 +112,7 @@ def bio_page(page_url):
     except Exception as e:
         logger.error(f"Error in bio_page: {e}")
         return f"Internal error: {e}", 500
+
+
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=PORT, debug=False)
