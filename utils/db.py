@@ -461,6 +461,74 @@ def disable_bio_page(user_id):
             'is_enabled': False,
             'updated_at': datetime.now().isoformat()
         }).eq('user_id', user_id).execute()
+
+        def update_bio_theme(user_id, theme_name):
+    """تحديث ثيم صفحة البايو"""
+    try:
+        supabase.table('bio_pages').update({
+            'theme_name': theme_name,
+            'updated_at': datetime.now().isoformat()
+        }).eq('user_id', user_id).execute()
+        return True
+    except Exception as e:
+        logger.error(f"Error updating theme: {e}")
+        return False
+
+def update_bio_text(user_id, bio_text):
+    """تحديث النبذة المختصرة"""
+    try:
+        supabase.table('bio_pages').update({
+            'bio': bio_text,
+            'updated_at': datetime.now().isoformat()
+        }).eq('user_id', user_id).execute()
+        return True
+    except Exception as e:
+        logger.error(f"Error updating bio: {e}")
+        return False
+
+def update_bio_avatar(user_id, avatar_url):
+    """تحديث الصورة الشخصية"""
+    try:
+        supabase.table('bio_pages').update({
+            'avatar_url': avatar_url,
+            'updated_at': datetime.now().isoformat()
+        }).eq('user_id', user_id).execute()
+        return True
+    except Exception as e:
+        logger.error(f"Error updating avatar: {e}")
+        return False
+
+def add_custom_link(user_id, title, url):
+    """إضافة رابط مخصص"""
+    try:
+        bio = get_bio_page(user_id)
+        custom_links = bio.get('custom_links', [])
+        custom_links.append({'title': title, 'url': url})
+        
+        supabase.table('bio_pages').update({
+            'custom_links': custom_links,
+            'updated_at': datetime.now().isoformat()
+        }).eq('user_id', user_id).execute()
+        return True
+    except Exception as e:
+        logger.error(f"Error adding custom link: {e}")
+        return False
+
+def remove_custom_link(user_id, link_index):
+    """حذف رابط مخصص"""
+    try:
+        bio = get_bio_page(user_id)
+        custom_links = bio.get('custom_links', [])
+        if 0 <= link_index < len(custom_links):
+            custom_links.pop(link_index)
+            supabase.table('bio_pages').update({
+                'custom_links': custom_links,
+                'updated_at': datetime.now().isoformat()
+            }).eq('user_id', user_id).execute()
+        return True
+    except Exception as e:
+        logger.error(f"Error removing custom link: {e}")
+        return False
         return True
     except Exception as e:
         logger.error(f"Error disabling bio page: {e}")
