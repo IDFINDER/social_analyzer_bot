@@ -4,7 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ display_name }} | صفحة البايو</title>
+    
+    <!-- الخطوط -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- القالب الأساسي (ضروري للهيكل) -->
     <style>
+        /* ===== القواعد الأساسية (ثابتة لجميع القوالب) ===== */
         * {
             margin: 0;
             padding: 0;
@@ -13,56 +19,71 @@
         
         body {
             font-family: 'Tajawal', 'Segoe UI', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 30px;
+            transition: all 0.3s ease;
         }
         
         .container {
-            max-width: 550px;
+            max-width: 600px;
             margin: auto;
-            background: #fff;
             padding: 35px 25px;
             border-radius: 25px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
             text-align: center;
+            transition: all 0.3s ease;
         }
         
-        /* الصورة الرمزية */
-        .avatar {
-            width: 100px;
-            height: 100px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 50%;
+        /* الصورة الشخصية */
+        .avatar-container {
+            position: relative;
+            width: 120px;
+            height: 120px;
             margin: 0 auto 20px;
+        }
+        
+        .avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid white;
+            transition: transform 0.3s ease;
+        }
+        
+        .avatar:hover {
+            transform: scale(1.05);
+        }
+        
+        .avatar-placeholder {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 48px;
-            color: white;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            font-size: 55px;
+            transition: transform 0.3s ease;
+        }
+        
+        .avatar-placeholder:hover {
+            transform: scale(1.05);
         }
         
         h1 {
             font-size: 28px;
-            color: #2c3e50;
             margin-bottom: 8px;
-            font-weight: bold;
         }
         
         .username {
             font-size: 14px;
-            color: #7f8c8d;
             margin-bottom: 20px;
             direction: ltr;
         }
         
         .bio {
-            background: #f8f9fa;
             padding: 15px 20px;
             border-radius: 15px;
             margin: 20px 0;
-            color: #555;
             line-height: 1.7;
             font-size: 14px;
             text-align: center;
@@ -70,8 +91,42 @@
         
         .divider {
             height: 1px;
-            background: linear-gradient(to right, transparent, #e0e0e0, transparent);
             margin: 25px 0;
+        }
+        
+        /* بطاقات الإحصائيات */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            padding: 12px;
+            border-radius: 15px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .stat-icon {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            direction: ltr;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            margin-top: 5px;
         }
         
         /* أزرار الحسابات */
@@ -96,7 +151,6 @@
         .account-btn:hover {
             transform: translateY(-3px);
             opacity: 0.92;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
         }
         
         .account-icon {
@@ -104,32 +158,29 @@
             height: 24px;
         }
         
-        /* ألوان المنصات */
+        /* ألوان المنصات (ثابتة لجميع القوالب) */
         .youtube { background: #ff0000; }
         .instagram { background: #e1306c; }
         .tiktok { background: #000000; }
         .facebook { background: #1877f2; }
         .twitter { background: #1da1f2; }
-        .snapchat { background: #fffc00; color: #000; }
         .linkedin { background: #0077b5; }
         .github { background: #333; }
         .telegram { background: #0088cc; }
         .whatsapp { background: #25d366; }
-        .custom-link { 
+        
+        /* الروابط المخصصة */
+        .custom-link {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
         
-        /* تذييل الصفحة */
         .footer {
             margin-top: 30px;
             padding-top: 20px;
-            border-top: 1px solid #eee;
             font-size: 13px;
-            color: #888;
         }
         
         .footer a {
-            color: #667eea;
             text-decoration: none;
             font-weight: bold;
             transition: 0.3s;
@@ -139,58 +190,129 @@
             text-decoration: underline;
         }
         
-        /* عدد المشاهدات */
         .views {
             margin-top: 15px;
             font-size: 11px;
-            color: #bbb;
         }
         
-        /* توافق مع الجوال */
+        /* زر تغيير الثيم */
+        .theme-picker {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            border-radius: 50px;
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+        
+        .theme-picker:hover {
+            transform: scale(1.05);
+        }
+        
+        .theme-option {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: 0.2s;
+        }
+        
+        .theme-option:hover {
+            transform: scale(1.1);
+        }
+        
+        /* نافذة اختيار القوالب */
+        .theme-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .theme-modal-content {
+            padding: 25px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 350px;
+            text-align: center;
+        }
+        
+        .theme-preset {
+            display: inline-block;
+            width: 80px;
+            padding: 10px;
+            margin: 8px;
+            border-radius: 15px;
+            cursor: pointer;
+            text-align: center;
+            transition: 0.3s;
+            border: 2px solid transparent;
+        }
+        
+        .theme-preset.selected {
+            border-color: #333;
+            transform: scale(1.05);
+        }
+        
+        .theme-preset:hover {
+            transform: scale(1.05);
+        }
+        
+        .save-theme {
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            margin-top: 15px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
         @media (max-width: 600px) {
-            body {
-                padding: 15px;
-            }
-            .container {
-                padding: 25px 15px;
-            }
-            h1 {
-                font-size: 24px;
-            }
-            .account-btn {
-                width: 95%;
-                padding: 10px 15px;
-                font-size: 14px;
-            }
-            .avatar {
-                width: 80px;
-                height: 80px;
-                font-size: 38px;
-            }
+            body { padding: 15px; }
+            .container { padding: 25px 15px; }
+            h1 { font-size: 24px; }
+            .account-btn { width: 95%; padding: 10px 15px; }
+            .avatar-container { width: 90px; height: 90px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
         }
         
-        /* تأثير ظهور الصفحة */
         @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         .container {
             animation: fadeInUp 0.6s ease-out;
         }
     </style>
+    
+    <!-- القالب المخصص (يتم تحميله حسب اختيار المستخدم) -->
+    <link id="themeStylesheet" rel="stylesheet" href="{{ url_for('static', filename='themes/' + theme_name + '.css') }}">
 </head>
 <body>
     <div class="container">
-        <!-- الصورة الرمزية -->
-        <div class="avatar">
-            👤
+        <!-- الصورة الشخصية -->
+        <div class="avatar-container">
+            {% if avatar_url %}
+            <img src="{{ avatar_url }}" class="avatar" alt="{{ display_name }}">
+            {% else %}
+            <div class="avatar-placeholder">
+                👤
+            </div>
+            {% endif %}
         </div>
         
         <!-- الاسم -->
@@ -199,16 +321,22 @@
         <!-- اليوزرنيم -->
         <div class="username">@{{ username }}</div>
         
-        <!-- السيرة الذاتية (إذا وجدت) -->
+        <!-- النبذة -->
         {% if bio %}
-        <div class="bio">
-            {{ bio }}
-        </div>
+        <div class="bio">{{ bio }}</div>
         {% endif %}
         
-        <!-- قسم الروابط (يظهر فقط إذا وجدت حسابات) -->
-        {% if accounts %}
-        <div class="divider"></div>
+        <!-- الإحصائيات (للمستخدمين المميزين) -->
+        {% if is_premium and stats %}
+        <div class="stats-grid">
+            {% for platform, data in stats.items() %}
+            <div class="stat-card">
+                <div class="stat-icon">{{ data.icon }}</div>
+                <div class="stat-value">{{ data.followers }}</div>
+                <div class="stat-label">{{ data.name }}</div>
+            </div>
+            {% endfor %}
+        </div>
         {% endif %}
         
         <!-- أزرار الحسابات -->
@@ -232,8 +360,84 @@
             <a href="https://t.me/Social_Media_tools_bot" target="_blank">اضغط هنا وانتقل للبوت</a>
         </div>
         
-        <!-- عدد المشاهدات (اختياري - أضفه إذا أردت) -->
-        <!-- <div class="views">👁️ {{ views_count }} مشاهدة</div> -->
+        {% if views_count %}
+        <div class="views">👁️ {{ views_count }} مشاهدة</div>
+        {% endif %}
     </div>
+    
+    <!-- زر تغيير الثيم (للمستخدمين المميزين فقط) -->
+    {% if is_premium %}
+    <div class="theme-picker" onclick="showThemeModal()">
+        🎨 تغيير الثيم
+    </div>
+    
+    <!-- نافذة اختيار القوالب -->
+    <div id="themeModal" class="theme-modal">
+        <div class="theme-modal-content" style="background: var(--modal-bg, white);">
+            <h3>🎨 اختر ثيمك المفضل</h3>
+            <div>
+                <div class="theme-preset" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;" onclick="selectTheme('default')">
+                    🌙 فاتح
+                </div>
+                <div class="theme-preset" style="background: #1a1a2e; color: white; border: 1px solid #4facfe;" onclick="selectTheme('dark')">
+                    🌙 داكن
+                </div>
+            </div>
+            <button class="save-theme" onclick="saveTheme()">💾 تطبيق</button>
+            <button onclick="closeThemeModal()" style="margin-top:10px; background:none; border:none; cursor:pointer;">❌ إلغاء</button>
+        </div>
+    </div>
+    {% endif %}
+    
+    <script>
+        let selectedThemeName = '{{ theme_name }}';
+        
+        function showThemeModal() {
+            document.getElementById('themeModal').style.display = 'flex';
+        }
+        
+        function closeThemeModal() {
+            document.getElementById('themeModal').style.display = 'none';
+        }
+        
+        function selectTheme(theme) {
+            selectedThemeName = theme;
+            // معاينة حية - تغيير القالب مؤقتاً
+            document.getElementById('themeStylesheet').href = `/static/themes/${theme}.css`;
+        }
+        
+        function saveTheme() {
+            // إرسال الثيم المختار إلى الخادم
+            fetch('/api/save_theme', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_id: {{ user_id }},
+                    theme_name: selectedThemeName
+                })
+            }).then(response => response.json())
+              .then(data => {
+                  if(data.status === 'ok') {
+                      // حفظ بنجاح
+                      closeThemeModal();
+                  } else {
+                      alert('حدث خطأ، حاول مرة أخرى');
+                  }
+              }).catch(error => {
+                  console.error('Error:', error);
+                  alert('حدث خطأ في الاتصال');
+              });
+        }
+        
+        // إغلاق النافذة عند النقر خارجها
+        window.onclick = function(event) {
+            const modal = document.getElementById('themeModal');
+            if (event.target === modal) {
+                closeThemeModal();
+            }
+        }
+    </script>
 </body>
 </html>
