@@ -793,117 +793,82 @@ async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
-async def show_bio_management(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int = None, page_url: str = None):
+async def show_bio_management(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int = None):
     """عرض إدارة صفحة البايو"""
-    # إصلاح: استخراج user_id بشكل صحيح من جميع أنواع التحديثات
+    
+    # استخراج user_id بشكل صحيح
     if user_id is None:
-        # التحقق من وجود callback_query (زر مضغوط)
         if update.callback_query:
             user_id = update.callback_query.from_user.id
-        # التحقق من وجود message (رسالة عادية)
         elif update.effective_user:
             user_id = update.effective_user.id
         else:
-            if hasattr(update, 'message') and update.message:
-                await update.message.reply_text("❌ حدث خطأ: لم يتم التعرف على المستخدم")
+            await update.message.reply_text("❌ حدث خطأ: لم يتم التعرف على المستخدم")
             return
     
-    # ========== محاولة جلب صفحة البايو بطرق مختلفة ==========
-    bio_page = None
-    
-    # الطريقة 1: عبر get_bio_page (int)
+    # التأكد من أن user_id رقم صحيح
     try:
-        bio_page = get_bio_page(int(user_id))
-        if bio_page:
-            logger.info(f"✅ Found bio page via int({user_id})")
-    except Exception as e:
-        logger.error(f"Error getting bio page as int: {e}")
-    
-    # الطريقة 2: عبر get_bio_page (str)
-    if not bio_page:
-        try:
-            bio_page = get_bio_page(str(user_id))
-            if bio_page:
-                logger.info(f"✅ Found bio page via str({user_id})")
-        except Exception as e:
-            logger.error(f"Error getting bio page as str: {e}")
-    
-    # الطريقة 3: البحث المباشر في Supabase باستخدام int
-    if not bio_page:
-        try:
-            from utils.db import supabase
-            response = supabase.table('bio_pages').select('*').eq('user_id', int(user_id)).execute()
-            if response.data:
-                bio_page = response.data[0]
-                logger.info(f"✅ Found bio page via direct int query")
-        except Exception as e:
-            logger.error(f"Error direct query as int: {e}")
-    
-    # الطريقة 4: البحث المباشر في Supabase باستخدام str
-    if not bio_page:
-        try:
-            from utils.db import supabase
-            response = supabase.table('bio_pages').select('*').eq('user_id', str(user_id)).execute()
-            if response.data:
-                bio_page = response.data[0]
-                logger.info(f"✅ Found bio page via direct str query")
-        except Exception as e:
-            logger.error(f"Error direct query as str: {e}")
-    
-    # الطريقة 5: إذا كان page_url موجوداً، ابحث بواسطته
-    if not bio_page and page_url:
-        try:
-            bio_page = get_bio_page_by_page_url(page_url)
-            if bio_page:
-                logger.info(f"✅ Found bio page via page_url: {page_url}")
-        except Exception as e:
-            logger.error(f"Error getting bio page by url: {e}")
-    
-    # ========== إذا لم يتم العثور على الصفحة ==========
-    if not bio_page:
-        error_msg = "❌ لم يتم العثور على صفحة البايو.\n\n"
-        error_msg += "💡 الأسباب المحتملة:\n"
-        error_msg += "• قد تحتاج إلى إنشاء صفحة البايو أولاً\n"
-        error_msg += "• تأكد من أنك مشترك في الخطة المميزة\n"
-        error_msg += "• تأكد من أن لديك حسابات مسجلة\n\n"
-        error_msg += "🔧 الحل:\n"
-        error_msg += "1. اضغط على '📄 صفحة البايو' مرة أخرى\n"
-        error_msg += "2. إذا استمرت المشكلة، تواصل مع المطور @E_Alshabany"
-        
-        if hasattr(update, 'callback_query') and update.callback_query:
-            await update.callback_query.edit_message_text(error_msg, parse_mode='HTML')
-        else:
-            await update.message.reply_text(error_msg, parse_mode='HTML')
+        user_id = int(user_id)
+    except:
+        await update.message.reply_text("❌ حدث خطأ: معرف المستخدم غير صالح")
         return
     
-    # ========== عرض إدارة صفحة البايو ==========
-    if page_url is None:
+    # جلب صفحة البايو مباشرة من قاعدة البيانات
+    from utils.db import supabase
+    
+    try:
+        response = supabase.table('bio_pages').select('*').eq('user_id', user_id).execute()
+        
+        if not response.data:
+            # لم يتم العثور على صفحة، قم بإنشائها
+            accounts = get_user_social_accounts(user_id)
+            if not accounts:
+                await update.message.reply_text("❌ لا توجد حسابات مسجلة. أرسل /start أولاً")
+                return
+            
+            user_info = get_user_info(user_id)
+            display_name = user_info.get('first_name', 'مستخدم')
+            
+            formatted_accounts = {}
+            for platform, acc in accounts.items():
+                formatted_accounts[platform] = {
+                    'account_identifier': acc['account_identifier']
+                }
+            
+            page_url = create_or_update_bio_page(user_id, display_name, formatted_accounts)
+            
+            if not page_url:
+                await update.message.reply_text("❌ حدث خطأ في إنشاء صفحة البايو")
+                return
+            
+            # جلب الصفحة مرة أخرى
+            response = supabase.table('bio_pages').select('*').eq('user_id', user_id).execute()
+            if not response.data:
+                await update.message.reply_text("❌ حدث خطأ في إنشاء صفحة البايو")
+                return
+        
+        bio_page = response.data[0]
         page_url = bio_page.get('page_url')
-    
-    theme_name = bio_page.get('theme_name', 'default')
-    views_count = bio_page.get('views_count', 0)
-    flask_url = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
-    
-    # دالة مساعدة لعرض اسم الثيم بشكل جميل
-    def get_theme_display(theme):
-        themes = {
-            'default': '☀️ فاتح',
-            'dark': '🌙 داكن'
-        }
-        return themes.get(theme, '☀️ فاتح')
-    
-    keyboard = [
-        [InlineKeyboardButton(f"🎨 الثيم الحالي: {get_theme_display(theme_name)}", callback_data="bio_change_theme")],
-        [InlineKeyboardButton("📝 تعديل النبذة", callback_data="bio_edit_bio")],
-        [InlineKeyboardButton("🔗 عرض رابط الصفحة", callback_data="bio_show_link")],
-        [InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")]
-    ]
-    
-    bio_text = bio_page.get('bio', 'لا يوجد')
-    if len(bio_text) > 100:
-        bio_text = bio_text[:100] + "..."
-    
-    text = f"""
+        theme_name = bio_page.get('theme_name', 'default')
+        views_count = bio_page.get('views_count', 0)
+        flask_url = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
+        
+        def get_theme_display(theme):
+            themes = {'default': '☀️ فاتح', 'dark': '🌙 داكن'}
+            return themes.get(theme, '☀️ فاتح')
+        
+        keyboard = [
+            [InlineKeyboardButton(f"🎨 الثيم الحالي: {get_theme_display(theme_name)}", callback_data="bio_change_theme")],
+            [InlineKeyboardButton("📝 تعديل النبذة", callback_data="bio_edit_bio")],
+            [InlineKeyboardButton("🔗 عرض رابط الصفحة", callback_data="bio_show_link")],
+            [InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")]
+        ]
+        
+        bio_text = bio_page.get('bio', 'لا يوجد')
+        if len(bio_text) > 100:
+            bio_text = bio_text[:100] + "..."
+        
+        text = f"""
 📄 <b>إدارة صفحة البايو</b>
 
 🔗 <b>رابط صفحتك:</b>
@@ -918,16 +883,23 @@ https://{flask_url}/bio/{page_url}
 
 💡 يمكنك تعديل أي من الإعدادات أدناه
 """
-    
-    # التحقق من نوع التحديث (رسالة أو callback)
-    if hasattr(update, 'callback_query') and update.callback_query:
-        await update.callback_query.edit_message_text(
-            text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-    else:
-        await update.message.reply_text(
-            text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+        
+        if hasattr(update, 'callback_query') and update.callback_query:
+            await update.callback_query.edit_message_text(
+                text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+        else:
+            await update.message.reply_text(
+                text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+            
+    except Exception as e:
+        logger.error(f"Error in show_bio_management: {e}")
+        error_msg = f"❌ حدث خطأ: {str(e)[:200]}"
+        if hasattr(update, 'callback_query') and update.callback_query:
+            await update.callback_query.edit_message_text(error_msg)
+        else:
+            await update.message.reply_text(error_msg)
 
 
 async def username_check_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
