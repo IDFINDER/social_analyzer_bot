@@ -21,7 +21,7 @@ from utils.db import (
     increment_usage, can_analyze, get_remaining_analyses, get_total_analyses,
     get_user_social_accounts, get_user_account, save_user_account, delete_user_account,
     can_use_gemini, increment_gemini_usage,
-    get_bio_page, create_or_update_bio_page, disable_bio_page, get_bio_page_by_url, increment_bio_views
+    get_bio_page, create_or_update_bio_page, disable_bio_page, get_bio_page_by_page_url, increment_bio_views
 )
 from utils.youtube_analyzer import get_channel_details, format_channel_report
 from utils.gemini_ai import get_channel_recommendations, get_username_recommendations
