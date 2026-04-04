@@ -795,51 +795,88 @@ async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def show_bio_management(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int = None, page_url: str = None):
     """عرض إدارة صفحة البايو"""
-    # إصلاح: استخراج user_id بشكل صحيح
+    # إصلاح: استخراج user_id بشكل صحيح من جميع أنواع التحديثات
     if user_id is None:
+        # التحقق من وجود callback_query (زر مضغوط)
         if update.callback_query:
             user_id = update.callback_query.from_user.id
+        # التحقق من وجود message (رسالة عادية)
         elif update.effective_user:
             user_id = update.effective_user.id
         else:
-            await update.message.reply_text("❌ حدث خطأ: لم يتم التعرف على المستخدم")
+            if hasattr(update, 'message') and update.message:
+                await update.message.reply_text("❌ حدث خطأ: لم يتم التعرف على المستخدم")
             return
     
-    # محاولة جلب صفحة البايو بطرق مختلفة
-    bio_page = get_bio_page(user_id)
+    # ========== محاولة جلب صفحة البايو بطرق مختلفة ==========
+    bio_page = None
     
-    # إذا لم توجد، حاول جلبها عبر page_url إذا كان متوفراً
-    if not bio_page and page_url:
-        bio_page = get_bio_page_by_page_url(page_url)
+    # الطريقة 1: عبر get_bio_page (int)
+    try:
+        bio_page = get_bio_page(int(user_id))
+        if bio_page:
+            logger.info(f"✅ Found bio page via int({user_id})")
+    except Exception as e:
+        logger.error(f"Error getting bio page as int: {e}")
     
-    # إذا لا تزال غير موجودة، ابحث في قاعدة البيانات مباشرة (حل بديل)
+    # الطريقة 2: عبر get_bio_page (str)
+    if not bio_page:
+        try:
+            bio_page = get_bio_page(str(user_id))
+            if bio_page:
+                logger.info(f"✅ Found bio page via str({user_id})")
+        except Exception as e:
+            logger.error(f"Error getting bio page as str: {e}")
+    
+    # الطريقة 3: البحث المباشر في Supabase باستخدام int
+    if not bio_page:
+        try:
+            from utils.db import supabase
+            response = supabase.table('bio_pages').select('*').eq('user_id', int(user_id)).execute()
+            if response.data:
+                bio_page = response.data[0]
+                logger.info(f"✅ Found bio page via direct int query")
+        except Exception as e:
+            logger.error(f"Error direct query as int: {e}")
+    
+    # الطريقة 4: البحث المباشر في Supabase باستخدام str
     if not bio_page:
         try:
             from utils.db import supabase
             response = supabase.table('bio_pages').select('*').eq('user_id', str(user_id)).execute()
             if response.data:
                 bio_page = response.data[0]
-            else:
-                # حاول البحث كـ int
-                response = supabase.table('bio_pages').select('*').eq('user_id', int(user_id)).execute()
-                if response.data:
-                    bio_page = response.data[0]
+                logger.info(f"✅ Found bio page via direct str query")
         except Exception as e:
-            logger.error(f"Error searching bio page: {e}")
+            logger.error(f"Error direct query as str: {e}")
     
+    # الطريقة 5: إذا كان page_url موجوداً، ابحث بواسطته
+    if not bio_page and page_url:
+        try:
+            bio_page = get_bio_page_by_page_url(page_url)
+            if bio_page:
+                logger.info(f"✅ Found bio page via page_url: {page_url}")
+        except Exception as e:
+            logger.error(f"Error getting bio page by url: {e}")
+    
+    # ========== إذا لم يتم العثور على الصفحة ==========
     if not bio_page:
         error_msg = "❌ لم يتم العثور على صفحة البايو.\n\n"
-        error_msg += "💡 تأكد من:\n"
-        error_msg += "• أنك مشترك في الخطة المميزة\n"
-        error_msg += "• أن لديك حسابات مسجلة\n"
-        error_msg += "• ثم اضغط على '📄 صفحة البايو' مرة أخرى"
+        error_msg += "💡 الأسباب المحتملة:\n"
+        error_msg += "• قد تحتاج إلى إنشاء صفحة البايو أولاً\n"
+        error_msg += "• تأكد من أنك مشترك في الخطة المميزة\n"
+        error_msg += "• تأكد من أن لديك حسابات مسجلة\n\n"
+        error_msg += "🔧 الحل:\n"
+        error_msg += "1. اضغط على '📄 صفحة البايو' مرة أخرى\n"
+        error_msg += "2. إذا استمرت المشكلة، تواصل مع المطور @E_Alshabany"
         
-        if update.callback_query:
+        if hasattr(update, 'callback_query') and update.callback_query:
             await update.callback_query.edit_message_text(error_msg, parse_mode='HTML')
         else:
             await update.message.reply_text(error_msg, parse_mode='HTML')
         return
     
+    # ========== عرض إدارة صفحة البايو ==========
     if page_url is None:
         page_url = bio_page.get('page_url')
     
@@ -847,6 +884,7 @@ async def show_bio_management(update: Update, context: ContextTypes.DEFAULT_TYPE
     views_count = bio_page.get('views_count', 0)
     flask_url = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
     
+    # دالة مساعدة لعرض اسم الثيم بشكل جميل
     def get_theme_display(theme):
         themes = {
             'default': '☀️ فاتح',
@@ -857,9 +895,6 @@ async def show_bio_management(update: Update, context: ContextTypes.DEFAULT_TYPE
     keyboard = [
         [InlineKeyboardButton(f"🎨 الثيم الحالي: {get_theme_display(theme_name)}", callback_data="bio_change_theme")],
         [InlineKeyboardButton("📝 تعديل النبذة", callback_data="bio_edit_bio")],
-        [InlineKeyboardButton("🖼️ تغيير الصورة الشخصية", callback_data="bio_change_avatar")],
-        [InlineKeyboardButton("➕ إضافة رابط مخصص", callback_data="bio_add_link")],
-        [InlineKeyboardButton("🗑️ حذف رابط مخصص", callback_data="bio_remove_link")],
         [InlineKeyboardButton("🔗 عرض رابط الصفحة", callback_data="bio_show_link")],
         [InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")]
     ]
@@ -884,6 +919,7 @@ https://{flask_url}/bio/{page_url}
 💡 يمكنك تعديل أي من الإعدادات أدناه
 """
     
+    # التحقق من نوع التحديث (رسالة أو callback)
     if hasattr(update, 'callback_query') and update.callback_query:
         await update.callback_query.edit_message_text(
             text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard)
