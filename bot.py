@@ -773,16 +773,27 @@ async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def show_bio_management(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int = None, page_url: str = None):
     """عرض إدارة صفحة البايو"""
-    # إصلاح: إذا كان user_id غير موجود، نستخرجه من update بشكل صحيح
+    # إصلاح: استخراج user_id بشكل صحيح من جميع أنواع التحديثات
     if user_id is None:
-        # التحقق من وجود callback_query أو message
+        # التحقق من وجود callback_query (زر مضغوط)
         if update.callback_query:
             user_id = update.callback_query.from_user.id
+        # التحقق من وجود message (رسالة عادية)
+        elif update.effective_user:
+            user_id = update.effective_user.id
         else:
-            user_id = update.effective_user.id  # user_id يجب أن يكون رقماً
+            await update.message.reply_text("❌ حدث خطأ: لم يتم التعرف على المستخدم")
+            return
+    
+    # استخدام user_id الرقمي لجلب البيانات
+    bio_page = get_bio_page(user_id)
     
     if not bio_page:
-        await update.message.reply_text("❌ لم يتم العثور على صفحة البايو")
+        # محاولة إعلام المستخدم بطريقة مناسبة
+        if update.callback_query:
+            await update.callback_query.edit_message_text("❌ لم يتم العثور على صفحة البايو")
+        else:
+            await update.message.reply_text("❌ لم يتم العثور على صفحة البايو")
         return
     
     if page_url is None:
