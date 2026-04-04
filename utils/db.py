@@ -360,7 +360,7 @@ def generate_bio_url(user_id):
 
 
 def get_bio_page(user_id):
-    """جلب صفحة البايو للمستخدم"""
+    """جلب صفحة البايو للمستخدم باستخدام user_id"""
     try:
         response = supabase.table('bio_pages').select('*').eq('user_id', user_id).execute()
         if response.data:
@@ -371,8 +371,8 @@ def get_bio_page(user_id):
         return None
 
 
-def get_bio_page_by_url(page_url):
-    """جلب صفحة البايو بواسطة الرابط"""
+def get_bio_page_by_page_url(page_url):
+    """جلب صفحة البايو بواسطة page_url (للعرض العام)"""
     try:
         response = supabase.table('bio_pages').select('*').eq('page_url', page_url).eq('is_enabled', True).execute()
         if response.data:
