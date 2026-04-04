@@ -12,7 +12,7 @@ import asyncio
 from datetime import datetime, date, timedelta
 from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler, ConversationHandler
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, jsonify
 
 # إضافة مجلد utils إلى المسار
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -21,12 +21,40 @@ from utils.db import (
     increment_usage, can_analyze, get_remaining_analyses, get_total_analyses,
     get_user_social_accounts, get_user_account, save_user_account, delete_user_account,
     can_use_gemini, increment_gemini_usage,
-    get_bio_page, create_or_update_bio_page, disable_bio_page, get_bio_page_by_page_url, increment_bio_views
+    get_bio_page, create_or_update_bio_page, disable_bio_page, get_bio_page_by_page_url, increment_bio_views,
+    update_bio_theme, update_bio_text, update_bio_avatar, add_custom_link, remove_custom_link
 )
 from utils.youtube_analyzer import get_channel_details, format_channel_report
 from utils.gemini_ai import get_channel_recommendations, get_username_recommendations
 from utils.helpers import escape_html
 
+# ========== خادم HTTP لإبقاء السيرفر نشطاً على Render ==========
+flask_app = Flask(__name__)
+
+@flask_app.route('/')
+@flask_app.route('/health')
+@flask_app.route('/healthcheck')
+def health_check():
+    """نقطة نهاية للتحقق من صحة الخدمة"""
+    return jsonify({"status": "ok", "bot": "running"}), 200
+
+@flask_app.route('/bot_status')
+def bot_status():
+    """نقطة نهاية لعرض حالة البوت"""
+    return jsonify({
+        "status": "running",
+        "bot_name": os.environ.get('BOT_NAME', 'social_analyzer'),
+        "free_limit": int(os.environ.get('FREE_LIMIT', '2')),
+        "uptime": datetime.now().isoformat()
+    }), 200
+
+def run_flask():
+    """تشغيل خادم Flask في منفذ منفصل"""
+    port = int(os.environ.get('PORT', 10000))
+    flask_app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+
+# تشغيل Flask في thread منفصل (قبل بدء البوت)
+threading.Thread(target=run_flask, daemon=True).start()
 
 # ========== متغيرات البيئة ==========
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
@@ -36,7 +64,7 @@ BOT_NAME = os.environ.get('BOT_NAME', 'social_analyzer')
 FREE_LIMIT = int(os.environ.get('FREE_LIMIT', '2'))
 HUB_BOT_URL = os.environ.get('HUB_BOT_URL', 'https://t.me/SocMed_tools_bot')
 ADMIN_CHAT_ID = os.environ.get('ADMIN_CHAT_ID', '7850462368')
-RENDER_URL = os.environ.get('RENDER_URL', 'social-analyzer.onrender.com')
+RENDER_URL = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
 
 if not TOKEN or not SUPABASE_URL or not SUPABASE_KEY:
     print("❌ خطأ: تأكد من تعيين المتغيرات المطلوبة")
@@ -94,11 +122,6 @@ def get_analysis_keyboard():
 def get_premium_keyboard():
     """لوحة الاشتراك المميز"""
     keyboard = [[InlineKeyboardButton("💎 اشتراك مميز - 10$ مدى الحياة", web_app=WebAppInfo(url=f"https://{RENDER_URL}/payment"))]]
-    return InlineKeyboardMarkup(keyboard)
-
-def get_edit_keyboard(platform):
-    """لوحة تعديل الحساب مع زر رجوع"""
-    keyboard = [[InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")]]
     return InlineKeyboardMarkup(keyboard)
 
 # ========== أوامر البوت ==========
@@ -770,7 +793,6 @@ async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
-
 async def show_bio_management(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int = None, page_url: str = None):
     """عرض إدارة صفحة البايو"""
     # إصلاح: استخراج user_id بشكل صحيح من جميع أنواع التحديثات
@@ -801,7 +823,7 @@ async def show_bio_management(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     theme_name = bio_page.get('theme_name', 'default')
     views_count = bio_page.get('views_count', 0)
-    RENDER_URL = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
+    flask_url = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
     
     # دالة مساعدة لعرض اسم الثيم بشكل جميل
     def get_theme_display(theme):
@@ -829,7 +851,7 @@ async def show_bio_management(update: Update, context: ContextTypes.DEFAULT_TYPE
 📄 <b>إدارة صفحة البايو</b>
 
 🔗 <b>رابط صفحتك:</b>
-https://{RENDER_URL}/bio/{page_url}
+https://{flask_url}/bio/{page_url}
 
 👁️ <b>عدد المشاهدات:</b> {views_count}
 
@@ -947,37 +969,76 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode='HTML',
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
+    
+    # ========== أزرار إدارة صفحة البايو ==========
+    elif data == "bio_change_theme":
+        # تغيير الثيم
+        keyboard = [
+            [InlineKeyboardButton("☀️ فاتح", callback_data="bio_set_theme_default")],
+            [InlineKeyboardButton("🌙 داكن", callback_data="bio_set_theme_dark")],
+            [InlineKeyboardButton("🔙 رجوع", callback_data="bio_back")]
+        ]
+        await query.edit_message_text(
+            "🎨 <b>اختر الثيم المفضل لديك:</b>",
+            parse_mode='HTML',
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    
+    elif data == "bio_set_theme_default":
+        update_bio_theme(user_id, 'default')
+        await query.answer("✅ تم تغيير الثيم إلى الفاتح")
+        await show_bio_management(update, context, user_id)
+    
+    elif data == "bio_set_theme_dark":
+        update_bio_theme(user_id, 'dark')
+        await query.answer("✅ تم تغيير الثيم إلى الداكن")
+        await show_bio_management(update, context, user_id)
+    
+    elif data == "bio_edit_bio":
+        context.user_data['editing_bio'] = True
+        keyboard = [[InlineKeyboardButton("🔙 إلغاء", callback_data="bio_back")]]
+        await query.edit_message_text(
+            "📝 <b>تعديل النبذة</b>\n\n"
+            "أرسل النص الجديد للنبذة (الوصف الشخصي):\n\n"
+            "💡 مثال: مبرمج ومطور ويب | مهتم بالذكاء الاصطناعي",
+            parse_mode='HTML',
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    
+    elif data == "bio_show_link":
+        bio_page = get_bio_page(user_id)
+        if bio_page:
+            flask_url = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
+            await query.answer(f"رابط صفحتك: https://{flask_url}/bio/{bio_page['page_url']}", show_alert=True)
+    
+    elif data == "bio_back":
+        await show_bio_management(update, context, user_id)
 
 
-async def handle_edit_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة تعديل الحساب"""
-    platform = context.user_data.get('editing_platform')
-    if not platform:
-        return
-    
-    user_id = update.effective_user.id
-    new_identifier = update.message.text.strip()
-    
-    # حذف الحساب القديم وإضافة الجديد
-    delete_user_account(user_id, platform)
-    save_user_account(user_id, platform, new_identifier)
-    
-    context.user_data.pop('editing_platform', None)
-    
-    user_info = get_user_info(user_id)
-    is_premium = user_info['status'] == 'premium' if user_info else False
-    
-    await update.message.reply_text(
-        f"✅ تم تحديث حساب {platform.capitalize()} إلى: {escape_html(new_identifier)}",
-        parse_mode='HTML',
-        reply_markup=get_main_keyboard(is_premium)
-    )
+async def handle_bio_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالجة تعديل النبذة في صفحة البايو"""
+    if context.user_data.get('editing_bio'):
+        user_id = update.effective_user.id
+        new_bio = update.message.text.strip()
+        
+        if update_bio_text(user_id, new_bio):
+            context.user_data.pop('editing_bio', None)
+            await update.message.reply_text("✅ تم تحديث النبذة بنجاح!")
+            # عرض إدارة الصفحة مرة أخرى
+            await show_bio_management(update, context, user_id)
+        else:
+            await update.message.reply_text("❌ حدث خطأ في تحديث النبذة")
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """معالجة الرسائل النصية"""
     text = update.message.text.strip()
     user_id = update.effective_user.id
+    
+    # معالجة تعديل النبذة في صفحة البايو
+    if context.user_data.get('editing_bio'):
+        await handle_bio_edit(update, context)
+        return
     
     # معالجة الأزرار
     if text == "🎯 تحليل حساباتي":
@@ -1080,9 +1141,15 @@ def main():
     print(f"✅ نظام المدفوعات: مجاني {FREE_LIMIT} تحليل - مميز غير محدود")
     print("✅ قاعدة بيانات: Supabase (متكاملة مع النظام الموحد)")
     print("✅ الذكاء الاصطناعي: Gemini API (قيد التطوير)")
+    print("✅ خادم HTTP يعمل على المنفذ", os.environ.get('PORT', 10000))
     print("="*60)
     
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    # تشغيل البوت مع إعدادات محسنة لمنع التعارض
+    application.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True,
+        timeout=60
+    )
 
 
 if __name__ == '__main__':
