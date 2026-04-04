@@ -770,14 +770,16 @@ async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
+
 async def show_bio_management(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int = None, page_url: str = None):
     """عرض إدارة صفحة البايو"""
     # إذا كانت الدالة مستدعاة من bio_page_command
     if user_id is None:
-        user_id = update.effective_user.id
-        page_url = None
+        user_id = update.effective_user.id  # هذا هو رقم Telegram الصحيح
     
-    bio_page = get_bio_page(user_id)
+    # استخدم user_id الرقمي لجلب البيانات
+    bio_page = get_bio_page(user_id)  # user_id يجب أن يكون رقماً
+    
     if not bio_page:
         await update.message.reply_text("❌ لم يتم العثور على صفحة البايو")
         return
