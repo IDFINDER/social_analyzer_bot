@@ -588,19 +588,30 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # التحقق من الحد اليومي للمجانيين
     can_analyze_bool, current_uses = can_analyze(user_id)
     
-    if not can_analyze_bool and not is_premium:
-        keyboard = [[InlineKeyboardButton("💎 اشتراك مميز", url=HUB_BOT_URL)]]
+    # إذا كان المستخدم مجاني ووصل للحد اليومي
+    if not is_premium and not can_analyze_bool:
+        remaining = FREE_LIMIT - current_uses
+        keyboard = InlineKeyboardMarkup([[
+            InlineKeyboardButton("💎 اشتراك مميز - 10$ مدى الحياة", web_app=WebAppInfo(url=f"https://{RENDER_URL}/payment"))
+        ]])
+        
         await update.message.reply_text(
-            f"⚠️ <b>لقد وصلت للحد اليومي!</b>\n\n"
+            f"⚠️ <b>لقد وصلت للحد اليومي المجاني!</b>\n\n"
             f"📊 <b>الحد المسموح:</b> {FREE_LIMIT} تحليل يومياً\n"
             f"✅ <b>التحليلات اليوم:</b> {current_uses}\n"
-            f"🎯 <b>المتبقي:</b> {FREE_LIMIT - current_uses}\n\n"
-            f"💎 <b>للتحليل غير المحدود، اشترك في الخطة المميزة!</b>",
+            f"🎯 <b>المتبقي اليوم:</b> {remaining}\n\n"
+            f"💎 <b>للتحليل غير المحدود والمميزات الإضافية:</b>\n"
+            f"• تحليل غير محدود\n"
+            f"• توصيات الذكاء الاصطناعي\n"
+            f"• صفحة بايو شخصية\n"
+            f"• فحص توافر اليوزرنيم\n\n"
+            f"🔽 <b>اشترك الآن في الخطة المميزة:</b>",
             parse_mode='HTML',
             reply_markup=keyboard
         )
         return
     
+    # إذا كان المستخدم مميز أو لديه تحليلات متبقية
     await update.message.reply_text(
         "🎯 <b>اختر المنصة التي تريد تحليلها:</b>",
         parse_mode='HTML',
