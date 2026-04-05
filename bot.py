@@ -121,8 +121,10 @@ def get_analysis_keyboard():
 
 def get_premium_keyboard():
     """لوحة الاشتراك المميز"""
-    keyboard = [[InlineKeyboardButton("💎 اشتراك مميز - 10$ مدى الحياة", web_app=WebAppInfo(url=f"https://{RENDER_URL}/payment"))]]
-    return InlineKeyboardMarkup(keyboard)
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton("💎 اشتراك مميز - 10$ مدى الحياة", web_app=WebAppInfo(url=f"https://{RENDER_URL}/payment"))
+    ]])
+    return keyboard
 
 # ========== أوامر البوت ==========
 
