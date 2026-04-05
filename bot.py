@@ -632,6 +632,31 @@ async def analyze_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
     user_info = get_user_info(user_id)
     is_premium = user_info['status'] == 'premium' if user_info else False
     
+    # ========== التحقق من الحد اليومي للمجانيين ==========
+    if not is_premium:
+        can_analyze_bool, current_uses = can_analyze(user_id)
+        if not can_analyze_bool:
+            # إنشاء رابط الدفع الصحيح
+            payment_url = f"https://{RENDER_URL}/payment"
+            keyboard = InlineKeyboardMarkup([[
+                InlineKeyboardButton("💎 اشتراك مميز - 10$ مدى الحياة", web_app=WebAppInfo(url=payment_url))
+            ]])
+            await message.reply_text(
+                f"⚠️ <b>لقد وصلت للحد اليومي المجاني!</b>\n\n"
+                f"📊 <b>الحد المسموح:</b> {FREE_LIMIT} تحليل يومياً\n"
+                f"✅ <b>التحليلات اليوم:</b> {current_uses}\n"
+                f"🎯 <b>المتبقي اليوم:</b> {FREE_LIMIT - current_uses}\n\n"
+                f"💎 <b>مميزات الخطة المميزة:</b>\n"
+                f"• تحليل غير محدود لجميع الحسابات\n"
+                f"• توصيات الذكاء الاصطناعي (5 يومياً)\n"
+                f"• صفحة بايو شخصية\n"
+                f"• فحص توافر اليوزرنيم\n\n"
+                f"🔽 <b>للتحليل غير المحدود، اشترك الآن:</b>",
+                parse_mode='HTML',
+                reply_markup=keyboard
+            )
+            return
+    
     # جلب حساب يوتيوب المسجل
     youtube_account = get_user_account(user_id, 'youtube')
     
@@ -670,6 +695,37 @@ async def analyze_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
     message_text, file_data = format_channel_report(
         channel_details, user_id, is_premium, remaining
     )
+    
+    await status_msg.delete()
+    
+    if file_data:
+        file_content, filename = file_data
+        with open(filename, 'w', encoding='utf-8') as f:
+            f.write(file_content)
+        
+        await message.reply_text(message_text, parse_mode='HTML')
+        
+        with open(filename, 'rb') as f:
+            await message.reply_document(
+                document=f,
+                filename=filename,
+                caption="📊 ملف التحليل الكامل"
+            )
+        
+        os.remove(filename)
+    else:
+        await message.reply_text(message_text, parse_mode='HTML')
+    
+    # عرض خيار إضافة توصيات AI للمميزين
+    if is_premium:
+        keyboard = InlineKeyboardMarkup([[
+            InlineKeyboardButton("🤖 توصيات الذكاء الاصطناعي", callback_data=f"ai_recommendations_{channel_details['channel_id']}")
+        ]])
+        await message.reply_text(
+            "🤖 <b>هل تريد الحصول على توصيات لتحسين قناتك؟</b>",
+            parse_mode='HTML',
+            reply_markup=keyboard
+        )
     
     await status_msg.delete()
     
