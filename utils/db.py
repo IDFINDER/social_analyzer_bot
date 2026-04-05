@@ -117,6 +117,8 @@ def increment_usage(user_id, platform, analysis_results=None):
             # مجاني: زيادة daily_uses + total_uses
             new_daily = (usage.get('daily_uses', 0) + 1) if usage else 1
             new_total = (usage.get('total_uses', 0) + 1) if usage else 1
+            
+            # استخدام upsert بدلاً من insert لتجنب التكرار
             supabase.table('bot_usage').upsert({
                 'user_id': user_id,
                 'bot_name': BOT_NAME,
@@ -126,7 +128,7 @@ def increment_usage(user_id, platform, analysis_results=None):
                 'username': username,
                 'first_name': first_name,
                 'updated_at': datetime.now().isoformat()
-            }).execute()
+            }, on_conflict='user_id,bot_name').execute()
         else:
             # مميز: زيادة total_uses فقط
             new_total = (usage.get('total_uses', 0) + 1) if usage else 1
@@ -137,7 +139,7 @@ def increment_usage(user_id, platform, analysis_results=None):
                 'updated_at': datetime.now().isoformat(),
                 'username': username,
                 'first_name': first_name
-            }).execute()
+            }, on_conflict='user_id,bot_name').execute()
         
         # تسجيل في جدول التحليلات
         if analysis_results:
@@ -172,19 +174,23 @@ def can_analyze(user_id):
     # التحقق من انتهاء الاشتراك المميز
     if user['status'] == 'premium' and user.get('premium_until'):
         if datetime.strptime(user['premium_until'], '%Y-%m-%d').date() < date.today():
-            supabase.table('users').update({'status': 'free'}).eq('user_id', user_id).execute()
+            supabase.table('users').update({'status': 'free', 'premium_until': None}).eq('user_id', user_id).execute()
             user['status'] = 'free'
     
     if user['status'] == 'premium':
         return True, 0
     
-    usage = get_user_usage(user_id)
-    daily_uses = usage.get('daily_uses', 0) if usage else 0
-    
-    if daily_uses >= FREE_LIMIT:
-        return False, daily_uses
-    
-    return True, daily_uses
+    # للمستخدمين المجانيين
+    try:
+        response = supabase.table('bot_usage').select('daily_uses').eq('user_id', user_id).eq('bot_name', BOT_NAME).execute()
+        daily_uses = response.data[0]['daily_uses'] if response.data else 0
+        
+        if daily_uses >= FREE_LIMIT:
+            return False, daily_uses
+        return True, daily_uses
+    except Exception as e:
+        logger.error(f"Error in can_analyze: {e}")
+        return True, 0
 
 
 def get_remaining_analyses(user_id):
