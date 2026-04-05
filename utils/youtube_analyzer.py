@@ -5,6 +5,8 @@
 
 import os
 import logging
+import os
+FREE_LIMIT = int(os.environ.get('FREE_LIMIT', '2'))
 from datetime import datetime
 from googleapiclient.discovery import build
 from .helpers import format_number, format_duration, escape_html
