@@ -741,7 +741,7 @@ async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """إنشاء صفحة البايو وإدارتها"""
+    """إنشاء صفحة البايو وإرسال الرابط فقط"""
     user_id = update.effective_user.id
     user_info = get_user_info(user_id)
     is_premium = user_info['status'] == 'premium' if user_info else False
@@ -750,13 +750,8 @@ async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "💎 <b>صفحة البايو</b>\n\n"
             "هذه الميزة متاحة فقط للمستخدمين المميزين!\n\n"
-            "💎 <b>مميزات صفحة البايو:</b>\n"
-            "• صفحة شخصية تعرض جميع حساباتك\n"
-            "• روابط مختصرة لكل منصة\n"
-            "• تصميم احترافي قابل للمشاركة\n\n"
             "للاشتراك: /premium",
-            parse_mode='HTML',
-            reply_markup=get_premium_keyboard()
+            parse_mode='HTML'
         )
         return
     
@@ -766,30 +761,45 @@ async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "❌ لم تقم بتسجيل أي حسابات بعد.\n\n"
             "للتسجيل، أرسل /start",
-            parse_mode='HTML',
-            reply_markup=get_main_keyboard(True)
+            parse_mode='HTML'
         )
         return
     
-    # تحويل تنسيق الحسابات إلى الشكل المطلوب لصفحة البايو
+    # تحويل تنسيق الحسابات
     formatted_accounts = {}
     for platform, acc in accounts.items():
         formatted_accounts[platform] = {
             'account_identifier': acc['account_identifier']
         }
     
-    # إنشاء صفحة البايو
+    # إنشاء أو تحديث صفحة البايو
     display_name = user_info.get('first_name', 'مستخدم')
     page_url = create_or_update_bio_page(user_id, display_name, formatted_accounts)
     
     if page_url:
-        # عرض إدارة صفحة البايو بدلاً من الرسالة البسيطة
-        await show_bio_management(update, user_id, page_url)
+        flask_url = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
+        full_url = f"https://{flask_url}/bio/{page_url}"
+        
+        text = f"""
+📄 <b>صفحة البايو الخاصة بك</b>
+
+✅ تم إنشاء صفحتك بنجاح!
+
+🔗 <b>رابط صفحتك:</b>
+{full_url}
+
+📱 <b>يمكنك:</b>
+• مشاركة الرابط مع أصدقائك
+• وضع الرابط في سيرتك الذاتية
+• استخدامه للترويج لحساباتك
+
+👁️ <b>سيتم احتساب المشاهدات</b> تلقائياً عند فتح الرابط
+"""
+        await update.message.reply_text(text, parse_mode='HTML')
     else:
         await update.message.reply_text(
             "❌ حدث خطأ في إنشاء صفحة البايو. حاول مرة أخرى لاحقاً.",
-            parse_mode='HTML',
-            reply_markup=get_main_keyboard(True)
+            parse_mode='HTML'
         )
 
 
