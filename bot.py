@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Social Media Analyzer Bot - تحليل حسابات السوشيال ميديا
-@Social_Media_tools_bot
+================================================================================
+اسم البوت: Social Media Analyzer Bot
+الوصف: بوت تحليل حسابات السوشيال ميديا (يوتيوب، انستقرام، تيك توك، فيسبوك)
+المطور: @E_Alshabany
+التاريخ: 2026
+================================================================================
 """
 
 import os
@@ -28,7 +32,10 @@ from utils.youtube_analyzer import get_channel_details, format_channel_report
 from utils.gemini_ai import get_channel_recommendations, get_username_recommendations
 from utils.helpers import escape_html
 
-# ========== خادم HTTP لإبقاء السيرفر نشطاً على Render ==========
+# =================================================================================
+# القسم 1: خادم HTTP (لإبقاء السيرفر نشطاً على Render)
+# =================================================================================
+
 flask_app = Flask(__name__)
 
 @flask_app.route('/')
@@ -56,7 +63,10 @@ def run_flask():
 # تشغيل Flask في thread منفصل (قبل بدء البوت)
 threading.Thread(target=run_flask, daemon=True).start()
 
-# ========== متغيرات البيئة ==========
+# =================================================================================
+# القسم 2: متغيرات البيئة والإعدادات الأساسية
+# =================================================================================
+
 TOKEN = os.environ.get('TELEGRAM_TOKEN')
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_KEY = os.environ.get('SUPABASE_ANON_KEY')
@@ -77,13 +87,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ========== ثوابت المحادثة ==========
+# =================================================================================
+# القسم 3: ثوابت المحادثة (ConversationHandler)
+# =================================================================================
+
 (ASK_NAME, ASK_YOUTUBE, ASK_INSTAGRAM, ASK_TIKTOK, ASK_FACEBOOK) = range(5)
 
 # تخزين مؤقت لبيانات المستخدم أثناء التسجيل
 user_registration_data = {}
 
-# ========== دوال المساعدة ==========
+# =================================================================================
+# القسم 4: دوال المساعدة (Helper Functions)
+# =================================================================================
 
 def get_platform_icon(platform):
     """الحصول على أيقونة المنصة"""
@@ -95,7 +110,9 @@ def get_platform_icon(platform):
     }
     return icons.get(platform, '🔗')
 
-# ========== لوحات المفاتيح ==========
+# =================================================================================
+# القسم 5: لوحات المفاتيح (Keyboards)
+# =================================================================================
 
 def get_main_keyboard(is_premium=False):
     """لوحة المفاتيح الرئيسية"""
@@ -126,13 +143,14 @@ def get_premium_keyboard():
     ]])
     return keyboard
 
-# ========== أوامر البوت ==========
+# =================================================================================
+# القسم 6: أوامر البوت - التسجيل (Registration Commands)
+# =================================================================================
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """بدء البوت وتسجيل المستخدم"""
     user = update.effective_user
     
-    # جلب أو إنشاء المستخدم
     user_data = get_or_create_user(
         user.id,
         user.first_name,
@@ -144,7 +162,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❌ حدث خطأ، يرجى المحاولة لاحقاً")
         return ConversationHandler.END
     
-    # التحقق من وجود حسابات مسجلة
     accounts = get_user_social_accounts(user.id)
     
     if accounts:
@@ -178,9 +195,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 """
         await update.message.reply_text(welcome_text, parse_mode='HTML', reply_markup=get_main_keyboard(is_premium))
         return ConversationHandler.END
-    
     else:
-        # مستخدم جديد - بدء التسجيل
         await update.message.reply_text(
             f"🌐 <b>مرحباً بك {user.first_name} في بوت تحليل الحسابات الاجتماعية!</b>\n\n"
             f"📊 <b>ماذا يمكنني أن أفعل؟</b>\n"
@@ -208,14 +223,11 @@ async def cancel_registration(update: Update, context: ContextTypes.DEFAULT_TYPE
     )
     return ConversationHandler.END
 
-
 async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """استقبال الاسم"""
     user_id = update.effective_user.id
     name = update.message.text.strip()
-    
     user_registration_data[user_id] = {'display_name': name}
-    
     await update.message.reply_text(
         f"✅ تم حفظ اسمك: {escape_html(name)}\n\n"
         f"📺 الآن أدخل معرف قناتك على يوتيوب أو أرسل الرابط\n"
@@ -225,180 +237,127 @@ async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ASK_YOUTUBE
 
-
 async def skip_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """تجاوز إدخال يوتيوب"""
     user_id = update.effective_user.id
     if user_id in user_registration_data:
         user_registration_data[user_id]['youtube'] = None
-    
-    await update.message.reply_text(
-        f"⏭️ تم تجاوز إضافة حساب يوتيوب\n\n"
-        f"📸 الآن أدخل معرف حسابك على انستقرام أو أرسل الرابط\n"
-        f"💡 مثال: @E_Alshabany\n\n"
-        f"يمكنك الضغط على /skip لتجاوز هذه الخطوة"
-    )
+    await update.message.reply_text("⏭️ تم تجاوز إضافة حساب يوتيوب\n\n📸 الآن أدخل معرف حسابك على انستقرام...")
     return ASK_INSTAGRAM
-
 
 async def ask_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """استقبال حساب يوتيوب"""
     user_id = update.effective_user.id
     youtube_input = update.message.text.strip()
-    
     if user_id in user_registration_data:
         user_registration_data[user_id]['youtube'] = youtube_input
-    
     await update.message.reply_text(
-        f"✅ تم إضافة حساب يوتيوب: {escape_html(youtube_input)}\n\n"
-        f"📸 الآن أدخل معرف حسابك على انستقرام أو أرسل الرابط\n"
-        f"💡 مثال: @E_Alshabany\n\n"
-        f"يمكنك الضغط على /skip لتجاوز هذه الخطوة",
+        f"✅ تم إضافة حساب يوتيوب: {escape_html(youtube_input)}\n\n📸 الآن أدخل معرف حسابك على انستقرام...",
         parse_mode='HTML'
     )
     return ASK_INSTAGRAM
-
 
 async def skip_instagram(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """تجاوز إدخال انستقرام"""
     user_id = update.effective_user.id
     if user_id in user_registration_data:
         user_registration_data[user_id]['instagram'] = None
-    
-    await update.message.reply_text(
-        f"⏭️ تم تجاوز إضافة حساب انستقرام\n\n"
-        f"🎵 الآن أدخل معرف حسابك على تيك توك أو أرسل الرابط\n"
-        f"💡 مثال: @E_Alshabany\n\n"
-        f"يمكنك الضغط على /skip لتجاوز هذه الخطوة"
-    )
+    await update.message.reply_text("⏭️ تم تجاوز إضافة حساب انستقرام\n\n🎵 الآن أدخل معرف حسابك على تيك توك...")
     return ASK_TIKTOK
-
 
 async def ask_instagram(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """استقبال حساب انستقرام"""
     user_id = update.effective_user.id
     instagram_input = update.message.text.strip()
-    
     if user_id in user_registration_data:
         user_registration_data[user_id]['instagram'] = instagram_input
-    
     await update.message.reply_text(
-        f"✅ تم إضافة حساب انستقرام: {escape_html(instagram_input)}\n\n"
-        f"🎵 الآن أدخل معرف حسابك على تيك توك أو أرسل الرابط\n"
-        f"💡 مثال: @E_Alshabany\n\n"
-        f"يمكنك الضغط على /skip لتجاوز هذه الخطوة",
+        f"✅ تم إضافة حساب انستقرام: {escape_html(instagram_input)}\n\n🎵 الآن أدخل معرف حسابك على تيك توك...",
         parse_mode='HTML'
     )
     return ASK_TIKTOK
-
 
 async def skip_tiktok(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """تجاوز إدخال تيك توك"""
     user_id = update.effective_user.id
     if user_id in user_registration_data:
         user_registration_data[user_id]['tiktok'] = None
-    
-    await update.message.reply_text(
-        f"⏭️ تم تجاوز إضافة حساب تيك توك\n\n"
-        f"📘 الآن أدخل معرف حسابك على فيسبوك أو أرسل الرابط\n"
-        f"💡 مثال: @E_Alshabany\n\n"
-        f"يمكنك الضغط على /skip لتجاوز هذه الخطوة"
-    )
+    await update.message.reply_text("⏭️ تم تجاوز إضافة حساب تيك توك\n\n📘 الآن أدخل معرف حسابك على فيسبوك...")
     return ASK_FACEBOOK
-
 
 async def ask_tiktok(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """استقبال حساب تيك توك"""
     user_id = update.effective_user.id
     tiktok_input = update.message.text.strip()
-    
     if user_id in user_registration_data:
         user_registration_data[user_id]['tiktok'] = tiktok_input
-    
     await update.message.reply_text(
-        f"✅ تم إضافة حساب تيك توك: {escape_html(tiktok_input)}\n\n"
-        f"📘 الآن أدخل معرف حسابك على فيسبوك أو أرسل الرابط\n"
-        f"💡 مثال: @E_Alshabany\n\n"
-        f"يمكنك الضغط على /skip لتجاوز هذه الخطوة",
+        f"✅ تم إضافة حساب تيك توك: {escape_html(tiktok_input)}\n\n📘 الآن أدخل معرف حسابك على فيسبوك...",
         parse_mode='HTML'
     )
     return ASK_FACEBOOK
 
-
 async def skip_facebook(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """تجاوز إدخال فيسبوك"""
+    """تجاوز إدخال فيسبوك وإنهاء التسجيل"""
     user_id = update.effective_user.id
     data = user_registration_data.get(user_id, {})
-    
-    # حفظ جميع الحسابات
     user = update.effective_user
+    
     accounts_to_save = [
         ('youtube', data.get('youtube')),
         ('instagram', data.get('instagram')),
         ('tiktok', data.get('tiktok')),
         ('facebook', data.get('facebook'))
     ]
-    
     for platform, identifier in accounts_to_save:
         if identifier:
             save_user_account(user.id, platform, identifier)
     
-    # تنظيف البيانات المؤقتة
     if user_id in user_registration_data:
         del user_registration_data[user_id]
     
-    # عرض ملخص الحسابات
     accounts = get_user_social_accounts(user.id)
     summary = f"✅ <b>تم تسجيل بياناتك بنجاح!</b>\n\n📊 <b>ملخص حساباتك:</b>\n"
     for platform, acc in accounts.items():
         summary += f"• {get_platform_icon(platform)} {platform.capitalize()}: @{acc['account_identifier']}\n"
-    
     summary += f"\n💰 <b>خطتك الحالية:</b> مجانية ({FREE_LIMIT} تحليل يومياً)\n"
-    summary += f"💎 <b>للبحث غير المحدود:</b> /premium\n\n"
-    summary += f"🎯 <b>للبدء، اضغط على 🎯 تحليل حساباتي</b>"
-    
+    summary += f"💎 <b>للبحث غير المحدود:</b> /premium\n\n🎯 <b>للبدء، اضغط على 🎯 تحليل حساباتي</b>"
     await update.message.reply_text(summary, parse_mode='HTML', reply_markup=get_main_keyboard(False))
     return ConversationHandler.END
-
 
 async def ask_facebook(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """استقبال حساب فيسبوك وإنهاء التسجيل"""
     user_id = update.effective_user.id
     facebook_input = update.message.text.strip()
-    
     data = user_registration_data.get(user_id, {})
     data['facebook'] = facebook_input
-    
-    # حفظ جميع الح accounts
     user = update.effective_user
+    
     accounts_to_save = [
         ('youtube', data.get('youtube')),
         ('instagram', data.get('instagram')),
         ('tiktok', data.get('tiktok')),
         ('facebook', facebook_input)
     ]
-    
     for platform, identifier in accounts_to_save:
         if identifier:
             save_user_account(user.id, platform, identifier)
     
-    # تنظيف البيانات المؤقتة
     if user_id in user_registration_data:
         del user_registration_data[user_id]
     
-    # عرض ملخص الحسابات
     accounts = get_user_social_accounts(user.id)
     summary = f"✅ <b>تم تسجيل بياناتك بنجاح!</b>\n\n📊 <b>ملخص حساباتك:</b>\n"
     for platform, acc in accounts.items():
         summary += f"• {get_platform_icon(platform)} {platform.capitalize()}: @{acc['account_identifier']}\n"
-    
     summary += f"\n💰 <b>خطتك الحالية:</b> مجانية ({FREE_LIMIT} تحليل يومياً)\n"
-    summary += f"💎 <b>للبحث غير المحدود:</b> /premium\n\n"
-    summary += f"🎯 <b>للبدء، اضغط على 🎯 تحليل حساباتي</b>"
-    
+    summary += f"💎 <b>للبحث غير المحدود:</b> /premium\n\n🎯 <b>للبدء، اضغط على 🎯 تحليل حساباتي</b>"
     await update.message.reply_text(summary, parse_mode='HTML', reply_markup=get_main_keyboard(False))
     return ConversationHandler.END
 
+# =================================================================================
+# القسم 7: أوامر البوت - عرض البيانات والإحصائيات
+# =================================================================================
 
 async def my_data_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """عرض بيانات المستخدم"""
@@ -406,11 +365,7 @@ async def my_data_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     accounts = get_user_social_accounts(user_id)
     
     if not accounts:
-        await update.message.reply_text(
-            "❌ لم تقم بتسجيل أي حسابات بعد.\n\n"
-            "للتسجيل، أرسل /start",
-            reply_markup=get_main_keyboard(False)
-        )
+        await update.message.reply_text("❌ لم تقم بتسجيل أي حسابات بعد.\n\nللتسجيل، أرسل /start", reply_markup=get_main_keyboard(False))
         return
     
     user_info = get_user_info(user_id)
@@ -428,111 +383,9 @@ async def my_data_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if is_premium:
         bio_page = get_bio_page(user_id)
         if bio_page and bio_page.get('is_enabled'):
-            text += f"\n📄 <b>صفحة البايو:</b>\n"
-            text += f"🔗 https://{RENDER_URL}/bio/{bio_page['page_url']}"
+            text += f"\n📄 <b>صفحة البايو:</b>\n🔗 https://{RENDER_URL}/bio/{bio_page['page_url']}"
     
     await update.message.reply_text(text, parse_mode='HTML', reply_markup=get_main_keyboard(is_premium))
-
-
-async def edit_data_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """تعديل بيانات المستخدم"""
-    user_id = update.effective_user.id
-    accounts = get_user_social_accounts(user_id)
-    
-    keyboard = []
-    for platform in ['youtube', 'instagram', 'tiktok', 'facebook']:
-        if platform in accounts:
-            keyboard.append([InlineKeyboardButton(f"✏️ تعديل {platform.capitalize()}", callback_data=f"edit_{platform}")])
-    
-    keyboard.append([InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")])
-    
-    await update.message.reply_text(
-        "✏️ <b>اختر الحساب الذي تريد تعديله:</b>",
-        parse_mode='HTML',
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-
-async def bio_settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """إعدادات صفحة البايو (للمستخدمين المميزين فقط)"""
-    user_id = update.effective_user.id
-    user_info = get_user_info(user_id)
-    is_premium = user_info['status'] == 'premium' if user_info else False
-    
-    if not is_premium:
-        await update.message.reply_text("💎 هذه الميزة متاحة فقط للمستخدمين المميزين!")
-        return
-    
-    bio_page = get_bio_page(user_id)
-    if not bio_page:
-        await update.message.reply_text("❌ لم يتم العثور على صفحة البايو. اضغط على '📄 صفحة البايو' أولاً.")
-        return
-    
-    theme_name = bio_page.get('theme_name', 'default')
-    
-    keyboard = [
-        [InlineKeyboardButton(f"🎨 الثيم الحالي: {'فاتح' if theme_name == 'default' else 'داكن'}", callback_data="bio_settings_theme")],
-        [InlineKeyboardButton("📝 تعديل النبذة", callback_data="bio_settings_bio")],
-        [InlineKeyboardButton("🖼️ تغيير الصورة الشخصية", callback_data="bio_settings_avatar")],
-        [InlineKeyboardButton("🔙 رجوع", callback_data="main_menu")]
-    ]
-    
-    await update.message.reply_text(
-        "⚙️ <b>إعدادات صفحة البايو</b>\n\nاختر ما تريد تعديله:",
-        parse_mode='HTML',
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-
-async def bio_change_theme_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """تغيير ثيم صفحة البايو من داخل البوت"""
-    query = update.callback_query
-    await query.answer()
-    
-    user_id = query.from_user.id
-    bio_page = get_bio_page(user_id)
-    
-    if not bio_page:
-        await query.edit_message_text("❌ لم يتم العثور على صفحة البايو")
-        return
-    
-    current_theme = bio_page.get('theme_name', 'default')
-    new_theme = 'dark' if current_theme == 'default' else 'default'
-    
-    # تحديث الثيم في قاعدة البيانات
-    update_bio_theme(user_id, new_theme)
-    
-    theme_name_display = 'داكن' if new_theme == 'dark' else 'فاتح'
-    await query.edit_message_text(
-        f"✅ تم تغيير الثيم إلى <b>{theme_name_display}</b> بنجاح!",
-        parse_mode='HTML'
-    )
-    async def edit_data_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """تعديل بيانات المستخدم"""
-    user_id = update.effective_user.id
-    accounts = get_user_social_accounts(user_id)
-    user_info = get_user_info(user_id)
-    is_premium = user_info['status'] == 'premium' if user_info else False
-    
-    keyboard = []
-    for platform in ['youtube', 'instagram', 'tiktok', 'facebook']:
-        if platform in accounts:
-            keyboard.append([InlineKeyboardButton(f"✏️ تعديل {platform.capitalize()}", callback_data=f"edit_{platform}")])
-    
-    # إضافة إعدادات صفحة البايو للمستخدمين المميزين
-    if is_premium:
-        keyboard.append([InlineKeyboardButton("⚙️ إعدادات صفحة البايو", callback_data="bio_settings")])
-    
-    keyboard.append([InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")])
-    
-    await update.message.reply_text(
-        "✏️ <b>اختر ما تريد تعديله:</b>",
-        parse_mode='HTML',
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-    elif data == "bio_settings":
-    await bio_settings_command(update, context)
-
-elif data == "bio_settings_theme":
-    await bio_change_theme_callback(update, context)
 
 async def my_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """عرض إحصائيات المستخدم"""
@@ -545,7 +398,6 @@ async def my_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if is_premium:
         gemini_usage = can_use_gemini(user_id)
         gemini_remaining = gemini_usage[1] if isinstance(gemini_usage, tuple) and len(gemini_usage) > 1 else 0
-        
         text = f"""
 📊 <b>إحصائياتي الشخصية</b>
 
@@ -566,9 +418,11 @@ async def my_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 📈 <b>إجمالي التحليلات:</b> {total}
 💎 <b>للترقية إلى خطة مميزة:</b> /premium
 """
-    
     await update.message.reply_text(text, parse_mode='HTML', reply_markup=get_main_keyboard(is_premium))
 
+# =================================================================================
+# القسم 8: أوامر البوت - الاشتراك المميز والمساعدة
+# =================================================================================
 
 async def premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """معلومات الاشتراك المميز"""
@@ -604,8 +458,7 @@ async def premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • ✅ فحص توافر اليوزرنيم
 • ✅ دعم أولوية في المعالجة
 
-💰 <b>السعر:</b>
-• <b>10 دولار مدى الحياة</b>
+💰 <b>السعر:</b> <b>10 دولار مدى الحياة</b>
 
 📊 <b>حالتك الحالية:</b>
 • نوع الخطة: مجانية
@@ -614,7 +467,6 @@ async def premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 🔽 <b>للاشتراك، اضغط على الزر أدناه:</b>
 """
         await update.message.reply_text(text, parse_mode='HTML', reply_markup=get_premium_keyboard())
-
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """تعليمات المساعدة"""
@@ -625,14 +477,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     help_text = f"""
 🆘 <b>مساعدة بوت تحليل الحسابات الاجتماعية</b>
 
-🔹 <b>لتحليل حساب:</b>
-• اضغط على زر 🎯 تحليل حساباتي
-• اختر المنصة المطلوبة
-• سيتم تحليل الحساب المسجل تلقائياً
-
-🔹 <b>للتسجيل أو تعديل البيانات:</b>
-• اضغط على 📝 بياناتي لعرض الحسابات المسجلة
-• اضغط على ✏️ تعديل بياناتي لتعديل الحسابات
+🔹 <b>لتحليل حساب:</b> اضغط على زر 🎯 تحليل حساباتي
+🔹 <b>للتسجيل أو تعديل البيانات:</b> اضغط على 📝 بياناتي أو ✏️ تعديل بياناتي
 
 💰 <b>نظام الاستخدام:</b>
 • الخطة المجانية: {FREE_LIMIT} تحليل يومياً
@@ -649,7 +495,9 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 👨‍💻 <b>المطور:</b> @E_Alshabany
 """
     await update.message.reply_text(help_text, parse_mode='HTML', reply_markup=get_main_keyboard(is_premium))
-
+    # =================================================================================
+# القسم 9: أوامر البوت - التحليل (Analysis Commands)
+# =================================================================================
 
 async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """بدء عملية التحليل"""
@@ -662,8 +510,7 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if not accounts:
         await update.message.reply_text(
-            "❌ لم تقم بتسجيل أي حسابات بعد.\n\n"
-            "للتسجيل، أرسل /start",
+            "❌ لم تقم بتسجيل أي حسابات بعد.\n\nللتسجيل، أرسل /start",
             reply_markup=get_main_keyboard(is_premium)
         )
         return
@@ -701,7 +548,6 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=get_analysis_keyboard()
     )
 
-
 async def analyze_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE, query=None):
     """تحليل قناة يوتيوب"""
     user_id = update.effective_user.id if not query else query.from_user.id
@@ -719,7 +565,6 @@ async def analyze_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
     if not is_premium:
         can_analyze_bool, current_uses = can_analyze(user_id)
         if not can_analyze_bool:
-            # إنشاء رابط الدفع الصحيح
             payment_url = f"https://{RENDER_URL}/payment"
             keyboard = InlineKeyboardMarkup([[
                 InlineKeyboardButton("💎 اشتراك مميز - 10$ مدى الحياة", web_app=WebAppInfo(url=payment_url))
@@ -745,8 +590,7 @@ async def analyze_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
     
     if not youtube_account:
         await message.reply_text(
-            "❌ لم تقم بتسجيل حساب يوتيوب بعد.\n\n"
-            "للتسجيل، أرسل /start ثم اتبع التعليمات",
+            "❌ لم تقم بتسجيل حساب يوتيوب بعد.\n\nللتسجيل، أرسل /start ثم اتبع التعليمات",
             reply_markup=get_main_keyboard(is_premium)
         )
         return
@@ -809,36 +653,10 @@ async def analyze_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
             parse_mode='HTML',
             reply_markup=keyboard
         )
-    
-    await status_msg.delete()
-    
-    if file_data:
-        file_content, filename = file_data
-        with open(filename, 'w', encoding='utf-8') as f:
-            f.write(file_content)
-        
-        await message.reply_text(message_text, parse_mode='HTML')
-        
-        with open(filename, 'rb') as f:
-            await message.reply_document(
-                document=f,
-                filename=filename,
-                caption="📊 ملف التحليل الكامل"
-            )
-        
-        os.remove(filename)
-    else:
-        await message.reply_text(message_text, parse_mode='HTML')
-    
-    # عرض خيار إضافة توصيات AI للمميزين
-    if is_premium:
-        keyboard = [[InlineKeyboardButton("🤖 توصيات الذكاء الاصطناعي", callback_data=f"ai_recommendations_{channel_details['channel_id']}")]]
-        await message.reply_text(
-            "🤖 <b>هل تريد الحصول على توصيات لتحسين قناتك؟</b>",
-            parse_mode='HTML',
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
 
+# =================================================================================
+# القسم 10: أوامر البوت - توصيات الذكاء الاصطناعي (AI Recommendations)
+# =================================================================================
 
 async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """تقديم توصيات الذكاء الاصطناعي"""
@@ -853,8 +671,7 @@ async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     if not is_premium:
         await query.edit_message_text(
-            "💎 هذه الميزة متاحة فقط للمستخدمين المميزين!\n\n"
-            "للاشتراك: /premium"
+            "💎 هذه الميزة متاحة فقط للمستخدمين المميزين!\n\nللاشتراك: /premium"
         )
         return
     
@@ -889,6 +706,9 @@ async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     await query.edit_message_text(response, parse_mode='HTML')
 
+# =================================================================================
+# القسم 11: أوامر البوت - صفحة البايو (Bio Page)
+# =================================================================================
 
 async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """إنشاء صفحة البايو وإرسال الرابط فقط"""
@@ -898,9 +718,7 @@ async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if not is_premium:
         await update.message.reply_text(
-            "💎 <b>صفحة البايو</b>\n\n"
-            "هذه الميزة متاحة فقط للمستخدمين المميزين!\n\n"
-            "للاشتراك: /premium",
+            "💎 <b>صفحة البايو</b>\n\nهذه الميزة متاحة فقط للمستخدمين المميزين!\n\nللاشتراك: /premium",
             parse_mode='HTML'
         )
         return
@@ -909,8 +727,7 @@ async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if not accounts:
         await update.message.reply_text(
-            "❌ لم تقم بتسجيل أي حسابات بعد.\n\n"
-            "للتسجيل، أرسل /start",
+            "❌ لم تقم بتسجيل أي حسابات بعد.\n\nللتسجيل، أرسل /start",
             parse_mode='HTML'
         )
         return
@@ -952,6 +769,347 @@ async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode='HTML'
         )
 
+# =================================================================================
+# القسم 12: أوامر البوت - إدارة صفحة البايو (Bio Management)
+# =================================================================================
+
+async def edit_data_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """تعديل بيانات المستخدم"""
+    user_id = update.effective_user.id
+    accounts = get_user_social_accounts(user_id)
+    user_info = get_user_info(user_id)
+    is_premium = user_info['status'] == 'premium' if user_info else False
+    
+    keyboard = []
+    for platform in ['youtube', 'instagram', 'tiktok', 'facebook']:
+        if platform in accounts:
+            keyboard.append([InlineKeyboardButton(f"✏️ تعديل {platform.capitalize()}", callback_data=f"edit_{platform}")])
+    
+    # إضافة إعدادات صفحة البايو للمستخدمين المميزين
+    if is_premium:
+        keyboard.append([InlineKeyboardButton("⚙️ إعدادات صفحة البايو", callback_data="bio_settings")])
+    
+    keyboard.append([InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")])
+    
+    await update.message.reply_text(
+        "✏️ <b>اختر ما تريد تعديله:</b>",
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def bio_settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """إعدادات صفحة البايو (للمستخدمين المميزين فقط)"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    user_info = get_user_info(user_id)
+    is_premium = user_info['status'] == 'premium' if user_info else False
+    
+    if not is_premium:
+        await query.edit_message_text("💎 هذه الميزة متاحة فقط للمستخدمين المميزين!")
+        return
+    
+    bio_page = get_bio_page(user_id)
+    if not bio_page:
+        await query.edit_message_text("❌ لم يتم العثور على صفحة البايو. اضغط على '📄 صفحة البايو' أولاً.")
+        return
+    
+    theme_name = bio_page.get('theme_name', 'default')
+    
+    keyboard = [
+        [InlineKeyboardButton(f"🎨 الثيم الحالي: {'فاتح' if theme_name == 'default' else 'داكن'}", callback_data="bio_settings_theme")],
+        [InlineKeyboardButton("📝 تعديل النبذة", callback_data="bio_settings_bio")],
+        [InlineKeyboardButton("🖼️ تغيير الصورة الشخصية", callback_data="bio_settings_avatar")],
+        [InlineKeyboardButton("🔙 رجوع", callback_data="main_menu")]
+    ]
+    
+    await query.edit_message_text(
+        "⚙️ <b>إعدادات صفحة البايو</b>\n\nاختر ما تريد تعديله:",
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def bio_change_theme_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """تغيير ثيم صفحة البايو من داخل البوت"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    bio_page = get_bio_page(user_id)
+    
+    if not bio_page:
+        await query.edit_message_text("❌ لم يتم العثور على صفحة البايو")
+        return
+    
+    current_theme = bio_page.get('theme_name', 'default')
+    new_theme = 'dark' if current_theme == 'default' else 'default'
+    
+    # تحديث الثيم في قاعدة البيانات
+    update_bio_theme(user_id, new_theme)
+    
+    theme_name_display = 'داكن' if new_theme == 'dark' else 'فاتح'
+    await query.edit_message_text(
+        f"✅ تم تغيير الثيم إلى <b>{theme_name_display}</b> بنجاح!",
+        parse_mode='HTML'
+    )
+
+async def handle_edit_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالجة تعديل الحساب"""
+    platform = context.user_data.get('editing_platform')
+    if not platform:
+        return
+    
+    user_id = update.effective_user.id
+    new_identifier = update.message.text.strip()
+    
+    # حذف الحساب القديم وإضافة الجديد
+    delete_user_account(user_id, platform)
+    save_user_account(user_id, platform, new_identifier)
+    
+    context.user_data.pop('editing_platform', None)
+    
+    user_info = get_user_info(user_id)
+    is_premium = user_info['status'] == 'premium' if user_info else False
+    
+    await update.message.reply_text(
+        f"✅ تم تحديث حساب {platform.capitalize()} إلى: {escape_html(new_identifier)}",
+        parse_mode='HTML',
+        reply_markup=get_main_keyboard(is_premium)
+    )
+
+# =================================================================================
+# القسم 13: أوامر البوت - فحص اليوزرنيم (Username Check)
+# =================================================================================
+
+async def username_check_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """فحص توافر اليوزرنيم"""
+    user_id = update.effective_user.id
+    user_info = get_user_info(user_id)
+    is_premium = user_info['status'] == 'premium' if user_info else False
+    
+    if not is_premium:
+        await update.message.reply_text(
+            "🔍 <b>فحص توافر اليوزرنيم</b>\n\n"
+            "هذه الميزة متاحة فقط للمستخدمين المميزين!\n\n"
+            "للاشتراك: /premium",
+            parse_mode='HTML',
+            reply_markup=get_premium_keyboard()
+        )
+        return
+    
+    await update.message.reply_text(
+        "🔍 <b>فحص توافر اليوزرنيم</b>\n\n"
+        "أرسل اليوزرنيم الذي تريد التحقق منه (بدون @):",
+        parse_mode='HTML'
+    )
+    context.user_data['awaiting_username'] = True
+
+async def handle_username_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالجة اليوزرنيم المرسل للفحص"""
+    if not context.user_data.get('awaiting_username'):
+        return
+    
+    username = update.message.text.strip()
+    context.user_data['awaiting_username'] = False
+    
+    await update.message.reply_text(
+        f"🔍 <b>نتيجة فحص اليوزرنيم @{escape_html(username)}</b>\n\n"
+        f"📊 <b>النتائج:</b>\n"
+        f"• 🎬 يوتيوب: ⏳ قيد التطوير\n"
+        f"• 📸 انستقرام: ⏳ قيد التطوير\n"
+        f"• 🎵 تيك توك: ⏳ قيد التطوير\n"
+        f"• 📘 فيسبوك: ⏳ قيد التطوير\n\n"
+        f"💎 <b>هذه الميزة ستعمل قريباً!</b>\n\n"
+        f"🚀 <b>قريباً في التحديث القادم</b>",
+        parse_mode='HTML'
+    )
+    # =================================================================================
+# القسم 14: معالج الأزرار (Callback Query Handler)
+# =================================================================================
+
+async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالجة الأزرار"""
+    query = update.callback_query
+    data = query.data
+    user_id = query.from_user.id
+    
+    # ----- أزرار التحليل -----
+    if data == "analyze_youtube":
+        await analyze_youtube(update, context, query)
+    
+    elif data == "analyze_instagram":
+        await query.answer("📸 هذه الميزة قيد التطوير حالياً", show_alert=True)
+    
+    elif data == "analyze_tiktok":
+        await query.answer("🎵 هذه الميزة قيد التطوير حالياً", show_alert=True)
+    
+    elif data == "analyze_facebook":
+        await query.answer("📘 هذه الميزة قيد التطوير حالياً", show_alert=True)
+    
+    # ----- زر القائمة الرئيسية -----
+    elif data == "main_menu":
+        user_info = get_user_info(user_id)
+        is_premium = user_info['status'] == 'premium' if user_info else False
+        await query.message.reply_text(
+            "🏠 <b>القائمة الرئيسية</b>\n\nاختر ما تريد:",
+            parse_mode='HTML',
+            reply_markup=get_main_keyboard(is_premium)
+        )
+        await query.delete_message()
+    
+    # ----- توصيات الذكاء الاصطناعي -----
+    elif data.startswith("ai_recommendations"):
+        await ai_recommendations(update, context)
+    
+    # ----- تعديل الحسابات -----
+    elif data.startswith("edit_"):
+        platform = data.split('_')[1]
+        context.user_data['editing_platform'] = platform
+        keyboard = [[InlineKeyboardButton("🔙 إلغاء", callback_data="main_menu")]]
+        await query.edit_message_text(
+            f"✏️ <b>تعديل حساب {platform.capitalize()}</b>\n\n"
+            f"أرسل المعرف الجديد أو الرابط:",
+            parse_mode='HTML',
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    
+    # ----- إعدادات صفحة البايو -----
+    elif data == "bio_settings":
+        await bio_settings_command(update, context)
+    
+    elif data == "bio_settings_theme":
+        await bio_change_theme_callback(update, context)
+    
+    # ----- أزرار إدارة صفحة البايو (القديمة) -----
+    elif data == "bio_change_theme":
+        keyboard = [
+            [InlineKeyboardButton("☀️ فاتح", callback_data="bio_set_theme_default")],
+            [InlineKeyboardButton("🌙 داكن", callback_data="bio_set_theme_dark")],
+            [InlineKeyboardButton("🔙 رجوع", callback_data="bio_back")]
+        ]
+        await query.edit_message_text(
+            "🎨 <b>اختر الثيم المفضل لديك:</b>",
+            parse_mode='HTML',
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    
+    elif data == "bio_set_theme_default":
+        update_bio_theme(user_id, 'default')
+        await query.answer("✅ تم تغيير الثيم إلى الفاتح")
+        await show_bio_management(update, context, user_id)
+    
+    elif data == "bio_set_theme_dark":
+        update_bio_theme(user_id, 'dark')
+        await query.answer("✅ تم تغيير الثيم إلى الداكن")
+        await show_bio_management(update, context, user_id)
+    
+    elif data == "bio_edit_bio":
+        context.user_data['editing_bio'] = True
+        keyboard = [[InlineKeyboardButton("🔙 إلغاء", callback_data="bio_back")]]
+        await query.edit_message_text(
+            "📝 <b>تعديل النبذة</b>\n\n"
+            "أرسل النص الجديد للنبذة (الوصف الشخصي):\n\n"
+            "💡 مثال: مبرمج ومطور ويب | مهتم بالذكاء الاصطناعي",
+            parse_mode='HTML',
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    
+    elif data == "bio_show_link":
+        bio_page = get_bio_page(user_id)
+        if bio_page:
+            flask_url = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
+            await query.answer(f"رابط صفحتك: https://{flask_url}/bio/{bio_page['page_url']}", show_alert=True)
+    
+    elif data == "bio_back":
+        await show_bio_management(update, context, user_id)
+    
+    else:
+        await query.answer("⚠️ هذا الزر غير مفعل بعد", show_alert=True)
+
+# =================================================================================
+# القسم 15: معالجة الرسائل النصية (Message Handler)
+# =================================================================================
+
+async def handle_bio_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالجة تعديل النبذة في صفحة البايو"""
+    if context.user_data.get('editing_bio'):
+        user_id = update.effective_user.id
+        new_bio = update.message.text.strip()
+        
+        if update_bio_text(user_id, new_bio):
+            context.user_data.pop('editing_bio', None)
+            await update.message.reply_text("✅ تم تحديث النبذة بنجاح!")
+            await show_bio_management(update, context, user_id)
+        else:
+            await update.message.reply_text("❌ حدث خطأ في تحديث النبذة")
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالجة الرسائل النصية"""
+    text = update.message.text.strip()
+    user_id = update.effective_user.id
+    
+    # ----- معالجة تعديل النبذة في صفحة البايو -----
+    if context.user_data.get('editing_bio'):
+        await handle_bio_edit(update, context)
+        return
+    
+    # ----- معالجة الأزرار النصية -----
+    if text == "🎯 تحليل حساباتي":
+        await analyze_command(update, context)
+        return
+    
+    elif text == "📊 إحصائياتي":
+        await my_stats_command(update, context)
+        return
+    
+    elif text == "📝 بياناتي":
+        await my_data_command(update, context)
+        return
+    
+    elif text == "✏️ تعديل بياناتي":
+        await edit_data_command(update, context)
+        return
+    
+    elif text == "💎 اشتراك مميز":
+        await premium_command(update, context)
+        return
+    
+    elif text == "ℹ️ المساعدة":
+        await help_command(update, context)
+        return
+    
+    elif text == "📄 صفحة البايو":
+        await bio_page_command(update, context)
+        return
+    
+    elif text == "🔍 فحص يوزرنيم":
+        await username_check_command(update, context)
+        return
+    
+    # ----- معالجة تعديل الحساب -----
+    if context.user_data.get('editing_platform'):
+        await handle_edit_account(update, context)
+        return
+    
+    # ----- معالجة فحص اليوزرنيم -----
+    if context.user_data.get('awaiting_username'):
+        await handle_username_check(update, context)
+        return
+    
+    # ----- رسالة افتراضية -----
+    user_info = get_user_info(user_id)
+    is_premium = user_info['status'] == 'premium' if user_info else False
+    await update.message.reply_text(
+        "❓ عذراً، لم أتعرف على طلبك.\n\n"
+        "📌 يمكنك استخدام الأزرار أدناه أو إرسال /help للمساعدة.",
+        parse_mode='HTML',
+        reply_markup=get_main_keyboard(is_premium)
+    )
+
+# =================================================================================
+# القسم 16: دالة show_bio_management (إدارة صفحة البايو)
+# =================================================================================
 
 async def show_bio_management(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int = None):
     """عرض إدارة صفحة البايو"""
@@ -1061,228 +1219,9 @@ https://{flask_url}/bio/{page_url}
         else:
             await update.message.reply_text(error_msg)
 
-
-async def username_check_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """فحص توافر اليوزرنيم"""
-    user_id = update.effective_user.id
-    user_info = get_user_info(user_id)
-    is_premium = user_info['status'] == 'premium' if user_info else False
-    
-    if not is_premium:
-        await update.message.reply_text(
-            "🔍 <b>فحص توافر اليوزرنيم</b>\n\n"
-            "هذه الميزة متاحة فقط للمستخدمين المميزين!\n\n"
-            "💎 <b>مميزات فحص اليوزرنيم:</b>\n"
-            "• فحص توافر الاسم في جميع المنصات\n"
-            "• اقتراحات ذكية لتحسين الاسم\n"
-            "• توصيات لتوحيد الاسم بين المنصات\n\n"
-            "للاشتراك: /premium",
-            parse_mode='HTML',
-            reply_markup=get_premium_keyboard()
-        )
-        return
-    
-    await update.message.reply_text(
-        "🔍 <b>فحص توافر اليوزرنيم</b>\n\n"
-        "أرسل اليوزرنيم الذي تريد التحقق منه (بدون @):",
-        parse_mode='HTML'
-    )
-    context.user_data['awaiting_username'] = True
-
-
-async def handle_username_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة اليوزرنيم المرسل للفحص"""
-    if not context.user_data.get('awaiting_username'):
-        return
-    
-    username = update.message.text.strip()
-    context.user_data['awaiting_username'] = False
-    
-    await update.message.reply_text(
-        f"🔍 <b>نتيجة فحص اليوزرنيم @{escape_html(username)}</b>\n\n"
-        f"📊 <b>النتائج:</b>\n"
-        f"• 🎬 يوتيوب: ⏳ قيد التطوير\n"
-        f"• 📸 انستقرام: ⏳ قيد التطوير\n"
-        f"• 🎵 تيك توك: ⏳ قيد التطوير\n"
-        f"• 📘 فيسبوك: ⏳ قيد التطوير\n\n"
-        f"💎 <b>هذه الميزة ستعمل قريباً!</b>\n"
-        f"سيتمكن المستخدمون المميزون من فحص توافر اليوزرنيم على جميع المنصات دفعة واحدة.\n\n"
-        f"🚀 <b>قريباً في التحديث القادم</b>",
-        parse_mode='HTML'
-    )
-
-
-async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة الأزرار"""
-    query = update.callback_query
-    data = query.data
-    user_id = query.from_user.id
-    
-    # ========== أزرار التحليل ==========
-    if data == "analyze_youtube":
-        await analyze_youtube(update, context, query)
-    
-    elif data == "analyze_instagram":
-        await query.answer("📸 هذه الميزة قيد التطوير حالياً", show_alert=True)
-    
-    elif data == "analyze_tiktok":
-        await query.answer("🎵 هذه الميزة قيد التطوير حالياً", show_alert=True)
-    
-    elif data == "analyze_facebook":
-        await query.answer("📘 هذه الميزة قيد التطوير حالياً", show_alert=True)
-    
-    # ========== زر القائمة الرئيسية ==========
-    elif data == "main_menu":
-        user_info = get_user_info(user_id)
-        is_premium = user_info['status'] == 'premium' if user_info else False
-        await query.message.reply_text(
-            "🏠 <b>القائمة الرئيسية</b>\n\nاختر ما تريد:",
-            parse_mode='HTML',
-            reply_markup=get_main_keyboard(is_premium)
-        )
-        await query.delete_message()
-    
-    # ========== توصيات الذكاء الاصطناعي ==========
-    elif data.startswith("ai_recommendations"):
-        await ai_recommendations(update, context)
-    
-    # ========== تعديل الحسابات ==========
-    elif data.startswith("edit_"):
-        platform = data.split('_')[1]
-        context.user_data['editing_platform'] = platform
-        keyboard = [[InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")]]
-        await query.edit_message_text(
-            f"✏️ <b>تعديل حساب {platform.capitalize()}</b>\n\n"
-            f"أرسل المعرف الجديد أو الرابط:",
-            parse_mode='HTML',
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-    
-    # ========== أزرار إدارة صفحة البايو ==========
-    elif data == "bio_change_theme":
-        # تغيير الثيم
-        keyboard = [
-            [InlineKeyboardButton("☀️ فاتح", callback_data="bio_set_theme_default")],
-            [InlineKeyboardButton("🌙 داكن", callback_data="bio_set_theme_dark")],
-            [InlineKeyboardButton("🔙 رجوع", callback_data="bio_back")]
-        ]
-        await query.edit_message_text(
-            "🎨 <b>اختر الثيم المفضل لديك:</b>",
-            parse_mode='HTML',
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-    
-    elif data == "bio_set_theme_default":
-        update_bio_theme(user_id, 'default')
-        await query.answer("✅ تم تغيير الثيم إلى الفاتح")
-        await show_bio_management(update, context, user_id)
-    
-    elif data == "bio_set_theme_dark":
-        update_bio_theme(user_id, 'dark')
-        await query.answer("✅ تم تغيير الثيم إلى الداكن")
-        await show_bio_management(update, context, user_id)
-    
-    elif data == "bio_edit_bio":
-        context.user_data['editing_bio'] = True
-        keyboard = [[InlineKeyboardButton("🔙 إلغاء", callback_data="bio_back")]]
-        await query.edit_message_text(
-            "📝 <b>تعديل النبذة</b>\n\n"
-            "أرسل النص الجديد للنبذة (الوصف الشخصي):\n\n"
-            "💡 مثال: مبرمج ومطور ويب | مهتم بالذكاء الاصطناعي",
-            parse_mode='HTML',
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-    
-    elif data == "bio_show_link":
-        bio_page = get_bio_page(user_id)
-        if bio_page:
-            flask_url = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
-            await query.answer(f"رابط صفحتك: https://{flask_url}/bio/{bio_page['page_url']}", show_alert=True)
-    
-    elif data == "bio_back":
-        await show_bio_management(update, context, user_id)
-
-
-async def handle_bio_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة تعديل النبذة في صفحة البايو"""
-    if context.user_data.get('editing_bio'):
-        user_id = update.effective_user.id
-        new_bio = update.message.text.strip()
-        
-        if update_bio_text(user_id, new_bio):
-            context.user_data.pop('editing_bio', None)
-            await update.message.reply_text("✅ تم تحديث النبذة بنجاح!")
-            # عرض إدارة الصفحة مرة أخرى
-            await show_bio_management(update, context, user_id)
-        else:
-            await update.message.reply_text("❌ حدث خطأ في تحديث النبذة")
-
-
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة الرسائل النصية"""
-    text = update.message.text.strip()
-    user_id = update.effective_user.id
-    
-    # معالجة تعديل النبذة في صفحة البايو
-    if context.user_data.get('editing_bio'):
-        await handle_bio_edit(update, context)
-        return
-    
-    # معالجة الأزرار
-    if text == "🎯 تحليل حساباتي":
-        await analyze_command(update, context)
-        return
-    
-    elif text == "📊 إحصائياتي":
-        await my_stats_command(update, context)
-        return
-    
-    elif text == "📝 بياناتي":
-        await my_data_command(update, context)
-        return
-    
-    elif text == "✏️ تعديل بياناتي":
-        await edit_data_command(update, context)
-        return
-    
-    elif text == "💎 اشتراك مميز":
-        await premium_command(update, context)
-        return
-    
-    elif text == "ℹ️ المساعدة":
-        await help_command(update, context)
-        return
-    
-    elif text == "📄 صفحة البايو":
-        await bio_page_command(update, context)
-        return
-    
-    elif text == "🔍 فحص يوزرنيم":
-        await username_check_command(update, context)
-        return
-    
-    # معالجة تعديل الحساب
-    if context.user_data.get('editing_platform'):
-        await handle_edit_account(update, context)
-        return
-    
-    # معالجة فحص اليوزرنيم
-    if context.user_data.get('awaiting_username'):
-        await handle_username_check(update, context)
-        return
-    
-    # رسالة افتراضية
-    user_info = get_user_info(user_id)
-    is_premium = user_info['status'] == 'premium' if user_info else False
-    await update.message.reply_text(
-        "❓ عذراً، لم أتعرف على طلبك.\n\n"
-        "📌 يمكنك استخدام الأزرار أدناه أو إرسال /help للمساعدة.",
-        parse_mode='HTML',
-        reply_markup=get_main_keyboard(is_premium)
-    )
-
-
-# ========== الدالة الرئيسية ==========
+# =================================================================================
+# القسم 17: الدالة الرئيسية (Main Function)
+# =================================================================================
 
 def main():
     """تشغيل البوت"""
@@ -1313,6 +1252,7 @@ def main():
         fallbacks=[CommandHandler("cancel", cancel_registration)]
     )
     
+    # إضافة جميع المعالجات
     application.add_handler(conv_handler)
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("mystats", my_stats_command))
@@ -1322,7 +1262,8 @@ def main():
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.add_handler(CallbackQueryHandler(button_callback))
     
-    print("="*60)
+    # طباعة معلومات بدء التشغيل
+    print("=" * 60)
     print("📊 Social Media Analyzer Bot - النسخة المميزة")
     print("🤖 @Social_Media_tools_bot")
     print("✅ أوامر: /start /help /mystats /premium /mydata /edit")
@@ -1330,7 +1271,7 @@ def main():
     print("✅ قاعدة بيانات: Supabase (متكاملة مع النظام الموحد)")
     print("✅ الذكاء الاصطناعي: Gemini API (قيد التطوير)")
     print("✅ خادم HTTP يعمل على المنفذ", os.environ.get('PORT', 10000))
-    print("="*60)
+    print("=" * 60)
     
     # تشغيل البوت مع إعدادات محسنة لمنع التعارض
     application.run_polling(
@@ -1339,6 +1280,9 @@ def main():
         timeout=60
     )
 
+# =================================================================================
+# القسم 18: نقطة دخول البرنامج (Entry Point)
+# =================================================================================
 
 if __name__ == '__main__':
     main()
