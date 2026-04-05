@@ -8,7 +8,10 @@
     <!-- الخطوط -->
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     
-    <!-- القالب الأساسي (ضروري للهيكل) -->
+    <!-- تحميل CSS الأساسي أولاً -->
+    <link rel="preload" href="{{ url_for('static', filename='themes/' + theme_name + '.css') }}" as="style">
+    <link rel="stylesheet" href="{{ url_for('static', filename='themes/' + theme_name + '.css') }}">
+    
     <style>
         /* ===== القواعد الأساسية (ثابتة لجميع القوالب) ===== */
         * {
@@ -215,19 +218,6 @@
             transform: scale(1.05);
         }
         
-        .theme-option {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: 0.2s;
-        }
-        
-        .theme-option:hover {
-            transform: scale(1.1);
-        }
-        
         /* نافذة اختيار القوالب */
         .theme-modal {
             position: fixed;
@@ -299,10 +289,61 @@
         }
     </style>
     
-    <!-- القالب المخصص (يتم تحميله حسب اختيار المستخدم) -->
-    <link id="themeStylesheet" rel="stylesheet" href="{{ url_for('static', filename='themes/' + theme_name + '.css') }}">
+    <!-- شاشة التحميل -->
+    <style>
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
+        }
+        
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-top: 5px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            margin-top: 20px;
+            color: white;
+            font-family: 'Tajawal', sans-serif;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        .loading-subtext {
+            margin-top: 10px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+        }
+    </style>
 </head>
 <body>
+    <!-- شاشة التحميل -->
+    <div id="loading-screen">
+        <div style="text-align: center;">
+            <div class="loader"></div>
+            <div class="loading-text">جاري تحميل صفحة البايو...</div>
+            <div class="loading-subtext">يرجى الانتظار قليلاً</div>
+        </div>
+    </div>
+    
     <div class="container">
         <!-- الصورة الشخصية -->
         <div class="avatar-container">
@@ -324,19 +365,6 @@
         <!-- النبذة -->
         {% if bio %}
         <div class="bio">{{ bio }}</div>
-        {% endif %}
-        
-        <!-- الإحصائيات (للمستخدمين المميزين) -->
-        {% if is_premium and stats %}
-        <div class="stats-grid">
-            {% for platform, data in stats.items() %}
-            <div class="stat-card">
-                <div class="stat-icon">{{ data.icon }}</div>
-                <div class="stat-value">{{ data.followers }}</div>
-                <div class="stat-label">{{ data.name }}</div>
-            </div>
-            {% endfor %}
-        </div>
         {% endif %}
         
         <!-- أزرار الحسابات -->
@@ -377,7 +405,7 @@
             <h3>🎨 اختر ثيمك المفضل</h3>
             <div>
                 <div class="theme-preset" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;" onclick="selectTheme('default')">
-                    🌙 فاتح
+                    ☀️ فاتح
                 </div>
                 <div class="theme-preset" style="background: #1a1a2e; color: white; border: 1px solid #4facfe;" onclick="selectTheme('dark')">
                     🌙 داكن
@@ -391,6 +419,17 @@
     
     <script>
         let selectedThemeName = '{{ theme_name }}';
+        
+        // إخفاء شاشة التحميل بعد تحميل الصفحة بالكامل
+        window.addEventListener('load', function() {
+            var loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) {
+                loadingScreen.style.opacity = '0';
+                setTimeout(function() {
+                    loadingScreen.style.display = 'none';
+                }, 500);
+            }
+        });
         
         function showThemeModal() {
             document.getElementById('themeModal').style.display = 'flex';
@@ -420,7 +459,6 @@
             }).then(response => response.json())
               .then(data => {
                   if(data.status === 'ok') {
-                      // حفظ بنجاح
                       closeThemeModal();
                   } else {
                       alert('حدث خطأ، حاول مرة أخرى');
