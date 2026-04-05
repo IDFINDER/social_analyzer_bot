@@ -80,18 +80,33 @@ def bio_page(page_url):
             'facebook': 'Facebook'
         }
         
-        accounts_list = []
-        for platform, acc in accounts.items():
-            identifier = acc.get('account_identifier', '')
-            if identifier:
-                if identifier.startswith('@'):
-                    identifier = identifier[1:]
-                accounts_list.append({
-                    'platform': platform,
-                    'name': platform_names.get(platform, platform.capitalize()),
-                    'url': f"https://{platform}.com/{identifier}",
-                    'icon': platform_icons.get(platform, '')
-                })
+        # بناء الرابط الصحيح حسب المنصة
+if platform == 'youtube':
+    if identifier.startswith('@'):
+        url = f"https://www.youtube.com/{identifier}"
+    else:
+        url = f"https://www.youtube.com/@{identifier}"
+elif platform == 'instagram':
+    if identifier.startswith('@'):
+        identifier = identifier[1:]
+    url = f"https://www.instagram.com/{identifier}"
+elif platform == 'tiktok':
+    if identifier.startswith('@'):
+        identifier = identifier[1:]
+    url = f"https://www.tiktok.com/@{identifier}"
+elif platform == 'facebook':
+    if identifier.startswith('@'):
+        identifier = identifier[1:]
+    url = f"https://www.facebook.com/{identifier}"
+else:
+    url = f"https://{platform}.com/{identifier}"
+
+accounts_list.append({
+    'platform': platform,
+    'name': platform_names.get(platform, platform.capitalize()),
+    'url': url,
+    'icon': platform_icons.get(platform, '')
+})
         
         custom_links_list = []
         for link in custom_links:
