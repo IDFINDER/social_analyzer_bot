@@ -452,6 +452,87 @@ async def edit_data_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
+async def bio_settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """إعدادات صفحة البايو (للمستخدمين المميزين فقط)"""
+    user_id = update.effective_user.id
+    user_info = get_user_info(user_id)
+    is_premium = user_info['status'] == 'premium' if user_info else False
+    
+    if not is_premium:
+        await update.message.reply_text("💎 هذه الميزة متاحة فقط للمستخدمين المميزين!")
+        return
+    
+    bio_page = get_bio_page(user_id)
+    if not bio_page:
+        await update.message.reply_text("❌ لم يتم العثور على صفحة البايو. اضغط على '📄 صفحة البايو' أولاً.")
+        return
+    
+    theme_name = bio_page.get('theme_name', 'default')
+    
+    keyboard = [
+        [InlineKeyboardButton(f"🎨 الثيم الحالي: {'فاتح' if theme_name == 'default' else 'داكن'}", callback_data="bio_settings_theme")],
+        [InlineKeyboardButton("📝 تعديل النبذة", callback_data="bio_settings_bio")],
+        [InlineKeyboardButton("🖼️ تغيير الصورة الشخصية", callback_data="bio_settings_avatar")],
+        [InlineKeyboardButton("🔙 رجوع", callback_data="main_menu")]
+    ]
+    
+    await update.message.reply_text(
+        "⚙️ <b>إعدادات صفحة البايو</b>\n\nاختر ما تريد تعديله:",
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def bio_change_theme_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """تغيير ثيم صفحة البايو من داخل البوت"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    bio_page = get_bio_page(user_id)
+    
+    if not bio_page:
+        await query.edit_message_text("❌ لم يتم العثور على صفحة البايو")
+        return
+    
+    current_theme = bio_page.get('theme_name', 'default')
+    new_theme = 'dark' if current_theme == 'default' else 'default'
+    
+    # تحديث الثيم في قاعدة البيانات
+    update_bio_theme(user_id, new_theme)
+    
+    theme_name_display = 'داكن' if new_theme == 'dark' else 'فاتح'
+    await query.edit_message_text(
+        f"✅ تم تغيير الثيم إلى <b>{theme_name_display}</b> بنجاح!",
+        parse_mode='HTML'
+    )
+    async def edit_data_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """تعديل بيانات المستخدم"""
+    user_id = update.effective_user.id
+    accounts = get_user_social_accounts(user_id)
+    user_info = get_user_info(user_id)
+    is_premium = user_info['status'] == 'premium' if user_info else False
+    
+    keyboard = []
+    for platform in ['youtube', 'instagram', 'tiktok', 'facebook']:
+        if platform in accounts:
+            keyboard.append([InlineKeyboardButton(f"✏️ تعديل {platform.capitalize()}", callback_data=f"edit_{platform}")])
+    
+    # إضافة إعدادات صفحة البايو للمستخدمين المميزين
+    if is_premium:
+        keyboard.append([InlineKeyboardButton("⚙️ إعدادات صفحة البايو", callback_data="bio_settings")])
+    
+    keyboard.append([InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")])
+    
+    await update.message.reply_text(
+        "✏️ <b>اختر ما تريد تعديله:</b>",
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    elif data == "bio_settings":
+    await bio_settings_command(update, context)
+
+elif data == "bio_settings_theme":
+    await bio_change_theme_callback(update, context)
 
 async def my_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """عرض إحصائيات المستخدم"""
