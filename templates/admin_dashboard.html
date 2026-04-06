@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة إدارة بوتات الأدوات الاجتماعية</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
+            background: #f5f7fa;
+            color: #1a2c3e;
+            line-height: 1.6;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        
+        /* الهيدر */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .header h1 { font-size: 1.8rem; margin-bottom: 5px; }
+        .header p { opacity: 0.9; font-size: 0.9rem; }
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+        .logout-btn:hover { background: rgba(255,255,255,0.3); }
+        
+        /* بطاقات الإحصائيات */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-3px); }
+        .stat-number { font-size: 2rem; font-weight: bold; color: #667eea; }
+        .stat-label { color: #6c757d; font-size: 0.8rem; margin-top: 5px; }
+        
+        /* الرسوم البيانية */
+        .charts-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        .chart-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .chart-card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1rem;
+            border-right: 3px solid #667eea;
+            padding-right: 12px;
+        }
+        .chart-container { position: relative; height: 250px; }
+        
+        /* شريط البحث */
+        .search-section {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .search-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+        }
+        .search-btn, .clear-btn, .refresh-btn {
+            padding: 12px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+            border: none;
+        }
+        .search-btn { background: #667eea; color: white; }
+        .search-btn:hover { background: #5a67d8; }
+        .clear-btn { background: #6c757d; color: white; }
+        .clear-btn:hover { background: #5a6268; }
+        .refresh-btn { background: #48bb78; color: white; }
+        .refresh-btn:hover { background: #38a169; }
+        
+        /* جدول المستخدمين */
+        .users-section {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            overflow-x: auto;
+            margin-bottom: 30px;
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        th, td { padding: 10px 8px; text-align: center; border-bottom: 1px solid #e9ecef; }
+        th { background: #f8f9fa; color: #495057; font-weight: 600; position: sticky; top: 0; }
+        tr:hover { background: #f8f9fa; }
+        
+        .premium-badge {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            display: inline-block;
+        }
+        .free-badge {
+            background: #e9ecef;
+            color: #6c757d;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            display: inline-block;
+        }
+        .bio-badge {
+            background: #48bb78;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 16px;
+            font-size: 0.7rem;
+            display: inline-block;
+        }
+        .no-bio {
+            background: #e9ecef;
+            color: #6c757d;
+            padding: 4px 8px;
+            border-radius: 16px;
+            font-size: 0.7rem;
+            display: inline-block;
+        }
+        .upgrade-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+        .upgrade-btn:hover { background: #218838; }
+        .downgrade-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+        .downgrade-btn:hover { background: #c82333; }
+        .view-bio {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .view-bio:hover { background: #138496; }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            color: #6c757d;
+            font-size: 0.75rem;
+            border-top: 1px solid #e9ecef;
+        }
+        .no-results { text-align: center; padding: 40px; color: #6c757d; }
+        
+        @media (max-width: 768px) {
+            .charts-section { grid-template-columns: 1fr; }
+            th, td { font-size: 0.7rem; padding: 6px; }
+            .search-box { flex-direction: column; }
+            .search-btn, .clear-btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🎬 لوحة إدارة بوتات الأدوات الاجتماعية</h1>
+                <p>إدارة موحدة لجميع البوتات | نظام اشتراك مميز | إحصائيات تفصيلية</p>
+            </div>
+            <a href="/admin/logout" class="logout-btn">🚪 خروج</a>
+        </div>
+        
+        <!-- بطاقات الإحصائيات -->
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-number">{{ stats.total_users }}</div><div class="stat-label">إجمالي المستخدمين</div></div>
+            <div class="stat-card"><div class="stat-number">{{ stats.premium_users }}</div><div class="stat-label">👑 مستخدمين مميزين</div></div>
+            <div class="stat-card"><div class="stat-number">{{ stats.free_users }}</div><div class="stat-label">🎁 مستخدمين مجانيين</div></div>
+            <div class="stat-card"><div class="stat-number">{{ stats.total_uses|default(0) }}</div><div class="stat-label">📊 إجمالي العمليات</div></div>
+            <div class="stat-card"><div class="stat-number">{{ stats.total_bio_pages|default(0) }}</div><div class="stat-label">📄 صفحات بايو</div></div>
+            <div class="stat-card"><div class="stat-number">{{ stats.total_bio_views|default(0) }}</div><div class="stat-label">👁️ مشاهدات البايو</div></div>
+        </div>
+        
+        <!-- الرسوم البيانية -->
+        <div class="charts-section">
+            <div class="chart-card">
+                <h3>📊 توزيع المستخدمين</h3>
+                <div class="chart-container">
+                    <canvas id="userDistributionChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <h3>📈 استخدامات المنصات</h3>
+                <div class="chart-container">
+                    <canvas id="platformUsageChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <!-- قائمة المستخدمين -->
+        <div class="users-section">
+            <div class="section-header">
+                <h2>📋 قائمة المستخدمين</h2>
+                <button class="refresh-btn" onclick="location.reload()">🔄 تحديث</button>
+            </div>
+            
+            <!-- شريط البحث -->
+            <div class="search-section">
+                <div class="search-box">
+                    <input type="text" id="searchInput" class="search-input" placeholder="🔍 بحث بالاسم أو المعرف أو اليوزرنيم..." onkeyup="filterUsers()">
+                    <button class="search-btn" onclick="filterUsers()">🔍 بحث</button>
+                    <button class="clear-btn" onclick="clearSearch()">🗑️ مسح</button>
+                </div>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table id="usersTable">
+                    <thead>
+                        <tr>
+                            <th>المعرف</th>
+                            <th>الاسم</th>
+                            <th>اليوزرنيم</th>
+                            <th>الحالة</th>
+                            <th>تاريخ التسجيل</th>
+                            <th>📄 البايو</th>
+                            <th>🎬 يوتيوب</th>
+                            <th>📸 انستقرام</th>
+                            <th>🎵 تيك توك</th>
+                            <th>📘 فيسبوك</th>
+                            <th>الإجراء</th>
+                        </th>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr data-user-id="{{ user.user_id }}" data-name="{{ user.first_name }}" data-username="{{ user.username }}">
+                            <td>{{ user.user_id }}</td>
+                            <td>{{ user.first_name|default('-') }}</td>
+                            <td>@{{ user.username|default('-') }}</td>
+                            <td>{% if user.status == 'premium' %}<span class="premium-badge">👑 مميز</span>{% else %}<span class="free-badge">🎁 مجاني</span>{% endif %}</td>
+                            <td>{{ user.created_at[:10] if user.created_at else '-' }}</td>
+                            <td>
+                                {% if user.bio_page_url %}
+                                    <span class="bio-badge">📄 {{ user.bio_views|default(0) }} مشاهدة</span>
+                                    <a href="https://{{ RENDER_URL }}/bio/{{ user.bio_page_url }}" target="_blank" class="view-bio">عرض</a>
+                                {% else %}
+                                    <span class="no-bio">❌ لا يوجد</span>
+                                {% endif %}
+                             </td>
+                            <td><span class="usage-badge">{{ user.total_usage.youtube|default(0) }}</span></td>
+                            <td><span class="usage-badge">{{ user.total_usage.instagram|default(0) }}</span></td>
+                            <td><span class="usage-badge">{{ user.total_usage.tiktok|default(0) }}</span></td>
+                            <td><span class="usage-badge">{{ user.total_usage.facebook|default(0) }}</span></td>
+                            <td>
+                                {% if user.status == 'free' %}
+                                    <a href="/admin/dashboard?upgrade={{ user.user_id }}" class="upgrade-btn" onclick="return confirm('هل أنت متأكد من ترقية هذا المستخدم؟')">⭐ ترقية</a>
+                                {% else %}
+                                    <a href="/admin/dashboard?downgrade={{ user.user_id }}" class="downgrade-btn" onclick="return confirm('هل أنت متأكد من خفض هذا المستخدم؟')">📉 خفض</a>
+                                {% endif %}
+                             </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div id="noResults" class="no-results" style="display: none;">❌ لا توجد نتائج مطابقة للبحث</div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            🤖 نظام إدارة بوتات الأدوات الاجتماعية | آخر تحديث: {{ stats.last_update }}
+        </div>
+    </div>
+    
+    <script>
+        // رسم بياني لتوزيع المستخدمين
+        const userCtx = document.getElementById('userDistributionChart').getContext('2d');
+        new Chart(userCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['👑 مستخدمين مميزين', '🎁 مستخدمين مجانيين'],
+                datasets: [{
+                    data: [{{ stats.premium_users }}, {{ stats.free_users }}],
+                    backgroundColor: ['#667eea', '#e9ecef'],
+                    borderWidth: 0,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { size: 11 } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+        
+        // رسم بياني لاستخدامات المنصات
+        const platformCtx = document.getElementById('platformUsageChart').getContext('2d');
+        new Chart(platformCtx, {
+            type: 'bar',
+            data: {
+                labels: ['🎬 يوتيوب', '📸 انستقرام', '🎵 تيك توك', '📘 فيسبوك'],
+                datasets: [{
+                    label: 'عدد التحليلات',
+                    data: [
+                        {{ stats.platform_stats.youtube|default(0) }},
+                        {{ stats.platform_stats.instagram|default(0) }},
+                        {{ stats.platform_stats.tiktok|default(0) }},
+                        {{ stats.platform_stats.facebook|default(0) }}
+                    ],
+                    backgroundColor: ['#ff0000', '#e1306c', '#000000', '#1877f2'],
+                    borderRadius: 8,
+                    barPercentage: 0.6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { font: { size: 11 } } },
+                    tooltip: { callbacks: { label: function(context) { return `التحليلات: ${context.raw.toLocaleString()}`; } } }
+                },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#e9ecef' }, title: { display: true, text: 'عدد التحليلات', font: { size: 10 } } },
+                    x: { grid: { display: false }, title: { display: true, text: 'المنصات', font: { size: 10 } } }
+                }
+            }
+        });
+        
+        // وظيفة البحث
+        function filterUsers() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+            const rows = document.querySelectorAll('#usersTable tbody tr');
+            let hasResults = false;
+            
+            rows.forEach(row => {
+                const userId = row.getAttribute('data-user-id')?.toLowerCase() || '';
+                const name = row.getAttribute('data-name')?.toLowerCase() || '';
+                const username = row.getAttribute('data-username')?.toLowerCase() || '';
+                const rowText = `${userId} ${name} ${username}`;
+                
+                if (searchTerm === '' || rowText.includes(searchTerm)) {
+                    row.style.display = '';
+                    hasResults = true;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            const noResultsDiv = document.getElementById('noResults');
+            if (noResultsDiv) {
+                noResultsDiv.style.display = hasResults ? 'none' : 'block';
+            }
+        }
+        
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            filterUsers();
+        }
+        
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                filterUsers();
+            }
+        });
+    </script>
+</body>
+</html>
