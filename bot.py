@@ -836,16 +836,15 @@ async def bio_edit_avatar_callback(update: Update, context: ContextTypes.DEFAULT
     
     user_id = query.from_user.id
     
-    # التحقق من وجود صفحة بايو
     bio_page = get_bio_page(user_id)
     if not bio_page:
-        await query.edit_message_text("❌ لم يتم العثور على صفحة البايو. اضغط على '📄 صفحة البايو' أولاً.")
+        await query.edit_message_text("❌ لم يتم العثور على صفحة البايو.")
         return
     
     # وضع علامة أن المستخدم في وضع تغيير الصورة
     context.user_data['editing_avatar'] = True
     
-    keyboard = [[InlineKeyboardButton("🔙 إلغاء", callback_data="bio_settings")]]
+    keyboard = [[InlineKeyboardButton("🔙 إلغاء", callback_data="bio_cancel_edit")]]
     
     await query.edit_message_text(
         "🖼️ <b>تغيير الصورة الشخصية</b>\n\n"
@@ -853,8 +852,8 @@ async def bio_edit_avatar_callback(update: Update, context: ContextTypes.DEFAULT
         "💡 مثال: https://example.com/my-photo.jpg\n\n"
         "📌 ملاحظات:\n"
         "• يجب أن يكون الرابط عاماً (يبدأ بـ http:// أو https://)\n"
-        "• يفضل استخدام صور من Imgur أو أي خدمة استضافة صور\n"
-        "• الصورة ستظهر بشكل دائري في صفحة البايو",
+        "• يفضل استخدام صور من Imgur أو أي خدمة استضافة صور\n\n"
+        "🔘 أو اضغط على زر إلغاء للخروج",
         parse_mode='HTML',
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
