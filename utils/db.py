@@ -91,7 +91,7 @@ def get_user_usage(user_id):
 
 def increment_usage(user_id, platform, analysis_results=None):
     """
-    زيادة عدد استخدامات المستخدم (مثل البوتات السابقة)
+    زيادة عدد استخدامات المستخدم حسب المنصة
     """
     try:
         user = get_user_info(user_id)
@@ -103,6 +103,16 @@ def increment_usage(user_id, platform, analysis_results=None):
         usage = get_user_usage(user_id)
         today = date.today().isoformat()
         
+        # ========== تحديد اسم العمود حسب المنصة ==========
+        platform_column_map = {
+            'youtube': 'youtube_uses',
+            'instagram': 'instagram_uses',
+            'tiktok': 'tiktok_uses',
+            'facebook': 'facebook_uses'
+        }
+        
+        platform_column = platform_column_map.get(platform, 'youtube_uses')
+        
         # إعادة تعيين الاستخدامات اليومية للمجانيين فقط
         if usage and usage.get('last_use_date') != today:
             if user['status'] == 'free':
@@ -112,34 +122,38 @@ def increment_usage(user_id, platform, analysis_results=None):
                     'username': username,
                     'first_name': first_name
                 }).eq('user_id', user_id).eq('bot_name', BOT_NAME).execute()
+                # إعادة جلب usage بعد التحديث
+                usage = get_user_usage(user_id)
+        
+        # الحصول على القيم الحالية
+        current_platform_uses = usage.get(platform_column, 0) if usage else 0
+        current_daily_uses = usage.get('daily_uses', 0) if usage else 0
+        current_total_uses = usage.get('total_uses', 0) if usage else 0
+        
+        # حساب القيم الجديدة
+        new_platform_uses = current_platform_uses + 1
+        new_daily_uses = current_daily_uses + 1 if user['status'] == 'free' else current_daily_uses
+        new_total_uses = current_total_uses + 1
+        
+        # ========== تحديث قاعدة البيانات ==========
+        update_data = {
+            'total_uses': new_total_uses,
+            'updated_at': datetime.now().isoformat(),
+            'username': username,
+            'first_name': first_name,
+            platform_column: new_platform_uses  # تحديث عمود المنصة المحددة
+        }
         
         if user['status'] == 'free':
-            # مجاني: زيادة daily_uses + total_uses
-            new_daily = (usage.get('daily_uses', 0) + 1) if usage else 1
-            new_total = (usage.get('total_uses', 0) + 1) if usage else 1
-            
-            # استخدام upsert بدلاً من insert لتجنب التكرار
-            supabase.table('bot_usage').upsert({
-                'user_id': user_id,
-                'bot_name': BOT_NAME,
-                'daily_uses': new_daily,
-                'total_uses': new_total,
-                'last_use_date': today,
-                'username': username,
-                'first_name': first_name,
-                'updated_at': datetime.now().isoformat()
-            }, on_conflict='user_id,bot_name').execute()
-        else:
-            # مميز: زيادة total_uses فقط
-            new_total = (usage.get('total_uses', 0) + 1) if usage else 1
-            supabase.table('bot_usage').upsert({
-                'user_id': user_id,
-                'bot_name': BOT_NAME,
-                'total_uses': new_total,
-                'updated_at': datetime.now().isoformat(),
-                'username': username,
-                'first_name': first_name
-            }, on_conflict='user_id,bot_name').execute()
+            update_data['daily_uses'] = new_daily_uses
+            update_data['last_use_date'] = today
+        
+        # استخدام upsert لتجنب التكرار
+        result = supabase.table('bot_usage').upsert({
+            'user_id': user_id,
+            'bot_name': BOT_NAME,
+            **update_data
+        }, on_conflict='user_id,bot_name').execute()
         
         # تسجيل في جدول التحليلات
         if analysis_results:
@@ -159,7 +173,9 @@ def increment_usage(user_id, platform, analysis_results=None):
                 'analysis_duration': analysis_results.get('duration')
             }).execute()
         
+        logger.info(f"✅ Usage incremented for user {user_id} on platform {platform} (column: {platform_column})")
         return True
+        
     except Exception as e:
         logger.error(f"Error incrementing usage: {e}")
         return False
