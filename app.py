@@ -286,7 +286,7 @@ def login_required(f):
     return decorated_function
 
 # صفحة دخول المدير
-@app.route('/alshabany/login', methods=['GET', 'POST'])
+@app.route('/secure/x7K9mP2/login', methods=['GET', 'POST'])
 def admin_login():
     """صفحة دخول لوحة التحكم"""
     if request.method == 'POST':
