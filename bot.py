@@ -1461,6 +1461,145 @@ def main():
     )
 
 # =================================================================================
+# دوال إدارة صفحة البايو (حذف، إعادة تعيين، إلخ)
+# =================================================================================
+
+async def bio_delete_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """حذف صفحة البايو بالكامل"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    user_info = get_user_info(user_id)
+    is_premium = user_info['status'] == 'premium' if user_info else False
+    
+    if not is_premium:
+        await query.edit_message_text("💎 هذه الميزة متاحة فقط للمستخدمين المميزين!")
+        return
+    
+    # تأكيد الحذف
+    keyboard = [
+        [InlineKeyboardButton("✅ نعم، احذف الصفحة", callback_data="bio_confirm_delete")],
+        [InlineKeyboardButton("❌ إلغاء", callback_data="bio_settings")]
+    ]
+    
+    await query.edit_message_text(
+        "⚠️ <b>تحذير: حذف صفحة البايو</b>\n\n"
+        "هل أنت متأكد من حذف صفحة البايو بالكامل؟\n\n"
+        "📌 ملاحظة: سيتم حذف:\n"
+        "• الرابط الخاص بالصفحة\n"
+        "• النبذة التعريفية\n"
+        "• الصورة الشخصية\n"
+        "• جميع الإعدادات\n\n"
+        "⚠️ هذا الإجراء لا يمكن التراجع عنه!",
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def bio_confirm_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """تأكيد حذف صفحة البايو"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    
+    try:
+        from utils.db import supabase
+        
+        # حذف الصفحة من قاعدة البيانات
+        result = supabase.table('bio_pages').delete().eq('user_id', user_id).execute()
+        
+        if result.data:
+            await query.edit_message_text(
+                "✅ <b>تم حذف صفحة البايو بنجاح!</b>\n\n"
+                "يمكنك إنشاء صفحة جديدة بالضغط على '📄 صفحة البايو' مرة أخرى.",
+                parse_mode='HTML'
+            )
+        else:
+            await query.edit_message_text(
+                "❌ لم يتم العثور على صفحة البايو للحذف.",
+                parse_mode='HTML'
+            )
+    except Exception as e:
+        logger.error(f"Error deleting bio page: {e}")
+        await query.edit_message_text(f"❌ حدث خطأ: {e}", parse_mode='HTML')
+
+async def bio_reset_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """إعادة تعيين صفحة البايو (مسح النبذة والصورة فقط)"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    
+    # تحديث الصفحة - مسح النبذة والصورة فقط
+    if update_bio_text(user_id, ""):
+        update_bio_avatar(user_id, None)
+        await query.edit_message_text(
+            "✅ <b>تم إعادة تعيين صفحة البايو!</b>\n\n"
+            "تم مسح:\n"
+            "• النبذة التعريفية\n"
+            "• الصورة الشخصية\n\n"
+            "يمكنك إضافة نص وصورة جديدة من خلال الإعدادات.",
+            parse_mode='HTML'
+        )
+    else:
+        await query.edit_message_text("❌ حدث خطأ في إعادة تعيين الصفحة.", parse_mode='HTML')
+
+async def bio_reset_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """إعادة تعيين رابط صفحة البايو (إنشاء رابط جديد)"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    user_info = get_user_info(user_id)
+    accounts = get_user_social_accounts(user_id)
+    
+    if not accounts:
+        await query.edit_message_text("❌ لا توجد حسابات مسجلة.", parse_mode='HTML')
+        return
+    
+    # تحويل تنسيق الحسابات
+    formatted_accounts = {}
+    for platform, acc in accounts.items():
+        formatted_accounts[platform] = {
+            'account_identifier': acc['account_identifier']
+        }
+    
+    display_name = user_info.get('first_name', 'مستخدم')
+    
+    # حفظ البيانات القديمة (النبذة والصورة) لاستعادتها
+    old_bio = get_bio_page(user_id)
+    old_bio_text = old_bio.get('bio', '') if old_bio else ''
+    old_avatar = old_bio.get('avatar_url', None) if old_bio else None
+    
+    # حذف الصفحة القديمة
+    from utils.db import supabase
+    supabase.table('bio_pages').delete().eq('user_id', user_id).execute()
+    
+    # إنشاء صفحة جديدة برابط جديد
+    page_url = create_or_update_bio_page(user_id, display_name, formatted_accounts)
+    
+    if page_url:
+        # استعادة النبذة والصورة القديمة
+        if old_bio_text:
+            update_bio_text(user_id, old_bio_text)
+        if old_avatar:
+            update_bio_avatar(user_id, old_avatar)
+        
+        flask_url = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
+        full_url = f"https://{flask_url}/bio/{page_url}"
+        
+        await query.edit_message_text(
+            f"✅ <b>تم إنشاء رابط جديد لصفحة البايو!</b>\n\n"
+            f"🔗 <b>الرابط الجديد:</b>\n{full_url}\n\n"
+            f"📌 تم الاحتفاظ بنبذتك وصورتك الشخصية.\n"
+            f"⚠️ الرابط القديم لم يعد يعمل.",
+            parse_mode='HTML'
+        )
+    else:
+        await query.edit_message_text("❌ حدث خطأ في إنشاء رابط جديد.", parse_mode='HTML')
+        
+# =================================================================================
 # القسم 21: نقطة دخول البرنامج (Entry Point)
 # =================================================================================
 
