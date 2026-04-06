@@ -311,7 +311,7 @@
                             <td>
                                 {% if user.bio_page_url %}
                                     <span class="bio-badge">📄 {{ user.bio_views|default(0) }} مشاهدة</span>
-                                    <a href="https://{{ RENDER_URL }}/bio/{{ user.bio_page_url }}" target="_blank" class="view-bio">عرض</a>
+                                    <a href="https://{{ RENDER_URL|default('social-analyzer-flask.onrender.com') }}/bio/{{ user.bio_page_url }}" target="_blank" class="view-bio">عرض</a>
                                 {% else %}
                                     <span class="no-bio">❌ لا يوجد</span>
                                 {% endif %}
