@@ -487,15 +487,51 @@ def update_bio_theme(user_id, theme_name):
 
 
 def update_bio_text(user_id, bio_text):
-    """تحديث النبذة المختصرة"""
+    """تحديث النبذة المختصرة في صفحة البايو"""
     try:
-        supabase.table('bio_pages').update({
+        result = supabase.table('bio_pages').update({
             'bio': bio_text,
             'updated_at': datetime.now().isoformat()
         }).eq('user_id', user_id).execute()
-        return True
+        
+        if result.data:
+            logger.info(f"✅ Bio updated for user {user_id}")
+            return True
+        return False
     except Exception as e:
         logger.error(f"Error updating bio: {e}")
+        return False
+
+def update_bio_avatar(user_id, avatar_url):
+    """تحديث الصورة الشخصية في صفحة البايو"""
+    try:
+        result = supabase.table('bio_pages').update({
+            'avatar_url': avatar_url,
+            'updated_at': datetime.now().isoformat()
+        }).eq('user_id', user_id).execute()
+        
+        if result.data:
+            logger.info(f"✅ Avatar updated for user {user_id}")
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Error updating avatar: {e}")
+        return False
+
+def update_bio_theme(user_id, theme_name):
+    """تحديث ثيم صفحة البايو"""
+    try:
+        result = supabase.table('bio_pages').update({
+            'theme_name': theme_name,
+            'updated_at': datetime.now().isoformat()
+        }).eq('user_id', user_id).execute()
+        
+        if result.data:
+            logger.info(f"✅ Theme updated for user {user_id} to {theme_name}")
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Error updating theme: {e}")
         return False
 
 
