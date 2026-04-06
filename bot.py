@@ -711,15 +711,21 @@ async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE)
 # القسم 11: أوامر البوت - صفحة البايو (Bio Page)
 # =================================================================================
 
+# =================================================================================
+# القسم 11: أوامر البوت - صفحة البايو (Bio Page)
+# =================================================================================
+
 async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """إنشاء صفحة البايو وإرسال الرابط فقط"""
+    """إنشاء صفحة البايو أو عرض بياناتها"""
     user_id = update.effective_user.id
     user_info = get_user_info(user_id)
     is_premium = user_info['status'] == 'premium' if user_info else False
     
     if not is_premium:
         await update.message.reply_text(
-            "💎 <b>صفحة البايو</b>\n\nهذه الميزة متاحة فقط للمستخدمين المميزين!\n\nللاشتراك: /premium",
+            "💎 <b>صفحة البايو</b>\n\n"
+            "هذه الميزة متاحة فقط للمستخدمين المميزين!\n\n"
+            "للاشتراك: /premium",
             parse_mode='HTML'
         )
         return
@@ -728,27 +734,71 @@ async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if not accounts:
         await update.message.reply_text(
-            "❌ لم تقم بتسجيل أي حسابات بعد.\n\nللتسجيل، أرسل /start",
+            "❌ لم تقم بتسجيل أي حسابات بعد.\n\n"
+            "للتسجيل، أرسل /start",
             parse_mode='HTML'
         )
         return
     
-    # تحويل تنسيق الحسابات
-    formatted_accounts = {}
-    for platform, acc in accounts.items():
-        formatted_accounts[platform] = {
-            'account_identifier': acc['account_identifier']
-        }
+    # التحقق من وجود صفحة بايو مسبقاً
+    existing_bio = get_bio_page(user_id)
     
-    # إنشاء أو تحديث صفحة البايو
-    display_name = user_info.get('first_name', 'مستخدم')
-    page_url = create_or_update_bio_page(user_id, display_name, formatted_accounts)
+    flask_url = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
     
-    if page_url:
-        flask_url = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
+    if existing_bio:
+        # المستخدم لديه صفحة بالفعل - عرض البيانات
+        page_url = existing_bio.get('page_url')
         full_url = f"https://{flask_url}/bio/{page_url}"
+        bio_text = existing_bio.get('bio', 'لا يوجد')
+        avatar = existing_bio.get('avatar_url', 'غير محددة')
+        views = existing_bio.get('views_count', 0)
+        theme = existing_bio.get('theme_name', 'default')
+        theme_display = 'فاتح' if theme == 'default' else 'داكن'
         
         text = f"""
+📄 <b>صفحة البايو الخاصة بك</b>
+
+✅ لديك صفحة بايو نشطة بالفعل!
+
+🔗 <b>رابط صفحتك:</b>
+{full_url}
+
+📊 <b>إحصائيات صفحتك:</b>
+👁️ عدد المشاهدات: {views}
+🎨 الثيم الحالي: {theme_display}
+
+📝 <b>النبذة الحالية:</b>
+{bio_text[:200]}{'...' if len(bio_text) > 200 else ''}
+
+🖼️ <b>الصورة الشخصية:</b>
+{'✅ محددة' if avatar and avatar != 'غير محددة' else '❌ غير محددة'}
+
+⚙️ <b>لتعديل صفحة البايو:</b>
+• اضغط على زر ✏️ تعديل بياناتي
+• اختر ⚙️ إعدادات صفحة البايو
+• يمكنك تغيير:
+  - 🎨 الثيم
+  - 📝 النبذة
+  - 🖼️ الصورة الشخصية
+
+💡 <b>ملاحظة:</b> أي تغييرات تقوم بها تظهر فوراً على الرابط أعلاه
+"""
+        await update.message.reply_text(text, parse_mode='HTML')
+    else:
+        # المستخدم ليس لديه صفحة - إنشاء صفحة جديدة
+        formatted_accounts = {}
+        for platform, acc in accounts.items():
+            formatted_accounts[platform] = {
+                'account_identifier': acc['account_identifier']
+            }
+        
+        display_name = user_info.get('first_name', 'مستخدم')
+        page_url = create_or_update_bio_page(user_id, display_name, formatted_accounts)
+        
+        if page_url:
+            full_url = f"https://{flask_url}/bio/{page_url}"
+            
+            text = f"""
 📄 <b>صفحة البايو الخاصة بك</b>
 
 ✅ تم إنشاء صفحتك بنجاح!
@@ -761,14 +811,22 @@ async def bio_page_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • وضع الرابط في سيرتك الذاتية
 • استخدامه للترويج لحساباتك
 
+⚙️ <b>لتعديل صفحة البايو:</b>
+• اضغط على زر ✏️ تعديل بياناتي
+• اختر ⚙️ إعدادات صفحة البايو
+• يمكنك تغيير:
+  - 🎨 الثيم (فاتح/داكن)
+  - 📝 النبذة (وصف تعريف عنك)
+  - 🖼️ الصورة الشخصية
+
 👁️ <b>سيتم احتساب المشاهدات</b> تلقائياً عند فتح الرابط
 """
-        await update.message.reply_text(text, parse_mode='HTML')
-    else:
-        await update.message.reply_text(
-            "❌ حدث خطأ في إنشاء صفحة البايو. حاول مرة أخرى لاحقاً.",
-            parse_mode='HTML'
-        )
+            await update.message.reply_text(text, parse_mode='HTML')
+        else:
+            await update.message.reply_text(
+                "❌ حدث خطأ في إنشاء صفحة البايو. حاول مرة أخرى لاحقاً.",
+                parse_mode='HTML'
+            )
 
 # =================================================================================
 # القسم 12: أوامر البوت - إدارة صفحة البايو (Bio Management)
