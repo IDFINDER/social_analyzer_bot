@@ -495,7 +495,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 👨‍💻 <b>المطور:</b> @E_Alshabany
 """
     await update.message.reply_text(help_text, parse_mode='HTML', reply_markup=get_main_keyboard(is_premium))
-    # =================================================================================
+
+# =================================================================================
 # القسم 9: أوامر البوت - التحليل (Analysis Commands)
 # =================================================================================
 
@@ -797,6 +798,112 @@ async def edit_data_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
+# =================================================================================
+# القسم 13: دوال تعديل النبذة والصورة الشخصية (Bio Edit Functions)
+# =================================================================================
+
+async def bio_edit_bio_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """بدء عملية تعديل النبذة"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    
+    # التحقق من وجود صفحة بايو
+    bio_page = get_bio_page(user_id)
+    if not bio_page:
+        await query.edit_message_text("❌ لم يتم العثور على صفحة البايو. اضغط على '📄 صفحة البايو' أولاً.")
+        return
+    
+    # وضع علامة أن المستخدم في وضع تعديل النبذة
+    context.user_data['editing_bio_text'] = True
+    
+    keyboard = [[InlineKeyboardButton("🔙 إلغاء", callback_data="bio_settings")]]
+    
+    await query.edit_message_text(
+        "📝 <b>تعديل النبذة</b>\n\n"
+        "أرسل النص الجديد للنبذة (الوصف الشخصي):\n\n"
+        "💡 مثال: مبرمج ومطور ويب | مهتم بالذكاء الاصطناعي\n\n"
+        "📌 ملاحظة: يمكنك استخدام الإيموجي والرموز",
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def bio_edit_avatar_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """بدء عملية تغيير الصورة الشخصية"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    
+    # التحقق من وجود صفحة بايو
+    bio_page = get_bio_page(user_id)
+    if not bio_page:
+        await query.edit_message_text("❌ لم يتم العثور على صفحة البايو. اضغط على '📄 صفحة البايو' أولاً.")
+        return
+    
+    # وضع علامة أن المستخدم في وضع تغيير الصورة
+    context.user_data['editing_avatar'] = True
+    
+    keyboard = [[InlineKeyboardButton("🔙 إلغاء", callback_data="bio_settings")]]
+    
+    await query.edit_message_text(
+        "🖼️ <b>تغيير الصورة الشخصية</b>\n\n"
+        "أرسل رابط الصورة الجديدة (URL):\n\n"
+        "💡 مثال: https://example.com/my-photo.jpg\n\n"
+        "📌 ملاحظات:\n"
+        "• يجب أن يكون الرابط عاماً (يبدأ بـ http:// أو https://)\n"
+        "• يفضل استخدام صور من Imgur أو أي خدمة استضافة صور\n"
+        "• الصورة ستظهر بشكل دائري في صفحة البايو",
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def handle_bio_text_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالجة النبذة المرسلة من المستخدم"""
+    if not context.user_data.get('editing_bio_text'):
+        return
+    
+    user_id = update.effective_user.id
+    new_bio = update.message.text.strip()
+    
+    # تحديث النبذة في قاعدة البيانات
+    if update_bio_text(user_id, new_bio):
+        context.user_data.pop('editing_bio_text', None)
+        await update.message.reply_text("✅ تم تحديث النبذة بنجاح!")
+        
+        # عرض إعدادات صفحة البايو مرة أخرى
+        await show_bio_management(update, context, user_id)
+    else:
+        await update.message.reply_text("❌ حدث خطأ في تحديث النبذة. حاول مرة أخرى.")
+
+async def handle_avatar_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالجة رابط الصورة المرسل من المستخدم"""
+    if not context.user_data.get('editing_avatar'):
+        return
+    
+    user_id = update.effective_user.id
+    avatar_url = update.message.text.strip()
+    
+    # التحقق من صحة الرابط
+    if not avatar_url.startswith(('http://', 'https://')):
+        await update.message.reply_text("❌ الرابط غير صالح. يجب أن يبدأ بـ http:// أو https://")
+        return
+    
+    # تحديث الصورة في قاعدة البيانات
+    if update_bio_avatar(user_id, avatar_url):
+        context.user_data.pop('editing_avatar', None)
+        await update.message.reply_text("✅ تم تحديث الصورة الشخصية بنجاح!")
+        
+        # عرض إعدادات صفحة البايو مرة أخرى
+        await show_bio_management(update, context, user_id)
+    else:
+        await update.message.reply_text("❌ حدث خطأ في تحديث الصورة. حاول مرة أخرى.")
+
+# =================================================================================
+# القسم 14: إعدادات صفحة البايو (Bio Settings)
+# =================================================================================
+
 async def bio_settings_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """إعدادات صفحة البايو (للمستخدمين المميزين فقط)"""
     query = update.callback_query
@@ -816,70 +923,30 @@ async def bio_settings_command(update: Update, context: ContextTypes.DEFAULT_TYP
         return
     
     theme_name = bio_page.get('theme_name', 'default')
+    current_bio = bio_page.get('bio', 'لا يوجد')
+    current_avatar = bio_page.get('avatar_url', None)
+    
+    # اختصار النبذة إذا كانت طويلة
+    bio_preview = current_bio[:50] + "..." if len(current_bio) > 50 else current_bio
     
     keyboard = [
         [InlineKeyboardButton(f"🎨 الثيم الحالي: {'فاتح' if theme_name == 'default' else 'داكن'}", callback_data="bio_settings_theme")],
-        [InlineKeyboardButton("📝 تعديل النبذة", callback_data="bio_settings_bio")],
-        [InlineKeyboardButton("🖼️ تغيير الصورة الشخصية", callback_data="bio_settings_avatar")],
+        [InlineKeyboardButton(f"📝 تعديل النبذة ({bio_preview})", callback_data="bio_edit_bio")],
+        [InlineKeyboardButton(f"🖼️ تغيير الصورة الشخصية {'✅' if current_avatar else '❌'}", callback_data="bio_edit_avatar")],
         [InlineKeyboardButton("🔙 رجوع", callback_data="main_menu")]
     ]
     
     await query.edit_message_text(
-        "⚙️ <b>إعدادات صفحة البايو</b>\n\nاختر ما تريد تعديله:",
+        "⚙️ <b>إعدادات صفحة البايو</b>\n\n"
+        "اختر ما تريد تعديله:\n\n"
+        f"📝 النبذة الحالية: {bio_preview}\n"
+        f"🖼️ الصورة الشخصية: {'موجودة' if current_avatar else 'غير محددة'}",
         parse_mode='HTML',
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-async def bio_change_theme_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """تغيير ثيم صفحة البايو من داخل البوت"""
-    query = update.callback_query
-    await query.answer()
-    
-    user_id = query.from_user.id
-    bio_page = get_bio_page(user_id)
-    
-    if not bio_page:
-        await query.edit_message_text("❌ لم يتم العثور على صفحة البايو")
-        return
-    
-    current_theme = bio_page.get('theme_name', 'default')
-    new_theme = 'dark' if current_theme == 'default' else 'default'
-    
-    # تحديث الثيم في قاعدة البيانات
-    update_bio_theme(user_id, new_theme)
-    
-    theme_name_display = 'داكن' if new_theme == 'dark' else 'فاتح'
-    await query.edit_message_text(
-        f"✅ تم تغيير الثيم إلى <b>{theme_name_display}</b> بنجاح!",
-        parse_mode='HTML'
-    )
-
-async def handle_edit_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة تعديل الحساب"""
-    platform = context.user_data.get('editing_platform')
-    if not platform:
-        return
-    
-    user_id = update.effective_user.id
-    new_identifier = update.message.text.strip()
-    
-    # حذف الحساب القديم وإضافة الجديد
-    delete_user_account(user_id, platform)
-    save_user_account(user_id, platform, new_identifier)
-    
-    context.user_data.pop('editing_platform', None)
-    
-    user_info = get_user_info(user_id)
-    is_premium = user_info['status'] == 'premium' if user_info else False
-    
-    await update.message.reply_text(
-        f"✅ تم تحديث حساب {platform.capitalize()} إلى: {escape_html(new_identifier)}",
-        parse_mode='HTML',
-        reply_markup=get_main_keyboard(is_premium)
-    )
-
 # =================================================================================
-# القسم 13: أوامر البوت - فحص اليوزرنيم (Username Check)
+# القسم 15: أوامر البوت - فحص اليوزرنيم (Username Check)
 # =================================================================================
 
 async def username_check_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -924,8 +991,9 @@ async def handle_username_check(update: Update, context: ContextTypes.DEFAULT_TY
         f"🚀 <b>قريباً في التحديث القادم</b>",
         parse_mode='HTML'
     )
-    # =================================================================================
-# القسم 14: معالج الأزرار (Callback Query Handler)
+
+# =================================================================================
+# القسم 16: معالج الأزرار (Callback Query Handler)
 # =================================================================================
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -981,6 +1049,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "bio_settings_theme":
         await bio_change_theme_callback(update, context)
     
+    # ----- أزرار تعديل النبذة والصورة -----
+    elif data == "bio_edit_bio":
+        await bio_edit_bio_callback(update, context)
+    
+    elif data == "bio_edit_avatar":
+        await bio_edit_avatar_callback(update, context)
+    
     # ----- أزرار إدارة صفحة البايو (القديمة) -----
     elif data == "bio_change_theme":
         keyboard = [
@@ -1005,15 +1080,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await show_bio_management(update, context, user_id)
     
     elif data == "bio_edit_bio":
-        context.user_data['editing_bio'] = True
-        keyboard = [[InlineKeyboardButton("🔙 إلغاء", callback_data="bio_back")]]
-        await query.edit_message_text(
-            "📝 <b>تعديل النبذة</b>\n\n"
-            "أرسل النص الجديد للنبذة (الوصف الشخصي):\n\n"
-            "💡 مثال: مبرمج ومطور ويب | مهتم بالذكاء الاصطناعي",
-            parse_mode='HTML',
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+        await bio_edit_bio_callback(update, context)
     
     elif data == "bio_show_link":
         bio_page = get_bio_page(user_id)
@@ -1028,30 +1095,22 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer("⚠️ هذا الزر غير مفعل بعد", show_alert=True)
 
 # =================================================================================
-# القسم 15: معالجة الرسائل النصية (Message Handler)
+# القسم 17: معالجة الرسائل النصية (Message Handler)
 # =================================================================================
-
-async def handle_bio_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة تعديل النبذة في صفحة البايو"""
-    if context.user_data.get('editing_bio'):
-        user_id = update.effective_user.id
-        new_bio = update.message.text.strip()
-        
-        if update_bio_text(user_id, new_bio):
-            context.user_data.pop('editing_bio', None)
-            await update.message.reply_text("✅ تم تحديث النبذة بنجاح!")
-            await show_bio_management(update, context, user_id)
-        else:
-            await update.message.reply_text("❌ حدث خطأ في تحديث النبذة")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """معالجة الرسائل النصية"""
     text = update.message.text.strip()
     user_id = update.effective_user.id
     
-    # ----- معالجة تعديل النبذة في صفحة البايو -----
-    if context.user_data.get('editing_bio'):
-        await handle_bio_edit(update, context)
+    # ----- معالجة تعديل النبذة -----
+    if context.user_data.get('editing_bio_text'):
+        await handle_bio_text_edit(update, context)
+        return
+    
+    # ----- معالجة تغيير الصورة -----
+    if context.user_data.get('editing_avatar'):
+        await handle_avatar_edit(update, context)
         return
     
     # ----- معالجة الأزرار النصية -----
@@ -1107,8 +1166,32 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=get_main_keyboard(is_premium)
     )
 
+async def handle_edit_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالجة تعديل الحساب"""
+    platform = context.user_data.get('editing_platform')
+    if not platform:
+        return
+    
+    user_id = update.effective_user.id
+    new_identifier = update.message.text.strip()
+    
+    # حذف الحساب القديم وإضافة الجديد
+    delete_user_account(user_id, platform)
+    save_user_account(user_id, platform, new_identifier)
+    
+    context.user_data.pop('editing_platform', None)
+    
+    user_info = get_user_info(user_id)
+    is_premium = user_info['status'] == 'premium' if user_info else False
+    
+    await update.message.reply_text(
+        f"✅ تم تحديث حساب {platform.capitalize()} إلى: {escape_html(new_identifier)}",
+        parse_mode='HTML',
+        reply_markup=get_main_keyboard(is_premium)
+    )
+
 # =================================================================================
-# القسم 16: دالة show_bio_management (إدارة صفحة البايو)
+# القسم 18: دالة show_bio_management (إدارة صفحة البايو)
 # =================================================================================
 
 async def show_bio_management(update: Update, context: ContextTypes.DEFAULT_TYPE, user_id: int = None):
@@ -1220,7 +1303,35 @@ https://{flask_url}/bio/{page_url}
             await update.message.reply_text(error_msg)
 
 # =================================================================================
-# القسم 17: الدالة الرئيسية (Main Function)
+# القسم 19: دالة تغيير الثيم (Change Theme)
+# =================================================================================
+
+async def bio_change_theme_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """تغيير ثيم صفحة البايو من داخل البوت"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    bio_page = get_bio_page(user_id)
+    
+    if not bio_page:
+        await query.edit_message_text("❌ لم يتم العثور على صفحة البايو")
+        return
+    
+    current_theme = bio_page.get('theme_name', 'default')
+    new_theme = 'dark' if current_theme == 'default' else 'default'
+    
+    # تحديث الثيم في قاعدة البيانات
+    update_bio_theme(user_id, new_theme)
+    
+    theme_name_display = 'داكن' if new_theme == 'dark' else 'فاتح'
+    await query.edit_message_text(
+        f"✅ تم تغيير الثيم إلى <b>{theme_name_display}</b> بنجاح!",
+        parse_mode='HTML'
+    )
+
+# =================================================================================
+# القسم 20: الدالة الرئيسية (Main Function)
 # =================================================================================
 
 def main():
@@ -1281,7 +1392,7 @@ def main():
     )
 
 # =================================================================================
-# القسم 18: نقطة دخول البرنامج (Entry Point)
+# القسم 21: نقطة دخول البرنامج (Entry Point)
 # =================================================================================
 
 if __name__ == '__main__':
