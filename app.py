@@ -261,3 +261,265 @@ if __name__ == '__main__':
     print(f"🌐 Running on port: {PORT}")
     print("=" * 60)
     app.run(host='0.0.0.0', port=PORT, debug=False)
+
+# =================================================================================
+# القسم 10: لوحة تحكم المدير (Admin Dashboard)
+# =================================================================================
+
+from flask import session, redirect, url_for, request, render_template_string
+from functools import wraps
+from datetime import timedelta
+
+# إعدادات المصادحة - يجب إضافتها في متغيرات البيئة
+ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
+SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key-change-this')
+app.secret_key = SECRET_KEY
+
+# دالة للتحقق من تسجيل الدخول
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('admin_logged_in'):
+            return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# صفحة دخول المدير
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    """صفحة دخول لوحة التحكم"""
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+            session['admin_logged_in'] = True
+            session.permanent = True
+            app.permanent_session_lifetime = timedelta(hours=24)
+            return redirect(url_for('admin_dashboard'))
+        else:
+            return render_template_string('''
+                <!DOCTYPE html>
+                <html dir="rtl" lang="ar">
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>دخول المدير</title>
+                    <style>
+                        * { margin: 0; padding: 0; box-sizing: border-box; }
+                        body {
+                            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            min-height: 100vh;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                        }
+                        .login-card {
+                            background: white;
+                            border-radius: 20px;
+                            padding: 40px;
+                            width: 100%;
+                            max-width: 400px;
+                            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+                            text-align: center;
+                        }
+                        h1 { color: #2c3e50; margin-bottom: 10px; }
+                        .error { color: #e74c3c; margin-bottom: 20px; padding: 10px; background: #fdecea; border-radius: 10px; }
+                        input {
+                            width: 100%;
+                            padding: 12px 15px;
+                            margin: 10px 0;
+                            border: 1px solid #ddd;
+                            border-radius: 10px;
+                            font-size: 16px;
+                            font-family: inherit;
+                        }
+                        input:focus { outline: none; border-color: #667eea; }
+                        button {
+                            width: 100%;
+                            padding: 12px;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            color: white;
+                            border: none;
+                            border-radius: 10px;
+                            font-size: 16px;
+                            cursor: pointer;
+                            margin-top: 10px;
+                        }
+                        button:hover { opacity: 0.9; transform: scale(1.02); }
+                    </style>
+                </head>
+                <body>
+                    <div class="login-card">
+                        <h1>🔐 دخول المدير</h1>
+                        <p style="color: #7f8c8d; margin-bottom: 20px;">أدخل بيانات الدخول</p>
+                        <div class="error">❌ اسم المستخدم أو كلمة المرور غير صحيحة</div>
+                        <form method="POST">
+                            <input type="text" name="username" placeholder="اسم المستخدم" required autofocus>
+                            <input type="password" name="password" placeholder="كلمة المرور" required>
+                            <button type="submit">دخول</button>
+                        </form>
+                    </div>
+                </body>
+                </html>
+            ''', 401)
+    
+    # عرض صفحة الدخول
+    return render_template_string('''
+        <!DOCTYPE html>
+        <html dir="rtl" lang="ar">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>دخول المدير</title>
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body {
+                    font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    min-height: 100vh;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                }
+                .login-card {
+                    background: white;
+                    border-radius: 20px;
+                    padding: 40px;
+                    width: 100%;
+                    max-width: 400px;
+                    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+                    text-align: center;
+                }
+                h1 { color: #2c3e50; margin-bottom: 10px; }
+                .subtitle { color: #7f8c8d; margin-bottom: 30px; font-size: 14px; }
+                input {
+                    width: 100%;
+                    padding: 12px 15px;
+                    margin: 10px 0;
+                    border: 1px solid #ddd;
+                    border-radius: 10px;
+                    font-size: 16px;
+                    font-family: inherit;
+                    transition: all 0.3s;
+                }
+                input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+                button {
+                    width: 100%;
+                    padding: 12px;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    border: none;
+                    border-radius: 10px;
+                    font-size: 16px;
+                    cursor: pointer;
+                    margin-top: 20px;
+                    transition: all 0.3s;
+                }
+                button:hover { opacity: 0.9; transform: scale(1.02); }
+                .footer { margin-top: 30px; font-size: 12px; color: #95a5a6; }
+            </style>
+        </head>
+        <body>
+            <div class="login-card">
+                <h1>🔐 لوحة التحكم</h1>
+                <div class="subtitle">بوتات الأدوات الاجتماعية</div>
+                <form method="POST">
+                    <input type="text" name="username" placeholder="اسم المستخدم" required autofocus>
+                    <input type="password" name="password" placeholder="كلمة المرور" required>
+                    <button type="submit">دخول</button>
+                </form>
+                <div class="footer">🔒 صفحة مخصصة للمدير فقط</div>
+            </div>
+        </body>
+        </html>
+    ''')
+
+# صفحة الخروج
+@app.route('/admin/logout')
+def admin_logout():
+    """تسجيل الخروج من لوحة التحكم"""
+    session.pop('admin_logged_in', None)
+    return redirect(url_for('admin_login'))
+
+# لوحة التحكم الرئيسية
+@app.route('/admin/dashboard')
+@login_required
+def admin_dashboard():
+    """لوحة تحكم المدير"""
+    try:
+        from utils.db import get_all_users_with_stats, get_global_stats, upgrade_user_to_premium, downgrade_user_to_free
+        
+        # جلب البيانات
+        users = get_all_users_with_stats()
+        stats = get_global_stats()
+        
+        # معالجة طلبات الترقية/الخفض (إذا كانت عبر GET)
+        upgrade_user = request.args.get('upgrade')
+        downgrade_user = request.args.get('downgrade')
+        
+        if upgrade_user:
+            user_id = int(upgrade_user)
+            if upgrade_user_to_premium(user_id):
+                stats = get_global_stats()  # تحديث الإحصائيات
+                users = get_all_users_with_stats()
+        
+        if downgrade_user:
+            user_id = int(downgrade_user)
+            if downgrade_user_to_free(user_id):
+                stats = get_global_stats()
+                users = get_all_users_with_stats()
+        
+        # تجهيز البيانات للقالب
+        for user in users:
+            user['total_usage'] = {
+                'analyzer': user.get('platform_usage', {}).get('youtube', 0),
+                'instagram': user.get('platform_usage', {}).get('instagram', 0),
+                'tiktok': user.get('platform_usage', {}).get('tiktok', 0),
+                'facebook': user.get('platform_usage', {}).get('facebook', 0)
+            }
+            user['usage'] = {
+                'analyzer': min(user.get('daily_uses', 0), FREE_LIMIT),
+                'instagram': 0,
+                'tiktok': 0,
+                'facebook': 0
+            }
+        
+        return render_template('admin_dashboard.html', 
+                              users=users, 
+                              stats=stats, 
+                              free_limit=FREE_LIMIT,
+                              total_uses_analyzer=stats['platform_stats']['youtube'],
+                              total_uses_instagram=stats['platform_stats']['instagram'],
+                              total_uses_tiktok=stats['platform_stats']['tiktok'],
+                              total_uses_facebook=stats['platform_stats']['facebook'])
+        
+    except Exception as e:
+        logger.error(f"Error in admin_dashboard: {e}")
+        return f"حدث خطأ: {e}", 500
+
+# API للحصول على إحصائيات JSON (للاستخدام مع JavaScript)
+@app.route('/admin/api/stats')
+@login_required
+def admin_api_stats():
+    """API لإحصائيات لوحة التحكم (JSON)"""
+    try:
+        from utils.db import get_global_stats
+        stats = get_global_stats()
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# API للحصول على قائمة المستخدمين (JSON)
+@app.route('/admin/api/users')
+@login_required
+def admin_api_users():
+    """API لقائمة المستخدمين (JSON)"""
+    try:
+        from utils.db import get_all_users_with_stats
+        users = get_all_users_with_stats()
+        return jsonify(users)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
