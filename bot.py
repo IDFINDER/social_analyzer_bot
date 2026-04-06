@@ -992,7 +992,7 @@ async def handle_username_check(update: Update, context: ContextTypes.DEFAULT_TY
     )
 
 # =================================================================================
-# القسم 16: معالج الأزرار (Callback Query Handler)
+# القسم 14: معالج الأزرار (Callback Query Handler)
 # =================================================================================
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1055,6 +1055,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "bio_edit_avatar":
         await bio_edit_avatar_callback(update, context)
     
+    # ----- زر إلغاء التعديل -----
+    elif data == "bio_cancel_edit":
+        # إلغاء حالة تعديل الصورة والرجوع للإعدادات
+        context.user_data.pop('editing_avatar', None)
+        context.user_data.pop('editing_bio_text', None)
+        await bio_settings_command(update, context)
+    
     # ----- أزرار إدارة صفحة البايو (القديمة) -----
     elif data == "bio_change_theme":
         keyboard = [
@@ -1077,9 +1084,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         update_bio_theme(user_id, 'dark')
         await query.answer("✅ تم تغيير الثيم إلى الداكن")
         await show_bio_management(update, context, user_id)
-    
-    elif data == "bio_edit_bio":
-        await bio_edit_bio_callback(update, context)
     
     elif data == "bio_show_link":
         bio_page = get_bio_page(user_id)
