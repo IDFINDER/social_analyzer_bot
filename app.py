@@ -39,7 +39,7 @@ app = Flask(__name__)
 PORT = int(os.environ.get('PORT', 10000))
 FREE_LIMIT = int(os.environ.get('FREE_LIMIT', '5'))
 RENDER_URL = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
-
+BOT_NAME = os.environ.get('BOT_NAME', 'social_analyzer')
 # =================================================================================
 # القسم 3: نقاط نهاية فحص الصحة (Health Checks)
 # =================================================================================
