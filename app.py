@@ -248,35 +248,39 @@ def internal_error(error):
     return jsonify({"error": "Internal server error"}), 500
 
 # =================================================================================
-# القسم 9: تشغيل التطبيق (Main Entry Point)
-# =================================================================================
-
-if __name__ == '__main__':
-    print("=" * 60)
-    print("🚀 Flask Server for Social Media Analyzer Bot")
-    print(f"📁 Static files served from: /static/")
-    print(f"🎨 Themes served from: /static/themes/")
-    print(f"📄 Bio page available at: /bio/<page_url>")
-    print(f"💳 Payment page available at: /payment")
-    print(f"🌐 Running on port: {PORT}")
-    print("=" * 60)
-    app.run(host='0.0.0.0', port=PORT, debug=False)
-
-# =================================================================================
-# القسم 10: لوحة تحكم المدير (Admin Dashboard)
+# القسم 9: لوحة تحكم المدير (Admin Dashboard) مع رؤوس الأمان
 # =================================================================================
 
 from flask import session, redirect, url_for, request, render_template_string
 from functools import wraps
 from datetime import timedelta
 
-# إعدادات المصادحة - يجب إضافتها في متغيرات البيئة
+# ========== إعدادات المصادحة ==========
 ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
-SECRET_KEY = os.environ.get('SECRET_KEY', 'your-secret-key-change-this')
+SECRET_KEY = os.environ.get('SECRET_KEY', 'dGhpcyBpcyBhIHZlcnkgc2VjcmV0IGtleQ==')
 app.secret_key = SECRET_KEY
+app.permanent_session_lifetime = timedelta(hours=24)
 
-# دالة للتحقق من تسجيل الدخول
+# ========== رؤوس الأمان (Security Headers) ==========
+@app.after_request
+def set_security_headers(resp):
+    """إضافة رؤوس أمان لمنع تحذيرات المتصفح"""
+    # يمنع إرسال عنوان الصفحة كاملاً عند النقر على الروابط الخارجية
+    resp.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    
+    # يمنع المتصفح من تخمين نوع المحتوى (يمنع هجمات MIME sniffing)
+    resp.headers['X-Content-Type-Options'] = 'nosniff'
+    
+    # يتحكم في كيفية تحميل الموارد (يمنع تحميل الموارد من نطاقات غير موثوقة)
+    resp.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    
+    # سياسة أمان المحتوى (يمنع تنفيذ سكربتات غير مصرح بها)
+    resp.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://code.jquery.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com;"
+    
+    return resp
+
+# ========== دالة التحقق من تسجيل الدخول ==========
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -285,7 +289,7 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# صفحة دخول المدير
+# ========== صفحة دخول المدير ==========
 @app.route('/secure/x7K9mP2/login', methods=['GET', 'POST'])
 def admin_login():
     """صفحة دخول لوحة التحكم"""
@@ -296,7 +300,6 @@ def admin_login():
         if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
             session['admin_logged_in'] = True
             session.permanent = True
-            app.permanent_session_lifetime = timedelta(hours=24)
             return redirect(url_for('admin_dashboard'))
         else:
             return render_template_string('''
@@ -437,21 +440,20 @@ def admin_login():
         </html>
     ''')
 
-# صفحة الخروج
+# ========== صفحة الخروج ==========
 @app.route('/secure/x7K9mP2/logout')
 def admin_logout():
     """تسجيل الخروج من لوحة التحكم"""
     session.pop('admin_logged_in', None)
     return redirect(url_for('admin_login'))
 
-# لوحة التحكم الرئيسية
+# ========== لوحة التحكم الرئيسية ==========
 @app.route('/admin/dashboard')
 @login_required
 def admin_dashboard():
     """لوحة تحكم المدير"""
     try:
         from utils.db import get_all_users_with_stats, get_global_stats, upgrade_user_to_premium, downgrade_user_to_free
-        from utils.db import BOT_NAME
         
         # جلب البيانات مع تصفية حسب اسم البوت الحالي
         users = get_all_users_with_stats(BOT_NAME)
@@ -492,26 +494,26 @@ def admin_dashboard():
         logger.error(f"Error in admin_dashboard: {e}")
         return f"حدث خطأ: {e}", 500
 
-# API للحصول على إحصائيات JSON (للاستخدام مع JavaScript)
+# ========== API للحصول على إحصائيات JSON ==========
 @app.route('/admin/api/stats')
 @login_required
 def admin_api_stats():
     """API لإحصائيات لوحة التحكم (JSON)"""
     try:
         from utils.db import get_global_stats
-        stats = get_global_stats()
+        stats = get_global_stats(BOT_NAME)
         return jsonify(stats)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# API للحصول على قائمة المستخدمين (JSON)
+# ========== API للحصول على قائمة المستخدمين ==========
 @app.route('/admin/api/users')
 @login_required
 def admin_api_users():
     """API لقائمة المستخدمين (JSON)"""
     try:
         from utils.db import get_all_users_with_stats
-        users = get_all_users_with_stats()
+        users = get_all_users_with_stats(BOT_NAME)
         return jsonify(users)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
