@@ -580,3 +580,143 @@ def remove_custom_link(user_id, link_index):
     except Exception as e:
         logger.error(f"Error removing custom link: {e}")
         return False
+# =================================================================================
+# القسم: دوال لوحة تحكم المدير (Admin Dashboard)
+# =================================================================================
+
+def get_all_users_with_stats():
+    """جلب جميع المستخدمين مع إحصائياتهم الكاملة"""
+    try:
+        # جلب جميع المستخدمين
+        users_response = supabase.table('users').select('*').order('user_id', desc=False).execute()
+        users = users_response.data if users_response.data else []
+        
+        # جلب إحصائيات الاستخدام لكل بوت
+        all_usage = {}
+        usage_response = supabase.table('bot_usage').select('*').execute()
+        for u in usage_response.data:
+            all_usage[u['user_id']] = u
+        
+        # جلب صفحات البايو
+        bio_response = supabase.table('bio_pages').select('user_id, page_url, views_count').execute()
+        bio_pages = {b['user_id']: b for b in bio_response.data} if bio_response.data else {}
+        
+        # تجميع البيانات
+        result = []
+        for user in users:
+            usage = all_usage.get(user['user_id'], {})
+            bio = bio_pages.get(user['user_id'], {})
+            
+            result.append({
+                'user_id': user['user_id'],
+                'first_name': user.get('first_name', ''),
+                'username': user.get('username', ''),
+                'status': user.get('status', 'free'),
+                'premium_until': user.get('premium_until'),
+                'created_at': user.get('created_at'),
+                'total_uses': usage.get('total_uses', 0),
+                'daily_uses': usage.get('daily_uses', 0),
+                'bio_page_url': bio.get('page_url'),
+                'bio_views': bio.get('views_count', 0),
+                'platform_usage': {
+                    'youtube': usage.get('youtube_uses', 0),
+                    'instagram': usage.get('instagram_uses', 0),
+                    'tiktok': usage.get('tiktok_uses', 0),
+                    'facebook': usage.get('facebook_uses', 0)
+                }
+            })
+        
+        return result
+    except Exception as e:
+        logger.error(f"Error in get_all_users_with_stats: {e}")
+        return []
+
+def get_global_stats():
+    """جلب إحصائيات عامة للوحة التحكم"""
+    try:
+        # إحصائيات المستخدمين
+        total_users = supabase.table('users').select('*', count='exact').execute()
+        premium_users = supabase.table('users').select('*', count='exact').eq('status', 'premium').execute()
+        
+        # إجمالي الاستخدامات
+        usage_response = supabase.table('bot_usage').select('total_uses, daily_uses').execute()
+        total_uses = sum([u.get('total_uses', 0) for u in usage_response.data]) if usage_response.data else 0
+        total_daily = sum([u.get('daily_uses', 0) for u in usage_response.data]) if usage_response.data else 0
+        
+        # صفحات البايو
+        bio_response = supabase.table('bio_pages').select('*', count='exact').execute()
+        total_bio_pages = bio_response.count if bio_response.count else 0
+        total_bio_views = sum([b.get('views_count', 0) for b in bio_response.data]) if bio_response.data else 0
+        
+        # إحصائيات المنصات
+        platform_stats = {
+            'youtube': 0,
+            'instagram': 0,
+            'tiktok': 0,
+            'facebook': 0
+        }
+        for u in usage_response.data:
+            platform_stats['youtube'] += u.get('youtube_uses', 0)
+            platform_stats['instagram'] += u.get('instagram_uses', 0)
+            platform_stats['tiktok'] += u.get('tiktok_uses', 0)
+            platform_stats['facebook'] += u.get('facebook_uses', 0)
+        
+        return {
+            'total_users': total_users.count if total_users.count else 0,
+            'premium_users': premium_users.count if premium_users.count else 0,
+            'free_users': (total_users.count - premium_users.count) if total_users.count else 0,
+            'total_uses': total_uses,
+            'total_daily_uses': total_daily,
+            'total_bio_pages': total_bio_pages,
+            'total_bio_views': total_bio_views,
+            'platform_stats': platform_stats,
+            'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+    except Exception as e:
+        logger.error(f"Error in get_global_stats: {e}")
+        return {
+            'total_users': 0,
+            'premium_users': 0,
+            'free_users': 0,
+            'total_uses': 0,
+            'total_daily_uses': 0,
+            'total_bio_pages': 0,
+            'total_bio_views': 0,
+            'platform_stats': {'youtube': 0, 'instagram': 0, 'tiktok': 0, 'facebook': 0},
+            'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+
+def upgrade_user_to_premium(user_id, duration_days=365):
+    """ترقية مستخدم إلى خطة مميزة"""
+    try:
+        premium_until = (datetime.now() + timedelta(days=duration_days)).strftime('%Y-%m-%d')
+        result = supabase.table('users').update({
+            'status': 'premium',
+            'premium_until': premium_until,
+            'updated_at': datetime.now().isoformat()
+        }).eq('user_id', user_id).execute()
+        
+        if result.data:
+            logger.info(f"✅ User {user_id} upgraded to premium until {premium_until}")
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Error upgrading user {user_id}: {e}")
+        return False
+
+def downgrade_user_to_free(user_id):
+    """خفض مستخدم إلى خطة مجانية"""
+    try:
+        result = supabase.table('users').update({
+            'status': 'free',
+            'premium_until': None,
+            'updated_at': datetime.now().isoformat()
+        }).eq('user_id', user_id).execute()
+        
+        if result.data:
+            logger.info(f"✅ User {user_id} downgraded to free")
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Error downgrading user {user_id}: {e}")
+        return False
