@@ -584,21 +584,33 @@ def remove_custom_link(user_id, link_index):
 # القسم: دوال لوحة تحكم المدير (Admin Dashboard)
 # =================================================================================
 
-def get_all_users_with_stats():
-    """جلب جميع المستخدمين مع إحصائياتهم الكاملة"""
+def get_all_users_with_stats(bot_name=None):
+    """جلب جميع المستخدمين مع إحصائياتهم الكاملة - مع تصفية حسب البوت"""
     try:
-        # جلب جميع المستخدمين
-        users_response = supabase.table('users').select('*').order('user_id', desc=False).execute()
+        # إذا لم يتم تحديد اسم البوت، استخدم الافتراضي
+        if bot_name is None:
+            bot_name = os.environ.get('BOT_NAME', 'social_analyzer')
+        
+        # جلب المستخدمين الذين لديهم استخدامات لهذا البوت فقط
+        usage_response = supabase.table('bot_usage').select('user_id').eq('bot_name', bot_name).execute()
+        user_ids = [u['user_id'] for u in usage_response.data] if usage_response.data else []
+        
+        if not user_ids:
+            return []
+        
+        # جلب تفاصيل المستخدمين
+        users_response = supabase.table('users').select('*').in_('user_id', user_ids).order('user_id', desc=False).execute()
         users = users_response.data if users_response.data else []
         
         # جلب إحصائيات الاستخدام لكل بوت
         all_usage = {}
-        usage_response = supabase.table('bot_usage').select('*').execute()
-        for u in usage_response.data:
-            all_usage[u['user_id']] = u
+        for user_id in user_ids:
+            usage_resp = supabase.table('bot_usage').select('*').eq('user_id', user_id).eq('bot_name', bot_name).execute()
+            if usage_resp.data:
+                all_usage[user_id] = usage_resp.data[0]
         
         # جلب صفحات البايو
-        bio_response = supabase.table('bio_pages').select('user_id, page_url, views_count').execute()
+        bio_response = supabase.table('bio_pages').select('user_id, page_url, views_count').in_('user_id', user_ids).execute()
         bio_pages = {b['user_id']: b for b in bio_response.data} if bio_response.data else {}
         
         # تجميع البيانات
@@ -631,30 +643,47 @@ def get_all_users_with_stats():
         logger.error(f"Error in get_all_users_with_stats: {e}")
         return []
 
-def get_global_stats():
-    """جلب إحصائيات عامة للوحة التحكم"""
+def get_global_stats(bot_name=None):
+    """جلب إحصائيات عامة للوحة التحكم - مع تصفية حسب البوت"""
     try:
-        # إحصائيات المستخدمين
-        total_users = supabase.table('users').select('*', count='exact').execute()
-        premium_users = supabase.table('users').select('*', count='exact').eq('status', 'premium').execute()
+        if bot_name is None:
+            bot_name = os.environ.get('BOT_NAME', 'social_analyzer')
         
-        # إجمالي الاستخدامات
-        usage_response = supabase.table('bot_usage').select('total_uses, daily_uses').execute()
+        # جلب المستخدمين الذين لديهم استخدامات لهذا البوت
+        usage_response = supabase.table('bot_usage').select('user_id').eq('bot_name', bot_name).execute()
+        user_ids = [u['user_id'] for u in usage_response.data] if usage_response.data else []
+        
+        if not user_ids:
+            return {
+                'total_users': 0,
+                'premium_users': 0,
+                'free_users': 0,
+                'total_uses': 0,
+                'total_daily_uses': 0,
+                'total_bio_pages': 0,
+                'total_bio_views': 0,
+                'platform_stats': {'youtube': 0, 'instagram': 0, 'tiktok': 0, 'facebook': 0},
+                'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+        
+        # إحصائيات المستخدمين
+        users_response = supabase.table('users').select('status').in_('user_id', user_ids).execute()
+        users = users_response.data if users_response.data else []
+        total_users = len(users)
+        premium_users = len([u for u in users if u.get('status') == 'premium'])
+        free_users = total_users - premium_users
+        
+        # إجمالي الاستخدامات لهذا البوت
         total_uses = sum([u.get('total_uses', 0) for u in usage_response.data]) if usage_response.data else 0
         total_daily = sum([u.get('daily_uses', 0) for u in usage_response.data]) if usage_response.data else 0
         
-        # صفحات البايو
-        bio_response = supabase.table('bio_pages').select('*', count='exact').execute()
-        total_bio_pages = bio_response.count if bio_response.count else 0
+        # صفحات البايو للمستخدمين فقط
+        bio_response = supabase.table('bio_pages').select('views_count').in_('user_id', user_ids).execute()
+        total_bio_pages = len(bio_response.data) if bio_response.data else 0
         total_bio_views = sum([b.get('views_count', 0) for b in bio_response.data]) if bio_response.data else 0
         
         # إحصائيات المنصات
-        platform_stats = {
-            'youtube': 0,
-            'instagram': 0,
-            'tiktok': 0,
-            'facebook': 0
-        }
+        platform_stats = {'youtube': 0, 'instagram': 0, 'tiktok': 0, 'facebook': 0}
         for u in usage_response.data:
             platform_stats['youtube'] += u.get('youtube_uses', 0)
             platform_stats['instagram'] += u.get('instagram_uses', 0)
@@ -662,9 +691,9 @@ def get_global_stats():
             platform_stats['facebook'] += u.get('facebook_uses', 0)
         
         return {
-            'total_users': total_users.count if total_users.count else 0,
-            'premium_users': premium_users.count if premium_users.count else 0,
-            'free_users': (total_users.count - premium_users.count) if total_users.count else 0,
+            'total_users': total_users,
+            'premium_users': premium_users,
+            'free_users': free_users,
             'total_uses': total_uses,
             'total_daily_uses': total_daily,
             'total_bio_pages': total_bio_pages,
