@@ -454,10 +454,65 @@ def admin_dashboard():
     """لوحة تحكم المدير"""
     try:
         from utils.db import get_all_users_with_stats, get_global_stats, upgrade_user_to_premium, downgrade_user_to_free
+        from utils.db import supabase, BOT_NAME
         
-        # جلب البيانات مع تصفية حسب اسم البوت الحالي
-        users = get_all_users_with_stats(BOT_NAME)
-        stats = get_global_stats(BOT_NAME)
+        # جلب البيانات من قاعدة البيانات مباشرة
+        bot_name = os.environ.get('BOT_NAME', 'social_analyzer')
+        
+        # جلب جميع المستخدمين الذين لديهم استخدامات لهذا البوت
+        usage_response = supabase.table('bot_usage').select('*').eq('bot_name', bot_name).execute()
+        
+        users_list = []
+        for usage in usage_response.data:
+            # جلب معلومات المستخدم
+            user_info = supabase.table('users').select('*').eq('user_id', usage['user_id']).execute()
+            user = user_info.data[0] if user_info.data else {}
+            
+            # جلب صفحة البايو
+            bio_response = supabase.table('bio_pages').select('page_url, views_count').eq('user_id', usage['user_id']).execute()
+            bio = bio_response.data[0] if bio_response.data else {}
+            
+            users_list.append({
+                'user_id': usage['user_id'],
+                'first_name': user.get('first_name', ''),
+                'username': user.get('username', ''),
+                'status': user.get('status', 'free'),
+                'created_at': user.get('created_at', ''),
+                'bio_page_url': bio.get('page_url'),
+                'bio_views': bio.get('views_count', 0),
+                'total_usage': {
+                    'youtube': usage.get('youtube_uses', 0),
+                    'instagram': usage.get('instagram_uses', 0),
+                    'tiktok': usage.get('tiktok_uses', 0),
+                    'facebook': usage.get('facebook_uses', 0)
+                },
+                'daily_uses': usage.get('daily_uses', 0)
+            })
+        
+        # إحصائيات عامة
+        total_users = len(users_list)
+        premium_users = len([u for u in users_list if u['status'] == 'premium'])
+        free_users = total_users - premium_users
+        total_uses = sum([u.get('total_uses', 0) for u in usage_response.data])
+        
+        # إحصائيات المنصات
+        platform_stats = {
+            'youtube': sum([u.get('youtube_uses', 0) for u in usage_response.data]),
+            'instagram': sum([u.get('instagram_uses', 0) for u in usage_response.data]),
+            'tiktok': sum([u.get('tiktok_uses', 0) for u in usage_response.data]),
+            'facebook': sum([u.get('facebook_uses', 0) for u in usage_response.data])
+        }
+        
+        stats = {
+            'total_users': total_users,
+            'premium_users': premium_users,
+            'free_users': free_users,
+            'total_uses': total_uses,
+            'total_bio_pages': len([u for u in users_list if u.get('bio_page_url')]),
+            'total_bio_views': sum([u.get('bio_views', 0) for u in users_list]),
+            'platform_stats': platform_stats,
+            'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
         
         # معالجة طلبات الترقية/الخفض
         upgrade_user = request.args.get('upgrade')
@@ -465,27 +520,16 @@ def admin_dashboard():
         
         if upgrade_user:
             user_id = int(upgrade_user)
-            if upgrade_user_to_premium(user_id):
-                stats = get_global_stats(BOT_NAME)
-                users = get_all_users_with_stats(BOT_NAME)
+            supabase.table('users').update({'status': 'premium'}).eq('user_id', user_id).execute()
+            return redirect(url_for('admin_dashboard'))
         
         if downgrade_user:
             user_id = int(downgrade_user)
-            if downgrade_user_to_free(user_id):
-                stats = get_global_stats(BOT_NAME)
-                users = get_all_users_with_stats(BOT_NAME)
-        
-        # تجهيز البيانات للقالب
-        for user in users:
-            user['total_usage'] = {
-                'youtube': user.get('platform_usage', {}).get('youtube', 0),
-                'instagram': user.get('platform_usage', {}).get('instagram', 0),
-                'tiktok': user.get('platform_usage', {}).get('tiktok', 0),
-                'facebook': user.get('platform_usage', {}).get('facebook', 0)
-            }
+            supabase.table('users').update({'status': 'free'}).eq('user_id', user_id).execute()
+            return redirect(url_for('admin_dashboard'))
         
         return render_template('admin_dashboard.html', 
-                              users=users, 
+                              users=users_list, 
                               stats=stats, 
                               free_limit=FREE_LIMIT,
                               RENDER_URL=os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com'))
