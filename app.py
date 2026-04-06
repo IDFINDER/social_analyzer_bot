@@ -438,7 +438,7 @@ def admin_login():
     ''')
 
 # صفحة الخروج
-@app.route('/admin/logout')
+@app.route('/secure/x7K9mP2/logout')
 def admin_logout():
     """تسجيل الخروج من لوحة التحكم"""
     session.pop('admin_logged_in', None)
