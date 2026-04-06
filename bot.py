@@ -1102,6 +1102,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
     user_id = update.effective_user.id
     
+    # إذا كان المستخدم يضغط على أزرار القائمة، ألغِ أي حالة تعديل
+    if text in ["🎯 تحليل حساباتي", "📊 إحصائياتي", "📝 بياناتي", "✏️ تعديل بياناتي", 
+                "💎 اشتراك مميز", "ℹ️ المساعدة", "📄 صفحة البايو", "🔍 فحص يوزرنيم"]:
+        context.user_data.pop('editing_avatar', None)
+        context.user_data.pop('editing_bio_text', None)
+        context.user_data.pop('editing_platform', None)
+        # ثم تابع المعالجة العادية...
+    
     # ----- معالجة تعديل النبذة -----
     if context.user_data.get('editing_bio_text'):
         await handle_bio_text_edit(update, context)
