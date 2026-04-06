@@ -451,50 +451,42 @@ def admin_dashboard():
     """لوحة تحكم المدير"""
     try:
         from utils.db import get_all_users_with_stats, get_global_stats, upgrade_user_to_premium, downgrade_user_to_free
+        from utils.db import BOT_NAME
         
-        # جلب البيانات
-        users = get_all_users_with_stats()
-        stats = get_global_stats()
+        # جلب البيانات مع تصفية حسب اسم البوت الحالي
+        users = get_all_users_with_stats(BOT_NAME)
+        stats = get_global_stats(BOT_NAME)
         
-        # معالجة طلبات الترقية/الخفض (إذا كانت عبر GET)
+        # معالجة طلبات الترقية/الخفض
         upgrade_user = request.args.get('upgrade')
         downgrade_user = request.args.get('downgrade')
         
         if upgrade_user:
             user_id = int(upgrade_user)
             if upgrade_user_to_premium(user_id):
-                stats = get_global_stats()  # تحديث الإحصائيات
-                users = get_all_users_with_stats()
+                stats = get_global_stats(BOT_NAME)
+                users = get_all_users_with_stats(BOT_NAME)
         
         if downgrade_user:
             user_id = int(downgrade_user)
             if downgrade_user_to_free(user_id):
-                stats = get_global_stats()
-                users = get_all_users_with_stats()
+                stats = get_global_stats(BOT_NAME)
+                users = get_all_users_with_stats(BOT_NAME)
         
         # تجهيز البيانات للقالب
         for user in users:
             user['total_usage'] = {
-                'analyzer': user.get('platform_usage', {}).get('youtube', 0),
+                'youtube': user.get('platform_usage', {}).get('youtube', 0),
                 'instagram': user.get('platform_usage', {}).get('instagram', 0),
                 'tiktok': user.get('platform_usage', {}).get('tiktok', 0),
                 'facebook': user.get('platform_usage', {}).get('facebook', 0)
-            }
-            user['usage'] = {
-                'analyzer': min(user.get('daily_uses', 0), FREE_LIMIT),
-                'instagram': 0,
-                'tiktok': 0,
-                'facebook': 0
             }
         
         return render_template('admin_dashboard.html', 
                               users=users, 
                               stats=stats, 
                               free_limit=FREE_LIMIT,
-                              total_uses_analyzer=stats['platform_stats']['youtube'],
-                              total_uses_instagram=stats['platform_stats']['instagram'],
-                              total_uses_tiktok=stats['platform_stats']['tiktok'],
-                              total_uses_facebook=stats['platform_stats']['facebook'])
+                              RENDER_URL=os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com'))
         
     except Exception as e:
         logger.error(f"Error in admin_dashboard: {e}")
