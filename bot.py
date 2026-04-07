@@ -1637,6 +1637,83 @@ async def bio_reset_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     else:
         await query.edit_message_text("❌ حدث خطأ في إنشاء رابط جديد.", parse_mode='HTML')
+        # =================================================================================
+# دوال حذف الحسابات الاجتماعية
+# =================================================================================
+
+async def delete_account_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالجة طلب حذف حساب اجتماعي"""
+    query = update.callback_query
+    await query.answer()
+    
+    platform = query.data.split('_')[1]
+    context.user_data['deleting_platform'] = platform
+    
+    keyboard = [
+        [InlineKeyboardButton("✅ نعم، احذف الحساب", callback_data=f"confirm_delete_{platform}")],
+        [InlineKeyboardButton("❌ إلغاء", callback_data=f"cancel_delete_{platform}")]
+    ]
+    
+    await query.edit_message_text(
+        f"⚠️ <b>تحذير: حذف حساب {platform.capitalize()}</b>\n\n"
+        f"هل أنت متأكد من حذف حساب {platform.capitalize()} من بياناتك؟\n\n"
+        f"📌 ملاحظة:\n"
+        f"• سيتم إزالة الحساب من صفحة البايو الخاصة بك\n"
+        f"• لن يتم حذف حسابك من منصة {platform.capitalize()} نفسها\n"
+        f"• يمكنك إعادة إضافته لاحقاً من خلال التعديل\n\n"
+        f"⚠️ هذا الإجراء لا يمكن التراجع عنه فورياً!",
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def confirm_delete_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """تأكيد حذف الحساب"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    platform = query.data.split('_')[2]
+    
+    # حذف الحساب من قاعدة البيانات
+    delete_user_account(user_id, platform)
+    
+    context.user_data.pop('deleting_platform', None)
+    
+    user_info = get_user_info(user_id)
+    is_premium = user_info['status'] == 'premium' if user_info else False
+    
+    await query.edit_message_text(
+        f"✅ <b>تم حذف حساب {platform.capitalize()} بنجاح!</b>\n\n"
+        f"تم إزالة الحساب من بياناتك ومن صفحة البايو الخاصة بك.\n\n"
+        f"📌 يمكنك إضافة حساب جديد من خلال زر '✏️ تعديل بياناتي' في أي وقت.",
+        parse_mode='HTML'
+    )
+    
+    # عرض القائمة الرئيسية بعد ثانيتين
+    await asyncio.sleep(2)
+    await query.message.reply_text(
+        "🏠 <b>القائمة الرئيسية</b>\n\nاختر ما تريد:",
+        parse_mode='HTML',
+        reply_markup=get_main_keyboard(is_premium)
+    )
+
+async def cancel_delete_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """إلغاء حذف الحساب والعودة إلى قائمة التعديل"""
+    query = update.callback_query
+    await query.answer()
+    
+    platform = query.data.split('_')[2]
+    context.user_data.pop('deleting_platform', None)
+    
+    keyboard = [[InlineKeyboardButton("🔙 رجوع", callback_data=f"edit_{platform}")]]
+    
+    await query.edit_message_text(
+        f"✏️ <b>تعديل حساب {platform.capitalize()}</b>\n\n"
+        f"أرسل المعرف الجديد أو الرابط:\n\n"
+        f"💡 مثال: @username أو https://instagram.com/username",
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
         
 # =================================================================================
 # القسم 21: نقطة دخول البرنامج (Entry Point)
