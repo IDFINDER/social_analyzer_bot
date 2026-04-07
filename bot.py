@@ -990,18 +990,31 @@ async def bio_settings_command(update: Update, context: ContextTypes.DEFAULT_TYP
         [InlineKeyboardButton(f"🎨 الثيم الحالي: {'فاتح' if theme_name == 'default' else 'داكن'}", callback_data="bio_settings_theme")],
         [InlineKeyboardButton(f"📝 تعديل النبذة ({bio_preview})", callback_data="bio_edit_bio")],
         [InlineKeyboardButton(f"🖼️ تغيير الصورة الشخصية {'✅' if current_avatar else '❌'}", callback_data="bio_edit_avatar")],
-        [InlineKeyboardButton("🔄 إعادة تعيين (مسح النبذة والصورة)", callback_data="bio_reset_page")],
-        [InlineKeyboardButton("🔗 إنشاء رابط جديد للصفحة", callback_data="bio_reset_url")],
-        [InlineKeyboardButton("🗑️ حذف صفحة البايو بالكامل", callback_data="bio_delete_page")],
+        [InlineKeyboardButton("🔄 إعادة تعيين (مسح النبذة والصورة)", callback_data="bio_reset_page_warning")],
+        [InlineKeyboardButton("🔗 إنشاء رابط جديد للصفحة", callback_data="bio_reset_url_warning")],
+        [InlineKeyboardButton("🗑️ حذف صفحة البايو بالكامل", callback_data="bio_delete_page_warning")],
         [InlineKeyboardButton("🔙 رجوع", callback_data="main_menu")]
     ]
     
+    # الحصول على رابط الصفحة لعرضه في الإعدادات
+    page_url = bio_page.get('page_url')
+    flask_url = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
+    full_url = f"https://{flask_url}/bio/{page_url}"
+    
     await query.edit_message_text(
-        "⚙️ <b>إعدادات صفحة البايو</b>\n\n"
-        "اختر ما تريد تعديله:\n\n"
-        f"📝 النبذة الحالية: {bio_preview}\n"
+        f"⚙️ <b>إعدادات صفحة البايو</b>\n\n"
+        f"🔗 <b>رابط صفحتك:</b>\n"
+        f"<code>{full_url}</code>\n\n"
+        f"📊 <b>الإعدادات الحالية:</b>\n"
+        f"📝 النبذة: {bio_preview}\n"
         f"🖼️ الصورة الشخصية: {'موجودة ✅' if current_avatar else 'غير محددة ❌'}\n"
-        f"🎨 الثيم الحالي: {'فاتح ☀️' if theme_name == 'default' else 'داكن 🌙'}",
+        f"🎨 الثيم: {'فاتح ☀️' if theme_name == 'default' else 'داكن 🌙'}\n"
+        f"👁️ المشاهدات: {bio_page.get('views_count', 0)}\n\n"
+        f"⚠️ <b>تنبيه:</b> الإجراءات التالية تتطلب تأكيداً إضافياً:\n"
+        f"• إعادة تعيين (مسح النبذة والصورة)\n"
+        f"• إنشاء رابط جديد (سيوقف الرابط القديم)\n"
+        f"• حذف الصفحة بالكامل (نهائي)\n\n"
+        f"💡 اختر ما تريد تعديله:",
         parse_mode='HTML',
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
