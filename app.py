@@ -101,6 +101,43 @@ def login_required(f):
     return decorated_function
 
 # =================================================================================
+# القسم: صفحات سياسة الخصوصية و robots.txt
+# =================================================================================
+
+@app.route('/privacy')
+def privacy_policy():
+    """صفحة سياسة الخصوصية"""
+    try:
+        return render_template('privacy.html')
+    except Exception as e:
+        logger.error(f"Error in privacy page: {e}")
+        return "Privacy policy page", 200
+
+@app.route('/robots.txt')
+def robots_txt():
+    """ملف robots.txt لمحركات البحث"""
+    try:
+        return send_from_directory('static', 'robots.txt')
+    except Exception as e:
+        logger.error(f"Error serving robots.txt: {e}")
+        return "User-agent: *\nAllow: /", 200
+
+@app.route('/sitemap.xml')
+def sitemap():
+    """خريطة الموقع لمحركات البحث"""
+    try:
+        base_url = f"https://{RENDER_URL}"
+        return f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url><loc>{base_url}/</loc><priority>1.0</priority></url>
+    <url><loc>{base_url}/payment</loc><priority>0.8</priority></url>
+    <url><loc>{base_url}/privacy</loc><priority>0.6</priority></url>
+</urlset>""", 200, {'Content-Type': 'application/xml'}
+    except Exception as e:
+        logger.error(f"Error serving sitemap: {e}")
+        return "Sitemap not available", 404
+        
+# =================================================================================
 # القسم 5: نقاط نهاية فحص الصحة (Health Checks)
 # =================================================================================
 
