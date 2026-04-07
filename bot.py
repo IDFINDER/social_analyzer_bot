@@ -984,12 +984,15 @@ async def bio_settings_command(update: Update, context: ContextTypes.DEFAULT_TYP
     current_avatar = bio_page.get('avatar_url', None)
     
     # اختصار النبذة إذا كانت طويلة
-    bio_preview = current_bio[:50] + "..." if len(current_bio) > 50 else current_bio
+    bio_preview = current_bio[:40] + "..." if len(current_bio) > 40 else current_bio
     
     keyboard = [
         [InlineKeyboardButton(f"🎨 الثيم الحالي: {'فاتح' if theme_name == 'default' else 'داكن'}", callback_data="bio_settings_theme")],
         [InlineKeyboardButton(f"📝 تعديل النبذة ({bio_preview})", callback_data="bio_edit_bio")],
         [InlineKeyboardButton(f"🖼️ تغيير الصورة الشخصية {'✅' if current_avatar else '❌'}", callback_data="bio_edit_avatar")],
+        [InlineKeyboardButton("🔄 إعادة تعيين (مسح النبذة والصورة)", callback_data="bio_reset_page")],
+        [InlineKeyboardButton("🔗 إنشاء رابط جديد للصفحة", callback_data="bio_reset_url")],
+        [InlineKeyboardButton("🗑️ حذف صفحة البايو بالكامل", callback_data="bio_delete_page")],
         [InlineKeyboardButton("🔙 رجوع", callback_data="main_menu")]
     ]
     
@@ -997,7 +1000,8 @@ async def bio_settings_command(update: Update, context: ContextTypes.DEFAULT_TYP
         "⚙️ <b>إعدادات صفحة البايو</b>\n\n"
         "اختر ما تريد تعديله:\n\n"
         f"📝 النبذة الحالية: {bio_preview}\n"
-        f"🖼️ الصورة الشخصية: {'موجودة' if current_avatar else 'غير محددة'}",
+        f"🖼️ الصورة الشخصية: {'موجودة ✅' if current_avatar else 'غير محددة ❌'}\n"
+        f"🎨 الثيم الحالي: {'فاتح ☀️' if theme_name == 'default' else 'داكن 🌙'}",
         parse_mode='HTML',
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
