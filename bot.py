@@ -1539,6 +1539,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data.pop('editing_bio_text', None)
         context.user_data.pop('editing_platform', None)
         # ثم تابع المعالجة العادية...
+    # في دالة handle_message، أضف:
+
+    # ----- معالجة إضافة حساب جديد -----
+    if context.user_data.get('adding_platform'):
+        await handle_add_account(update, context)
+        return
+
+    # ----- معالجة تعديل اسم العرض -----
+    if context.user_data.get('editing_display_name'):
+        await handle_display_name_edit(update, context)
+        return
     
     # ----- معالجة تعديل النبذة -----
     if context.user_data.get('editing_bio_text'):
