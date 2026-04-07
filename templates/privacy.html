@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سياسة الخصوصية - بوت تحليل الحسابات</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        h1 { color: #667eea; margin-bottom: 20px; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
+        h2 { color: #2c3e50; margin: 25px 0 10px 0; font-size: 1.3rem; }
+        p { line-height: 1.7; color: #555; margin-bottom: 15px; }
+        ul { margin: 15px 0 15px 30px; color: #555; }
+        li { margin: 8px 0; }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #667eea;
+            text-decoration: none;
+        }
+        .back-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 سياسة الخصوصية</h1>
+        <p>آخر تحديث: <span id="currentDate"></span></p>
+        
+        <h2>1. المعلومات التي نجمعها</h2>
+        <p>نحن لا نجمع أي معلومات شخصية حساسة. يتم تخزين المعلومات التالية فقط لتشغيل خدمة البوت:</p>
+        <ul>
+            <li><strong>معرف المستخدم (User ID)</strong> - للتعرف عليك في النظام</li>
+            <li><strong>اسم المستخدم (Username)</strong> - لعرضه في صفحة البايو الخاصة بك</li>
+            <li><strong>الاسم الأول (First Name)</strong> - للترحيب بك في البوت</li>
+            <li><strong>روابط حسابات التواصل الاجتماعي</strong> - لعرضها في صفحة البايو الخاصة بك</li>
+        </ul>
+        
+        <h2>2. كيف نستخدم معلوماتك</h2>
+        <p>نستخدم المعلومات التي نجمعها للأغراض التالية:</p>
+        <ul>
+            <li>تقديم خدمة تحليل حسابات التواصل الاجتماعي</li>
+            <li>إنشاء وإدارة صفحة البايو الشخصية الخاصة بك</li>
+            <li>تحسين أداء البوت وتجربة المستخدم</li>
+        </ul>
+        
+        <h2>3. مشاركة المعلومات</h2>
+        <p>نحن لا نبيع أو نشارك معلوماتك الشخصية مع أي طرف ثالث. جميع البيانات مخزنة بشكل آمن على خوادم Supabase.</p>
+        
+        <h2>4. حماية البيانات</h2>
+        <p>نحن نتخذ إجراءات أمنية مناسبة لحماية معلوماتك من الوصول غير المصرح به أو التعديل أو الإفصاح أو الإتلاف.</p>
+        
+        <h2>5. ملفات تعريف الارتباط (Cookies)</h2>
+        <p>لا يستخدم موقعنا ملفات تعريف الارتباط لتتبع المستخدمين.</p>
+        
+        <h2>6. روابط الجهات الخارجية</h2>
+        <p>قد تحتوي صفحة البايو الخاصة بك على روابط إلى مواقع خارجية (مثل يوتيوب، انستقرام، فيسبوك، تيك توك). نحن لسنا مسؤولين عن ممارسات الخصوصية لتلك المواقع.</p>
+        
+        <h2>7. حقوقك</h2>
+        <p>لديك الحق في:</p>
+        <ul>
+            <li>طلب نسخة من بياناتك المخزنة</li>
+            <li>طلب تعديل أو حذف بياناتك</li>
+            <li>إلغاء اشتراكك المميز في أي وقت</li>
+        </ul>
+        
+        <h2>8. الاتصال بنا</h2>
+        <p>إذا كان لديك أي أسئلة حول سياسة الخصوصية هذه، يمكنك التواصل معنا عبر:</p>
+        <ul>
+            <li>تليجرام: <a href="https://t.me/E_Alshabany" target="_blank">@E_Alshabany</a></li>
+        </ul>
+        
+        <div class="footer">
+            <p>© 2026 بوت تحليل الحسابات الاجتماعية - جميع الحقوق محفوظة</p>
+            <a href="/" class="back-link">🏠 العودة إلى الرئيسية</a>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('currentDate').innerText = new Date().toLocaleDateString('ar-EG');
+    </script>
+</body>
+</html>
