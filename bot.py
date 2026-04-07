@@ -1052,7 +1052,159 @@ async def handle_username_check(update: Update, context: ContextTypes.DEFAULT_TY
         f"🚀 <b>قريباً في التحديث القادم</b>",
         parse_mode='HTML'
     )
+# =================================================================================
+# دوال حذف الحسابات الاجتماعية (Delete Account Functions)
+# =================================================================================
 
+async def delete_account_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالجة طلب حذف حساب اجتماعي"""
+    query = update.callback_query
+    await query.answer()
+    
+    platform = query.data.split('_')[1]
+    context.user_data['deleting_platform'] = platform
+    
+    keyboard = [
+        [InlineKeyboardButton("✅ نعم، احذف الحساب", callback_data=f"confirm_delete_{platform}")],
+        [InlineKeyboardButton("❌ إلغاء", callback_data=f"cancel_delete_{platform}")]
+    ]
+    
+    await query.edit_message_text(
+        f"⚠️ <b>تحذير: حذف حساب {platform.capitalize()}</b>\n\n"
+        f"هل أنت متأكد من حذف حساب {platform.capitalize()} من بياناتك؟\n\n"
+        f"📌 ملاحظة:\n"
+        f"• سيتم إزالة الحساب من صفحة البايو الخاصة بك\n"
+        f"• لن يتم حذف حسابك من منصة {platform.capitalize()} نفسها\n"
+        f"• يمكنك إعادة إضافته لاحقاً من خلال التعديل\n\n"
+        f"⚠️ هذا الإجراء لا يمكن التراجع عنه فورياً!",
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def confirm_delete_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """تأكيد حذف الحساب"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    platform = query.data.split('_')[2]
+    
+    # حذف الحساب من قاعدة البيانات
+    delete_user_account(user_id, platform)
+    
+    context.user_data.pop('deleting_platform', None)
+    
+    user_info = get_user_info(user_id)
+    is_premium = user_info['status'] == 'premium' if user_info else False
+    
+    await query.edit_message_text(
+        f"✅ <b>تم حذف حساب {platform.capitalize()} بنجاح!</b>\n\n"
+        f"تم إزالة الحساب من بياناتك ومن صفحة البايو الخاصة بك.\n\n"
+        f"📌 يمكنك إضافة حساب جديد من خلال زر '✏️ تعديل بياناتي' في أي وقت.",
+        parse_mode='HTML'
+    )
+    
+    # عرض القائمة الرئيسية بعد ثانيتين
+    await asyncio.sleep(2)
+    await query.message.reply_text(
+        "🏠 <b>القائمة الرئيسية</b>\n\nاختر ما تريد:",
+        parse_mode='HTML',
+        reply_markup=get_main_keyboard(is_premium)
+    )
+
+async def cancel_delete_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """إلغاء حذف الحساب والعودة إلى قائمة التعديل"""
+    query = update.callback_query
+    await query.answer()
+    
+    platform = query.data.split('_')[2]
+    context.user_data.pop('deleting_platform', None)
+    
+    # العودة إلى قائمة التعديل الخاصة بنفس المنصة
+    keyboard = [[InlineKeyboardButton("🔙 رجوع", callback_data=f"edit_{platform}")]]
+    
+    await query.edit_message_text(
+        f"✏️ <b>تعديل حساب {platform.capitalize()}</b>\n\n"
+        f"أرسل المعرف الجديد أو الرابط:\n\n"
+        f"💡 مثال: @username أو https://instagram.com/username",
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    # =================================================================================
+# دوال تحذيرية للإجراءات الهامة في صفحة البايو (Warning Dialogs)
+# =================================================================================
+
+async def bio_reset_page_warning(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """تحذير قبل إعادة تعيين صفحة البايو"""
+    query = update.callback_query
+    await query.answer()
+    
+    keyboard = [
+        [InlineKeyboardButton("✅ نعم، أعد التعيين", callback_data="bio_reset_page")],
+        [InlineKeyboardButton("❌ إلغاء", callback_data="bio_settings")]
+    ]
+    
+    await query.edit_message_text(
+        "⚠️ <b>تحذير: إعادة تعيين صفحة البايو</b>\n\n"
+        "هل أنت متأكد من إعادة تعيين صفحة البايو؟\n\n"
+        "📌 ملاحظة: سيتم مسح:\n"
+        "• النبذة التعريفية\n"
+        "• الصورة الشخصية\n\n"
+        "✅ سيتم الاحتفاظ بـ:\n"
+        "• رابط الصفحة (لن يتغير)\n"
+        "• حسابات التواصل الاجتماعي\n"
+        "• إعدادات الثيم\n\n"
+        "⚠️ هذا الإجراء يمكن التراجع عنه بإعادة إدخال النبذة والصورة.",
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def bio_reset_url_warning(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """تحذير قبل إنشاء رابط جديد"""
+    query = update.callback_query
+    await query.answer()
+    
+    keyboard = [
+        [InlineKeyboardButton("✅ نعم، أنشئ رابطاً جديداً", callback_data="bio_reset_url")],
+        [InlineKeyboardButton("❌ إلغاء", callback_data="bio_settings")]
+    ]
+    
+    await query.edit_message_text(
+        "⚠️ <b>تحذير: إنشاء رابط جديد لصفحة البايو</b>\n\n"
+        "هل أنت متأكد من إنشاء رابط جديد؟\n\n"
+        "📌 ملاحظة مهمة:\n"
+        "• سيتم إنشاء رابط جديد تماماً لصفحتك\n"
+        "• <b>الرابط القديم سيتوقف عن العمل فوراً</b>\n"
+        "• أي شخص لديه الرابط القديم لن يتمكن من الوصول لصفحتك\n"
+        "• سيتم الاحتفاظ بجميع بياناتك (النبذة، الصورة، الحسابات)\n\n"
+        "⚠️ يرجى نشر الرابط الجديد بعد إنشائه!",
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def bio_delete_page_warning(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """تحذير قبل حذف صفحة البايو بالكامل"""
+    query = update.callback_query
+    await query.answer()
+    
+    keyboard = [
+        [InlineKeyboardButton("✅ نعم، احذف الصفحة نهائياً", callback_data="bio_delete_page")],
+        [InlineKeyboardButton("❌ إلغاء", callback_data="bio_settings")]
+    ]
+    
+    await query.edit_message_text(
+        "⚠️ <b>تحذير: حذف صفحة البايو بالكامل</b>\n\n"
+        "هل أنت متأكد من حذف صفحة البايو؟\n\n"
+        "📌 ملاحظة: سيتم حذف:\n"
+        "• الرابط الخاص بالصفحة (نهائياً)\n"
+        "• النبذة التعريفية\n"
+        "• الصورة الشخصية\n"
+        "• جميع الإعدادات\n\n"
+        "⚠️ <b>هذا الإجراء لا يمكن التراجع عنه!</b>\n"
+        "⚠️ بعد الحذف، ستحتاج إلى إنشاء صفحة جديدة من البداية.",
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 # =================================================================================
 # القسم 14: معالج الأزرار (Callback Query Handler)
 # =================================================================================
@@ -1091,44 +1243,37 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data.startswith("ai_recommendations"):
         await ai_recommendations(update, context)
     
-    # ----- تعديل الحسابات -----
+    # ========== أزرار تعديل وحذف الحسابات ==========
     elif data.startswith("edit_"):
         platform = data.split('_')[1]
         context.user_data['editing_platform'] = platform
-        keyboard = [[InlineKeyboardButton("🔙 إلغاء", callback_data="main_menu")]]
+        # لوحة مفاتيح جديدة تحتوي على زر الحذف
+        keyboard = [
+            [InlineKeyboardButton("🗑️ حذف الحساب", callback_data=f"delete_{platform}")],
+            [InlineKeyboardButton("🔙 إلغاء", callback_data="main_menu")]
+        ]
         await query.edit_message_text(
             f"✏️ <b>تعديل حساب {platform.capitalize()}</b>\n\n"
-            f"أرسل المعرف الجديد أو الرابط:",
+            f"📌 <b>للتعديل:</b> أرسل المعرف الجديد أو الرابط\n"
+            f"🗑️ <b>لحذف الحساب:</b> اضغط على زر الحذف أدناه\n\n"
+            f"💡 مثال: @username أو https://instagram.com/username\n\n"
+            f"⚠️ ملاحظة: حذف الحساب يعني إزالته من صفحة البايو الخاصة بك فقط، وليس من المنصة نفسها.",
             parse_mode='HTML',
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
-        # -----  2 تعديل الحسابات -----
-elif data.startswith("edit_"):
-    platform = data.split('_')[1]
-    context.user_data['editing_platform'] = platform
-    keyboard = [
-        [InlineKeyboardButton("🗑️ حذف الحساب", callback_data=f"delete_{platform}")],
-        [InlineKeyboardButton("🔙 إلغاء", callback_data="main_menu")]
-    ]
-    await query.edit_message_text(
-        f"✏️ <b>تعديل حساب {platform.capitalize()}</b>\n\n"
-        f"📌 <b>للتعديل:</b> أرسل المعرف الجديد أو الرابط\n"
-        f"🗑️ <b>لحذف الحساب:</b> اضغط على زر الحذف أدناه\n\n"
-        f"💡 مثال: @username أو https://instagram.com/username\n\n"
-        f"⚠️ ملاحظة: حذف الحساب يعني إزالته من صفحة البايو الخاصة بك فقط، وليس من المنصة نفسها.",
-        parse_mode='HTML',
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-    # في دالة button_callback، أضف:
+    
+    # ----- معالج طلب حذف الحساب -----
+    elif data.startswith("delete_"):
+        await delete_account_callback(update, context)
 
-elif data.startswith("delete_"):
-    await delete_account_callback(update, context)
+    # ----- تأكيد حذف الحساب -----
+    elif data.startswith("confirm_delete_"):
+        await confirm_delete_account(update, context)
 
-elif data.startswith("confirm_delete_"):
-    await confirm_delete_account(update, context)
-
-elif data.startswith("cancel_delete_"):
-    await cancel_delete_account(update, context)
+    # ----- إلغاء حذف الحساب والعودة للتعديل -----
+    elif data.startswith("cancel_delete_"):
+        await cancel_delete_account(update, context)
+    
     # ----- إعدادات صفحة البايو -----
     elif data == "bio_settings":
         await bio_settings_command(update, context)
@@ -1143,32 +1288,33 @@ elif data.startswith("cancel_delete_"):
     elif data == "bio_edit_avatar":
         await bio_edit_avatar_callback(update, context)
     
-    # ----- زر إلغاء التعديل -----
+    # ----- زر إلغاء التعديل (للصورة) -----
     elif data == "bio_cancel_edit":
-        # إلغاء حالة تعديل الصورة والرجوع للإعدادات
         context.user_data.pop('editing_avatar', None)
         context.user_data.pop('editing_bio_text', None)
         await bio_settings_command(update, context)
     
-    # ========== أزرار إدارة صفحة البايو الجديدة ==========
+    # ========== أزرار إدارة صفحة البايو (مع التحذير) ==========
+    elif data == "bio_reset_page_warning":
+        await bio_reset_page_warning(update, context)
     
-    # ----- حذف صفحة البايو بالكامل -----
-    elif data == "bio_delete_page":
-        await bio_delete_page(update, context)
+    elif data == "bio_reset_url_warning":
+        await bio_reset_url_warning(update, context)
     
-    # ----- تأكيد حذف صفحة البايو -----
-    elif data == "bio_confirm_delete":
-        await bio_confirm_delete(update, context)
+    elif data == "bio_delete_page_warning":
+        await bio_delete_page_warning(update, context)
     
-    # ----- إعادة تعيين صفحة البايو (مسح النبذة والصورة) -----
+    # ----- التنفيذ الفعلي للإجراءات (بدون تكرار) -----
     elif data == "bio_reset_page":
         await bio_reset_page(update, context)
     
-    # ----- إنشاء رابط جديد لصفحة البايو -----
     elif data == "bio_reset_url":
         await bio_reset_url(update, context)
     
-    # ----- أزرار إدارة صفحة البايو (القديمة) -----
+    elif data == "bio_delete_page":
+        await bio_delete_page(update, context)
+    
+    # ----- أزرار إدارة صفحة البايو (القديمة - للإبقاء على التوافق) -----
     elif data == "bio_change_theme":
         keyboard = [
             [InlineKeyboardButton("☀️ فاتح", callback_data="bio_set_theme_default")],
@@ -1646,83 +1792,6 @@ async def bio_reset_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     else:
         await query.edit_message_text("❌ حدث خطأ في إنشاء رابط جديد.", parse_mode='HTML')
-        # =================================================================================
-# دوال حذف الحسابات الاجتماعية
-# =================================================================================
-
-async def delete_account_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة طلب حذف حساب اجتماعي"""
-    query = update.callback_query
-    await query.answer()
-    
-    platform = query.data.split('_')[1]
-    context.user_data['deleting_platform'] = platform
-    
-    keyboard = [
-        [InlineKeyboardButton("✅ نعم، احذف الحساب", callback_data=f"confirm_delete_{platform}")],
-        [InlineKeyboardButton("❌ إلغاء", callback_data=f"cancel_delete_{platform}")]
-    ]
-    
-    await query.edit_message_text(
-        f"⚠️ <b>تحذير: حذف حساب {platform.capitalize()}</b>\n\n"
-        f"هل أنت متأكد من حذف حساب {platform.capitalize()} من بياناتك؟\n\n"
-        f"📌 ملاحظة:\n"
-        f"• سيتم إزالة الحساب من صفحة البايو الخاصة بك\n"
-        f"• لن يتم حذف حسابك من منصة {platform.capitalize()} نفسها\n"
-        f"• يمكنك إعادة إضافته لاحقاً من خلال التعديل\n\n"
-        f"⚠️ هذا الإجراء لا يمكن التراجع عنه فورياً!",
-        parse_mode='HTML',
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-
-async def confirm_delete_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """تأكيد حذف الحساب"""
-    query = update.callback_query
-    await query.answer()
-    
-    user_id = query.from_user.id
-    platform = query.data.split('_')[2]
-    
-    # حذف الحساب من قاعدة البيانات
-    delete_user_account(user_id, platform)
-    
-    context.user_data.pop('deleting_platform', None)
-    
-    user_info = get_user_info(user_id)
-    is_premium = user_info['status'] == 'premium' if user_info else False
-    
-    await query.edit_message_text(
-        f"✅ <b>تم حذف حساب {platform.capitalize()} بنجاح!</b>\n\n"
-        f"تم إزالة الحساب من بياناتك ومن صفحة البايو الخاصة بك.\n\n"
-        f"📌 يمكنك إضافة حساب جديد من خلال زر '✏️ تعديل بياناتي' في أي وقت.",
-        parse_mode='HTML'
-    )
-    
-    # عرض القائمة الرئيسية بعد ثانيتين
-    await asyncio.sleep(2)
-    await query.message.reply_text(
-        "🏠 <b>القائمة الرئيسية</b>\n\nاختر ما تريد:",
-        parse_mode='HTML',
-        reply_markup=get_main_keyboard(is_premium)
-    )
-
-async def cancel_delete_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """إلغاء حذف الحساب والعودة إلى قائمة التعديل"""
-    query = update.callback_query
-    await query.answer()
-    
-    platform = query.data.split('_')[2]
-    context.user_data.pop('deleting_platform', None)
-    
-    keyboard = [[InlineKeyboardButton("🔙 رجوع", callback_data=f"edit_{platform}")]]
-    
-    await query.edit_message_text(
-        f"✏️ <b>تعديل حساب {platform.capitalize()}</b>\n\n"
-        f"أرسل المعرف الجديد أو الرابط:\n\n"
-        f"💡 مثال: @username أو https://instagram.com/username",
-        parse_mode='HTML',
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
         
 # =================================================================================
 # القسم 21: نقطة دخول البرنامج (Entry Point)
