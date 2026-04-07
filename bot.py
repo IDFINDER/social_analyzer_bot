@@ -839,19 +839,45 @@ async def edit_data_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_info = get_user_info(user_id)
     is_premium = user_info['status'] == 'premium' if user_info else False
     
-    keyboard = []
-    for platform in ['youtube', 'instagram', 'tiktok', 'facebook']:
-        if platform in accounts:
-            keyboard.append([InlineKeyboardButton(f"✏️ تعديل {platform.capitalize()}", callback_data=f"edit_{platform}")])
+    # قائمة المنصات المتاحة
+    all_platforms = ['youtube', 'instagram', 'tiktok', 'facebook']
     
-    # إضافة إعدادات صفحة البايو للمستخدمين المميزين
+    keyboard = []
+    
+    # عرض الحسابات الموجودة مع زر تعديل
+    for platform in all_platforms:
+        if platform in accounts:
+            # حساب موجود - عرض مع زر تعديل
+            keyboard.append([InlineKeyboardButton(
+                f"✏️ تعديل {platform.capitalize()} ✅", 
+                callback_data=f"edit_{platform}"
+            )])
+        else:
+            # حساب غير مضاف - عرض مع زر إضافة
+            keyboard.append([InlineKeyboardButton(
+                f"➕ إضافة {platform.capitalize()}", 
+                callback_data=f"add_{platform}"
+            )])
+    
+    # زر تعديل الاسم (لجميع المستخدمين)
+    keyboard.append([InlineKeyboardButton(
+        f"✏️ تعديل اسم العرض (الحالي: {user_info.get('first_name', 'غير محدد')[:20]})", 
+        callback_data="edit_display_name"
+    )])
+    
+    # إعدادات صفحة البايو للمستخدمين المميزين
     if is_premium:
         keyboard.append([InlineKeyboardButton("⚙️ إعدادات صفحة البايو", callback_data="bio_settings")])
     
     keyboard.append([InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")])
     
     await update.message.reply_text(
-        "✏️ <b>اختر ما تريد تعديله:</b>",
+        "✏️ <b>إدارة حساباتي</b>\n\n"
+        "📌 <b>الحسابات الموجودة:</b> تظهر مع علامة ✅ ويمكن تعديلها\n"
+        "📌 <b>الحسابات غير المضاف:</b> تظهر مع علامة ➕ ويمكن إضافتها\n\n"
+        "👤 <b>اسم العرض:</b> هو الاسم الذي يظهر في صفحة البايو\n"
+        "💡 يمكنك تغييره في أي وقت من الزر أدناه\n\n"
+        "🔽 <b>اختر ما تريد:</b>",
         parse_mode='HTML',
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
