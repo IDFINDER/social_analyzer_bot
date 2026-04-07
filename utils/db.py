@@ -432,7 +432,7 @@ def create_or_update_bio_page(user_id, display_name, accounts, custom_links=None
             time_part = datetime.now().timestamp()
             hash_input = f"{user_id}_{random_part}_{time_part}"
             url_hash = hashlib.md5(hash_input.encode()).hexdigest()[:12]
-            page_url = f"bio_{url_hash}"
+            page_url = generate_bio_url(user_id)
             
             supabase.table('bio_pages').insert({
                 'user_id': user_id,
