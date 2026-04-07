@@ -1,0 +1,16 @@
+# robots.txt for Social Media Analyzer Bot
+# يوجه محركات البحث إلى الصفحات المسموح بها
+
+User-agent: *
+Allow: /
+Allow: /bio/
+Allow: /payment
+Allow: /privacy
+
+Disallow: /admin/
+Disallow: /secure/
+Disallow: /api/
+Disallow: /static/themes/
+
+Sitemap: https://social-analyzer-flask.onrender.com/sitemap.xml
+Host: https://social-analyzer-flask.onrender.com
