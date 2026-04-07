@@ -1091,6 +1091,141 @@ async def handle_username_check(update: Update, context: ContextTypes.DEFAULT_TY
         f"🚀 <b>قريباً في التحديث القادم</b>",
         parse_mode='HTML'
     )
+    # =================================================================================
+# دوال إضافة حسابات جديدة (Add Account Functions)
+# =================================================================================
+
+async def add_account_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """بدء عملية إضافة حساب جديد"""
+    query = update.callback_query
+    await query.answer()
+    
+    platform = query.data.split('_')[1]
+    context.user_data['adding_platform'] = platform
+    
+    keyboard = [[InlineKeyboardButton("🔙 إلغاء", callback_data="main_menu")]]
+    
+    await query.edit_message_text(
+        f"➕ <b>إضافة حساب {platform.capitalize()}</b>\n\n"
+        f"أرسل معرف حسابك على {platform.capitalize()}:\\n\n"
+        f"💡 مثال: @username أو https://{platform}.com/username\n\n"
+        f"📌 ملاحظة: سيتم إضافة الحساب إلى صفحة البايو الخاصة بك فوراً.",
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالجة إضافة حساب جديد"""
+    platform = context.user_data.get('adding_platform')
+    if not platform:
+        return
+    
+    user_id = update.effective_user.id
+    new_identifier = update.message.text.strip()
+    
+    # حفظ الحساب الجديد
+    save_user_account(user_id, platform, new_identifier)
+    
+    context.user_data.pop('adding_platform', None)
+    
+    user_info = get_user_info(user_id)
+    is_premium = user_info['status'] == 'premium' if user_info else False
+    
+    # إذا كان المستخدم مميزاً، قم بتحديث صفحة البايو
+    if is_premium:
+        accounts = get_user_social_accounts(user_id)
+        formatted_accounts = {}
+        for plat, acc in accounts.items():
+            formatted_accounts[plat] = {
+                'account_identifier': acc['account_identifier']
+            }
+        display_name = user_info.get('first_name', 'مستخدم')
+        create_or_update_bio_page(user_id, display_name, formatted_accounts)
+    
+    await update.message.reply_text(
+        f"✅ <b>تم إضافة حساب {platform.capitalize()} بنجاح!</b>\n\n"
+        f"📌 المعرف: {escape_html(new_identifier)}\n\n"
+        f"💡 يمكنك تعديله أو حذفه في أي وقت من قائمة تعديل البيانات.",
+        parse_mode='HTML',
+        reply_markup=get_main_keyboard(is_premium)
+    )
+    # =================================================================================
+# دوال تعديل اسم العرض (Display Name Functions)
+# =================================================================================
+
+async def edit_display_name_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """بدء عملية تعديل اسم العرض"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    user_info = get_user_info(user_id)
+    current_name = user_info.get('first_name', '')
+    
+    context.user_data['editing_display_name'] = True
+    
+    keyboard = [[InlineKeyboardButton("🔙 إلغاء", callback_data="main_menu")]]
+    
+    await query.edit_message_text(
+        f"✏️ <b>تعديل اسم العرض</b>\n\n"
+        f"👤 <b>الاسم الحالي:</b> {current_name}\n\n"
+        f"أرسل الاسم الجديد الذي تريد ظهوره في صفحة البايو:\n\n"
+        f"💡 مثال: أحمد محمد | Ahmed\n\n"
+        f"📌 ملاحظة: هذا الاسم سيظهر في صفحة البايو فقط، ولن يؤثر على اسم حسابك في تلجرام.",
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+async def handle_display_name_edit(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالجة تعديل اسم العرض"""
+    if not context.user_data.get('editing_display_name'):
+        return
+    
+    user_id = update.effective_user.id
+    new_name = update.message.text.strip()
+    
+    if not new_name:
+        await update.message.reply_text("❌ الاسم لا يمكن أن يكون فارغاً. حاول مرة أخرى.")
+        return
+    
+    # تحديث الاسم في جدول users
+    from utils.db import supabase
+    result = supabase.table('users').update({
+        'first_name': new_name,
+        'updated_at': datetime.now().isoformat()
+    }).eq('user_id', user_id).execute()
+    
+    if result.data:
+        context.user_data.pop('editing_display_name', None)
+        
+        # تحديث صفحة البايو إذا كان المستخدم مميزاً
+        user_info = get_user_info(user_id)
+        if user_info.get('status') == 'premium':
+            accounts = get_user_social_accounts(user_id)
+            formatted_accounts = {}
+            for platform, acc in accounts.items():
+                formatted_accounts[platform] = {
+                    'account_identifier': acc['account_identifier']
+                }
+            create_or_update_bio_page(user_id, new_name, formatted_accounts)
+        
+        await update.message.reply_text(
+            f"✅ <b>تم تحديث اسم العرض بنجاح!</b>\n\n"
+            f"👤 الاسم الجديد: {escape_html(new_name)}\n\n"
+            f"💡 سيظهر هذا الاسم في صفحة البايو الخاصة بك.",
+            parse_mode='HTML'
+        )
+        
+        # عرض القائمة الرئيسية
+        user_info = get_user_info(user_id)
+        is_premium = user_info['status'] == 'premium' if user_info else False
+        await update.message.reply_text(
+            "🏠 <b>القائمة الرئيسية</b>\n\nاختر ما تريد:",
+            parse_mode='HTML',
+            reply_markup=get_main_keyboard(is_premium)
+        )
+    else:
+        await update.message.reply_text("❌ حدث خطأ في تحديث الاسم. حاول مرة أخرى.")
 # =================================================================================
 # دوال حذف الحسابات الاجتماعية (Delete Account Functions)
 # =================================================================================
