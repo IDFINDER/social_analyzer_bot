@@ -45,7 +45,6 @@ BOT_NAME = os.environ.get('BOT_NAME', 'social_analyzer')
 # ========== إعدادات المصادحة المتقدمة ==========
 # طبقة الأمان 1: جلسة المدير (Session)
 ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
-ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'Admin@123#Secure!')
 SECRET_KEY = os.environ.get('SECRET_KEY', 'dGhpcyBpcyBhIHZlcnkgc2VjcmV0IGtleQ==')
 app.secret_key = SECRET_KEY
 app.permanent_session_lifetime = timedelta(hours=24)
@@ -74,20 +73,6 @@ def set_security_headers(resp):
 # القسم 4: دوال المصادحة المساعدة
 # =================================================================================
 
-def require_basic_auth(f):
-    """
-    طبقة أمان إضافية: Basic Authentication
-    تُستخدم لحماية لوحة التحكم بطبقة ثانية من الحماية
-    """
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        auth = request.authorization
-        if not auth or auth.password != BASIC_AUTH_PASSWORD:
-            return '🔒 يرجى إدخال كلمة المرور للوصول إلى لوحة التحكم', 401, {
-                'WWW-Authenticate': 'Basic realm="Admin Panel - Access Restricted"'
-            }
-        return f(*args, **kwargs)
-    return decorated_function
 
 def login_required(f):
     """
@@ -595,19 +580,17 @@ def admin_api_users():
 
 @app.route('/admin/security-info')
 def security_info():
-    """معلومات عن طبقات الأمان (لأغراض تعليمية)"""
+    """معلومات عن طبقات الأمان"""
     return jsonify({
         'message': 'نظام حماية لوحة التحكم',
         'security_layers': [
             {'layer': 1, 'name': 'Session Authentication', 'description': 'التحقق من جلسة المستخدم عبر اسم المستخدم وكلمة المرور'},
-            {'layer': 2, 'name': 'Basic HTTP Authentication', 'description': 'طبقة حماية إضافية عبر نافذة منبثقة'},
-            {'layer': 3, 'name': 'Security Headers', 'description': 'رؤوس أمان تمنع هجمات XSS و MIME sniffing'},
-            {'layer': 4, 'name': 'Whitelist (Optional)', 'description': 'قائمة بيضاء بأرقام المستخدمين المسموح لهم'},
-            {'layer': 5, 'name': 'HTTPS', 'description': 'تشفير البيانات أثناء الإرسال عبر Render'},
+            {'layer': 2, 'name': 'Security Headers', 'description': 'رؤوس أمان تمنع هجمات XSS و MIME sniffing'},
+            {'layer': 3, 'name': 'HTTPS', 'description': 'تشفير البيانات أثناء الإرسال عبر Render'},
         ],
         'admin_url': '/secure/x7K9mP2/login',
         'dashboard_url': '/admin/dashboard',
-        'protection_level': 'عالية جداً (5 طبقات)'
+        'protection_level': 'عالية'
     })
 # =================================================================================
 # القسم: صفحات التحقق (Verification Pages)
