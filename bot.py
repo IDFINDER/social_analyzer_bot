@@ -1417,6 +1417,14 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data.startswith("ai_recommendations"):
         await ai_recommendations(update, context)
     
+    # ========== أزرار إضافة حساب جديد ==========
+    elif data.startswith("add_"):
+        await add_account_callback(update, context)
+    
+    # ========== أزرار تعديل اسم العرض ==========
+    elif data == "edit_display_name":
+        await edit_display_name_callback(update, context)
+    
     # ========== أزرار تعديل وحذف الحسابات ==========
     elif data.startswith("edit_"):
         platform = data.split('_')[1]
