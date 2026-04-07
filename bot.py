@@ -1102,6 +1102,23 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode='HTML',
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
+        # -----  2 تعديل الحسابات -----
+elif data.startswith("edit_"):
+    platform = data.split('_')[1]
+    context.user_data['editing_platform'] = platform
+    keyboard = [
+        [InlineKeyboardButton("🗑️ حذف الحساب", callback_data=f"delete_{platform}")],
+        [InlineKeyboardButton("🔙 إلغاء", callback_data="main_menu")]
+    ]
+    await query.edit_message_text(
+        f"✏️ <b>تعديل حساب {platform.capitalize()}</b>\n\n"
+        f"📌 <b>للتعديل:</b> أرسل المعرف الجديد أو الرابط\n"
+        f"🗑️ <b>لحذف الحساب:</b> اضغط على زر الحذف أدناه\n\n"
+        f"💡 مثال: @username أو https://instagram.com/username\n\n"
+        f"⚠️ ملاحظة: حذف الحساب يعني إزالته من صفحة البايو الخاصة بك فقط، وليس من المنصة نفسها.",
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
     
     # ----- إعدادات صفحة البايو -----
     elif data == "bio_settings":
