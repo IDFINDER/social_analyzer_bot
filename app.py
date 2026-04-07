@@ -12,7 +12,7 @@
 import os
 import sys
 import logging
-from flask import Flask, render_template, request, jsonify, send_from_directory, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, send_from_directory, session, redirect, url_for, render_template_string
 from datetime import datetime, timedelta
 from functools import wraps
 
