@@ -70,19 +70,6 @@ def set_security_headers(resp):
     resp.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://code.jquery.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com;"
     return resp
     
-@app.route('/google-site-verification.txt')
-def google_verification():
-    """ملف التحقق من Google Search Console"""
-    try:
-        from utils.db import supabase
-        result = supabase.table('domain_verification').select('value').eq('name', 'google-site-verification').execute()
-        if result.data:
-            # إرجاع القيمة كنص عادي
-            return result.data[0]['value'], 200, {'Content-Type': 'text/plain; charset=utf-8'}
-        return "Verification not found", 404
-    except Exception as e:
-        logger.error(f"Error serving verification: {e}")
-        return "Error", 500
 # =================================================================================
 # القسم 4: دوال المصادحة المساعدة
 # =================================================================================
@@ -627,7 +614,19 @@ def security_info():
         'dashboard_url': '/admin/dashboard',
         'protection_level': 'عالية جداً (5 طبقات)'
     })
+# =================================================================================
+# القسم: صفحات التحقق (Verification Pages)
+# =================================================================================
 
+@app.route('/google4324552e195bad11.html')
+def google_verification_file():
+    """ملف التحقق من Google"""
+    try:
+        with open('static/google4324552e195bad11.html', 'r', encoding='utf-8') as f:
+            content = f.read()
+        return content, 200, {'Content-Type': 'text/html'}
+    except Exception as e:
+        return f"File not found: {e}", 404
 # =================================================================================
 # القسم 15: تشغيل التطبيق
 # =================================================================================
