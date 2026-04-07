@@ -1,0 +1,6 @@
+# Security Contact Information
+Contact: mailto:central.app.ye@gmail.com
+Contact: https://t.me/E_Alshabany
+Expires: 2027-01-01T00:00:00.000Z
+Preferred-Languages: ar, en
+Canonical: https://social-analyzer-flask.onrender.com/.well-known/security.txt
