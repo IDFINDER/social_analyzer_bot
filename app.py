@@ -483,10 +483,10 @@ def admin_logout():
 # =================================================================================
 
 @app.route('/admin/dashboard')
-@login_required
-@require_basic_auth  # طبقة أمان إضافية
+@login_required  # تمت إزالة @require_basic_auth
 def admin_dashboard():
-    """لوحة تحكم المدير - محمية بطبقتين من الأمان"""
+    """لوحة تحكم المدير - محمية بطبقة جلسة واحدة"""
+    # ... باقي الكود كما هو ...
     try:
         bot_name = os.environ.get('BOT_NAME', 'social_analyzer')
         
