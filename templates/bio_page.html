@@ -5,333 +5,123 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ display_name }} | صفحة البايو</title>
     
-    <!-- الخطوط -->
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-    
-    <!-- تحميل CSS الأساسي أولاً -->
-    <link rel="preload" href="{{ url_for('static', filename='themes/' + theme_name + '.css') }}" as="style">
-    <link rel="stylesheet" href="{{ url_for('static', filename='themes/' + theme_name + '.css') }}">
+    <link id="themeStylesheet" rel="stylesheet" href="{{ url_for('static', filename='themes/' + theme_name + '.css') }}">
     
     <style>
-        /* ===== القواعد الأساسية (ثابتة لجميع القوالب) ===== */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Tajawal', 'Segoe UI', Arial, sans-serif;
-            min-height: 100vh;
-            padding: 30px;
-            transition: all 0.3s ease;
-        }
-        
-        .container {
-            max-width: 600px;
-            margin: auto;
-            padding: 35px 25px;
-            border-radius: 25px;
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-        
-        /* الصورة الشخصية */
-        .avatar-container {
-            position: relative;
-            width: 120px;
-            height: 120px;
-            margin: 0 auto 20px;
-        }
-        
-        .avatar {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 4px solid white;
-            transition: transform 0.3s ease;
-        }
-        
-        .avatar:hover {
-            transform: scale(1.05);
-        }
-        
-        .avatar-placeholder {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 55px;
-            transition: transform 0.3s ease;
-        }
-        
-        .avatar-placeholder:hover {
-            transform: scale(1.05);
-        }
-        
-        h1 {
-            font-size: 28px;
-            margin-bottom: 8px;
-        }
-        
-        .username {
-            font-size: 14px;
-            margin-bottom: 20px;
-            direction: ltr;
-        }
-        
-        .bio {
-            padding: 15px 20px;
-            border-radius: 15px;
-            margin: 20px 0;
-            line-height: 1.7;
-            font-size: 14px;
-            text-align: center;
-        }
-        
-        .divider {
-            height: 1px;
-            margin: 25px 0;
-        }
-        
-        /* بطاقات الإحصائيات */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 12px;
-            margin: 20px 0;
-        }
-        
-        .stat-card {
-            padding: 12px;
-            border-radius: 15px;
-            text-align: center;
-            transition: transform 0.3s ease;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-3px);
-        }
-        
-        .stat-icon {
-            font-size: 28px;
-            margin-bottom: 5px;
-        }
-        
-        .stat-value {
-            font-size: 20px;
-            font-weight: bold;
-            direction: ltr;
-        }
-        
-        .stat-label {
-            font-size: 11px;
-            margin-top: 5px;
-        }
-        
-        /* أزرار الحسابات */
-        .account-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            width: 85%;
-            margin: 12px auto;
-            padding: 12px 20px;
-            border-radius: 50px;
-            text-decoration: none;
-            font-size: 16px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        
-        .account-btn:hover {
-            transform: translateY(-3px);
-            opacity: 0.92;
-        }
-        
-        .account-icon {
-            width: 24px;
-            height: 24px;
-        }
-        
-        /* ألوان المنصات (ثابتة لجميع القوالب) */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Tajawal', 'Segoe UI', Arial, sans-serif; min-height: 100vh; padding: 30px; transition: all 0.3s ease; }
+        .container { max-width: 600px; margin: auto; padding: 35px 25px; border-radius: 25px; text-align: center; transition: all 0.3s ease; }
+        .avatar-container { position: relative; width: 120px; height: 120px; margin: 0 auto 20px; }
+        .avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 4px solid white; transition: transform 0.3s ease; }
+        .avatar:hover { transform: scale(1.05); }
+        .avatar-placeholder { width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 55px; transition: transform 0.3s ease; }
+        .avatar-placeholder:hover { transform: scale(1.05); }
+        h1 { font-size: 28px; margin-bottom: 8px; }
+        .username { font-size: 14px; margin-bottom: 20px; direction: ltr; }
+        .bio { padding: 15px 20px; border-radius: 15px; margin: 20px 0; line-height: 1.7; font-size: 14px; text-align: center; }
+        .divider { height: 1px; margin: 25px 0; }
+        .account-btn { display: flex; align-items: center; justify-content: center; gap: 12px; width: 85%; margin: 12px auto; padding: 12px 20px; border-radius: 50px; text-decoration: none; font-size: 16px; font-weight: 500; transition: all 0.3s ease; color: white; border: none; cursor: pointer; }
+        .account-btn:hover { transform: translateY(-3px); opacity: 0.92; }
+        .account-icon { width: 24px; height: 24px; }
         .youtube { background: #ff0000; }
         .instagram { background: #e1306c; }
         .tiktok { background: #000000; }
         .facebook { background: #1877f2; }
-        .twitter { background: #1da1f2; }
-        .linkedin { background: #0077b5; }
-        .github { background: #333; }
-        .telegram { background: #0088cc; }
-        .whatsapp { background: #25d366; }
-        
-        /* الروابط المخصصة */
-        .custom-link {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        
-        .footer {
-            margin-top: 30px;
-            padding-top: 20px;
-            font-size: 13px;
-        }
-        
-        .footer a {
-            text-decoration: none;
-            font-weight: bold;
-            transition: 0.3s;
-        }
-        
-        .footer a:hover {
-            text-decoration: underline;
-        }
-        
-        .views {
-            margin-top: 15px;
-            font-size: 11px;
-        }
-        
+        .custom-link { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .footer { margin-top: 30px; padding-top: 20px; font-size: 13px; }
+        .footer a { text-decoration: none; font-weight: bold; transition: 0.3s; }
+        .footer a:hover { text-decoration: underline; }
+        .views { margin-top: 15px; font-size: 11px; }
+        .theme-picker { position: fixed; bottom: 20px; right: 20px; border-radius: 50px; padding: 8px 15px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 8px; z-index: 100; transition: all 0.3s ease; }
+        .theme-picker:hover { transform: scale(1.05); }
+        .theme-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        .theme-modal-content { padding: 25px; border-radius: 20px; width: 90%; max-width: 350px; text-align: center; background: white; }
+        .theme-preset { display: inline-block; width: 80px; padding: 10px; margin: 8px; border-radius: 15px; cursor: pointer; text-align: center; transition: 0.3s; border: 2px solid transparent; }
+        .theme-preset:hover { transform: scale(1.05); }
+        .save-theme { border: none; padding: 10px 20px; border-radius: 25px; margin-top: 15px; cursor: pointer; font-weight: bold; background: #667eea; color: white; }
         @media (max-width: 600px) {
             body { padding: 15px; }
             .container { padding: 25px 15px; }
             h1 { font-size: 24px; }
             .account-btn { width: 95%; padding: 10px 15px; }
             .avatar-container { width: 90px; height: 90px; }
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
         }
-        
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .container {
-            animation: fadeInUp 0.6s ease-out;
-        }
-    </style>
-    
-    <!-- شاشة التحميل -->
-    <style>
-        #loading-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            transition: opacity 0.5s ease-out;
-        }
-        
-        .loader {
-            width: 60px;
-            height: 60px;
-            border: 5px solid rgba(255, 255, 255, 0.3);
-            border-top: 5px solid white;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .loading-text {
-            margin-top: 20px;
-            color: white;
-            font-family: 'Tajawal', sans-serif;
-            font-size: 16px;
-            font-weight: 500;
-        }
-        
-        .loading-subtext {
-            margin-top: 10px;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 12px;
-        }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .container { animation: fadeInUp 0.6s ease-out; }
     </style>
 </head>
 <body>
-    <!-- شاشة التحميل -->
-    <div id="loading-screen">
-        <div style="text-align: center;">
-            <div class="loader"></div>
-            <div class="loading-text">جاري تحميل صفحة البايو...</div>
-            <div class="loading-subtext">يرجى الانتظار قليلاً</div>
-        </div>
-    </div>
-    
     <div class="container">
-        <!-- الصورة الشخصية -->
         <div class="avatar-container">
             {% if avatar_url %}
             <img src="{{ avatar_url }}" class="avatar" alt="{{ display_name }}">
             {% else %}
-            <div class="avatar-placeholder">
-                👤
-            </div>
+            <div class="avatar-placeholder">👤</div>
             {% endif %}
         </div>
-        
-        <!-- الاسم -->
         <h1>{{ display_name }}</h1>
-        
-        <!-- اليوزرنيم -->
         <div class="username">@{{ username }}</div>
+        {% if bio %}<div class="bio">{{ bio }}</div>{% endif %}
         
-        <!-- النبذة -->
-        {% if bio %}
-        <div class="bio">{{ bio }}</div>
-        {% endif %}
-        
-        <!-- أزرار الحسابات -->
         {% for account in accounts %}
         <a href="{{ account.url }}" class="account-btn {{ account.platform }}" target="_blank" rel="noopener noreferrer">
-            <img src="{{ account.icon }}" class="account-icon" alt="{{ account.name }}">
-            {{ account.name }}
+            <img src="{{ account.icon }}" class="account-icon" alt="{{ account.name }}"> {{ account.name }}
         </a>
         {% endfor %}
         
-        <!-- الروابط المخصصة -->
         {% for link in custom_links %}
-        <a href="{{ link.url }}" class="account-btn custom-link" target="_blank" rel="noopener noreferrer">
-            🔗 {{ link.title }}
-        </a>
+        <a href="{{ link.url }}" class="account-btn custom-link" target="_blank" rel="noopener noreferrer">🔗 {{ link.title }}</a>
         {% endfor %}
         
-        <!-- تذييل الصفحة -->
         <div class="footer">
             لإنشاء صفحة بايو مثل هذه 
             <a href="https://t.me/Social_Media_tools_bot" target="_blank">اضغط هنا وانتقل للبوت</a>
         </div>
-        
-        {% if views_count %}
-        <div class="views">👁️ {{ views_count }} مشاهدة</div>
-        {% endif %}
+        {% if views_count %}<div class="views">👁️ {{ views_count }} مشاهدة</div>{% endif %}
     </div>
     
+    {% if is_premium %}
+    <div class="theme-picker" onclick="showThemeModal()">🎨 تغيير الثيم</div>
+    
+    <div id="themeModal" class="theme-modal">
+        <div class="theme-modal-content">
+            <h3>🎨 اختر ثيمك المفضل</h3>
+            <div>
+                <div class="theme-preset" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;" onclick="selectTheme('default')">☀️ فاتح</div>
+                <div class="theme-preset" style="background: #1a1a2e; color: white; border: 1px solid #4facfe;" onclick="selectTheme('dark')">🌙 داكن</div>
+            </div>
+            <button class="save-theme" onclick="saveTheme()">💾 تطبيق</button>
+            <button onclick="closeThemeModal()" style="margin-top:10px; background:none; border:none; cursor:pointer;">❌ إلغاء</button>
+        </div>
+    </div>
+    {% endif %}
+    
     <script>
-        // إخفاء شاشة التحميل بعد تحميل الصفحة بالكامل
-        window.addEventListener('load', function() {
-            var loadingScreen = document.getElementById('loading-screen');
-            if (loadingScreen) {
-                loadingScreen.style.opacity = '0';
-                setTimeout(function() {
-                    loadingScreen.style.display = 'none';
-                }, 500);
-            }
-        });
+        let selectedThemeName = '{{ theme_name }}';
+        
+        function showThemeModal() { document.getElementById('themeModal').style.display = 'flex'; }
+        function closeThemeModal() { document.getElementById('themeModal').style.display = 'none'; }
+        
+        function selectTheme(theme) {
+            selectedThemeName = theme;
+            document.getElementById('themeStylesheet').href = '/static/themes/' + theme + '.css';
+        }
+        
+        function saveTheme() {
+            fetch('/api/save_theme', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: {{ user_id }}, theme_name: selectedThemeName })
+            }).then(response => response.json())
+              .then(data => { if(data.status === 'ok') { closeThemeModal(); } else { alert('حدث خطأ'); } })
+              .catch(error => { console.error('Error:', error); alert('حدث خطأ في الاتصال'); });
+        }
+        
+        window.onclick = function(event) {
+            const modal = document.getElementById('themeModal');
+            if (event.target === modal) closeThemeModal();
+        }
     </script>
 </body>
 </html>
