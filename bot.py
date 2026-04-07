@@ -1124,6 +1124,24 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data.pop('editing_bio_text', None)
         await bio_settings_command(update, context)
     
+    # ========== أزرار إدارة صفحة البايو الجديدة ==========
+    
+    # ----- حذف صفحة البايو بالكامل -----
+    elif data == "bio_delete_page":
+        await bio_delete_page(update, context)
+    
+    # ----- تأكيد حذف صفحة البايو -----
+    elif data == "bio_confirm_delete":
+        await bio_confirm_delete(update, context)
+    
+    # ----- إعادة تعيين صفحة البايو (مسح النبذة والصورة) -----
+    elif data == "bio_reset_page":
+        await bio_reset_page(update, context)
+    
+    # ----- إنشاء رابط جديد لصفحة البايو -----
+    elif data == "bio_reset_url":
+        await bio_reset_url(update, context)
+    
     # ----- أزرار إدارة صفحة البايو (القديمة) -----
     elif data == "bio_change_theme":
         keyboard = [
