@@ -125,14 +125,9 @@ def robots_txt():
 @app.route('/sitemap.xml')
 def sitemap():
     """خريطة الموقع لمحركات البحث"""
+    from flask import send_from_directory
     try:
-        base_url = f"https://{RENDER_URL}"
-        return f"""<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    <url><loc>{base_url}/</loc><priority>1.0</priority></url>
-    <url><loc>{base_url}/payment</loc><priority>0.8</priority></url>
-    <url><loc>{base_url}/privacy</loc><priority>0.6</priority></url>
-</urlset>""", 200, {'Content-Type': 'application/xml'}
+        return send_from_directory('static', 'sitemap.xml')
     except Exception as e:
         logger.error(f"Error serving sitemap: {e}")
         return "Sitemap not available", 404
