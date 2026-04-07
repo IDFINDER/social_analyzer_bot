@@ -1119,7 +1119,16 @@ elif data.startswith("edit_"):
         parse_mode='HTML',
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-    
+    # في دالة button_callback، أضف:
+
+elif data.startswith("delete_"):
+    await delete_account_callback(update, context)
+
+elif data.startswith("confirm_delete_"):
+    await confirm_delete_account(update, context)
+
+elif data.startswith("cancel_delete_"):
+    await cancel_delete_account(update, context)
     # ----- إعدادات صفحة البايو -----
     elif data == "bio_settings":
         await bio_settings_command(update, context)
