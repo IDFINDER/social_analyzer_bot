@@ -373,12 +373,11 @@ def increment_gemini_usage(user_id):
 # ========== دوال صفحة البايو (نسخة متطورة) ==========
 
 def generate_bio_url(user_id):
-    """إنشاء رابط فريد مشفر للمستخدم"""
     random_part = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
     time_part = datetime.now().timestamp()
     hash_input = f"{user_id}_{random_part}_{time_part}"
     url_hash = hashlib.md5(hash_input.encode()).hexdigest()[:12]
-    return f"bio_{url_hash}"
+    return url_hash  # إزالة "bio_" من البداية
 
 
 def get_bio_page(user_id):
