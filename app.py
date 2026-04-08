@@ -45,6 +45,7 @@ BOT_NAME = os.environ.get('BOT_NAME', 'social_analyzer')
 # ========== إعدادات المصادحة المتقدمة ==========
 # طبقة الأمان 1: جلسة المدير (Session)
 ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'Admin@123#Secure!')
 SECRET_KEY = os.environ.get('SECRET_KEY', 'dGhpcyBpcyBhIHZlcnkgc2VjcmV0IGtleQ==')
 app.secret_key = SECRET_KEY
 app.permanent_session_lifetime = timedelta(hours=24)
