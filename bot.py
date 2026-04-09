@@ -1256,19 +1256,44 @@ async def delete_account_callback(update: Update, context: ContextTypes.DEFAULT_
     )
 
 async def confirm_delete_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """تأكيد حذف الحساب"""
+    """تأكيد حذف الحساب مع التحقق من النجاح"""
     query = update.callback_query
     await query.answer()
     
     user_id = query.from_user.id
     platform = query.data.split('_')[2]
     
-    # حذف الحساب من قاعدة البيانات
-    delete_user_account(user_id, platform)
+    # 1️⃣ محاولة حذف الحساب
+    deletion_success = delete_user_account(user_id, platform)
+    
+    # 2️⃣ التحقق من نجاح عملية الحذف
+    if not deletion_success:
+        await query.edit_message_text(
+            f"❌ حدث خطأ أثناء محاولة حذف حساب {platform.capitalize()}.\n"
+            f"الرجاء المحاولة مرة أخرى لاحقاً.",
+            parse_mode='HTML'
+        )
+        return
+    
+    # 3️⃣ ✅ تم الحذف بنجاح، الآن قم بتحديث صفحة البايو
+    user_info = get_user_info(user_id)
+    
+    # جلب جميع حسابات المستخدم المتبقية (بعد الحذف)
+    all_accounts = get_user_social_accounts(user_id)
+    
+    # تحويلها إلى الشكل المطلوب لصفحة البايو
+    formatted_accounts = {}
+    for plat, acc in all_accounts.items():
+        formatted_accounts[plat] = {
+            'account_identifier': acc['account_identifier']
+        }
+    
+    # تحديث صفحة البايو (سيؤدي هذا إلى إزالة الحساب المحذوف)
+    display_name = user_info.get('first_name', 'مستخدم')
+    create_or_update_bio_page(user_id, display_name, formatted_accounts)
     
     context.user_data.pop('deleting_platform', None)
     
-    user_info = get_user_info(user_id)
     is_premium = user_info['status'] == 'premium' if user_info else False
     
     await query.edit_message_text(
