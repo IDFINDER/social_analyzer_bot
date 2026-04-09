@@ -1404,6 +1404,54 @@ async def bio_delete_page_warning(update: Update, context: ContextTypes.DEFAULT_
         parse_mode='HTML',
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+    
+    async def bio_delete_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """حذف صفحة البايو بالكامل"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    user_info = get_user_info(user_id)
+    is_premium = user_info['status'] == 'premium' if user_info else False
+    
+    if not is_premium:
+        await query.edit_message_text("💎 هذه الميزة متاحة فقط للمستخدمين المميزين!")
+        return
+    
+    try:
+        # حذف الصفحة من قاعدة البيانات
+        result = supabase.table('bio_pages').delete().eq('user_id', user_id).execute()
+        
+        if result.data or True:  # Supabase قد يعيد مصفوفة فارغة حتى مع نجاح الحذف
+            await query.edit_message_text(
+                "✅ <b>تم حذف صفحة البايو بنجاح!</b>\n\n"
+                "📌 <b>ملاحظة:</b>\n"
+                "• الرابط القديم لم يعد يعمل\n"
+                "• يمكنك إنشاء صفحة جديدة بالضغط على '📄 صفحة البايو' مرة أخرى\n"
+                "• سيتم إنشاء رابط جديد تماماً للصفحة الجديدة\n\n"
+                "💡 سيتم نقلك إلى القائمة الرئيسية...",
+                parse_mode='HTML'
+            )
+            
+            # انتظار ثانيتين ثم العودة للقائمة الرئيسية
+            await asyncio.sleep(2)
+            await query.message.reply_text(
+                "🏠 <b>القائمة الرئيسية</b>\n\nاختر ما تريد:",
+                parse_mode='HTML',
+                reply_markup=get_main_keyboard(is_premium)
+            )
+        else:
+            await query.edit_message_text(
+                "❌ لم يتم العثور على صفحة البايو للحذف.",
+                parse_mode='HTML'
+            )
+            
+    except Exception as e:
+        logger.error(f"Error deleting bio page: {e}")
+        await query.edit_message_text(
+            f"❌ حدث خطأ أثناء حذف الصفحة: {e}",
+            parse_mode='HTML'
+        )
 # =================================================================================
 # القسم 14: معالج الأزرار (Callback Query Handler)
 # =================================================================================
