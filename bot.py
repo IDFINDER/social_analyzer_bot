@@ -1358,6 +1358,7 @@ async def bio_reset_page_warning(update: Update, context: ContextTypes.DEFAULT_T
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
+
 async def bio_reset_url_warning(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """تحذير قبل إنشاء رابط جديد"""
     query = update.callback_query
@@ -1380,6 +1381,7 @@ async def bio_reset_url_warning(update: Update, context: ContextTypes.DEFAULT_TY
         parse_mode='HTML',
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+
 
 async def bio_delete_page_warning(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """تحذير قبل حذف صفحة البايو بالكامل"""
@@ -1404,8 +1406,13 @@ async def bio_delete_page_warning(update: Update, context: ContextTypes.DEFAULT_
         parse_mode='HTML',
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-    
-    async def bio_delete_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+
+# =================================================================================
+# دوال التنفيذ الفعلي للإجراءات (Execute Actions)
+# =================================================================================
+
+async def bio_delete_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """حذف صفحة البايو بالكامل"""
     query = update.callback_query
     await query.answer()
@@ -1419,33 +1426,30 @@ async def bio_delete_page_warning(update: Update, context: ContextTypes.DEFAULT_
         return
     
     try:
+        from utils.db import supabase
+        
         # حذف الصفحة من قاعدة البيانات
         result = supabase.table('bio_pages').delete().eq('user_id', user_id).execute()
         
-        if result.data or True:  # Supabase قد يعيد مصفوفة فارغة حتى مع نجاح الحذف
-            await query.edit_message_text(
-                "✅ <b>تم حذف صفحة البايو بنجاح!</b>\n\n"
-                "📌 <b>ملاحظة:</b>\n"
-                "• الرابط القديم لم يعد يعمل\n"
-                "• يمكنك إنشاء صفحة جديدة بالضغط على '📄 صفحة البايو' مرة أخرى\n"
-                "• سيتم إنشاء رابط جديد تماماً للصفحة الجديدة\n\n"
-                "💡 سيتم نقلك إلى القائمة الرئيسية...",
-                parse_mode='HTML'
-            )
-            
-            # انتظار ثانيتين ثم العودة للقائمة الرئيسية
-            await asyncio.sleep(2)
-            await query.message.reply_text(
-                "🏠 <b>القائمة الرئيسية</b>\n\nاختر ما تريد:",
-                parse_mode='HTML',
-                reply_markup=get_main_keyboard(is_premium)
-            )
-        else:
-            await query.edit_message_text(
-                "❌ لم يتم العثور على صفحة البايو للحذف.",
-                parse_mode='HTML'
-            )
-            
+        await query.edit_message_text(
+            "✅ <b>تم حذف صفحة البايو بنجاح!</b>\n\n"
+            "📌 <b>ملاحظة:</b>\n"
+            "• الرابط القديم لم يعد يعمل\n"
+            "• يمكنك إنشاء صفحة جديدة بالضغط على '📄 صفحة البايو' مرة أخرى\n"
+            "• سيتم إنشاء رابط جديد تماماً للصفحة الجديدة\n\n"
+            "💡 سيتم نقلك إلى القائمة الرئيسية...",
+            parse_mode='HTML'
+        )
+        
+        # انتظار ثانيتين ثم العودة للقائمة الرئيسية
+        import asyncio
+        await asyncio.sleep(2)
+        await query.message.reply_text(
+            "🏠 <b>القائمة الرئيسية</b>\n\nاختر ما تريد:",
+            parse_mode='HTML',
+            reply_markup=get_main_keyboard(is_premium)
+        )
+        
     except Exception as e:
         logger.error(f"Error deleting bio page: {e}")
         await query.edit_message_text(
