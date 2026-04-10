@@ -1414,6 +1414,7 @@ async def bio_delete_page_warning(update: Update, context: ContextTypes.DEFAULT_
 
 async def bio_delete_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """حذف صفحة البايو بالكامل"""
+    print("🔴 DEBUG: bio_delete_page function called!")
     query = update.callback_query
     await query.answer()
     
