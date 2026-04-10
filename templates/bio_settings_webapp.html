@@ -15,37 +15,7 @@
         }
         .container { max-width: 500px; margin: 0 auto; }
         
-        .wake-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            transition: opacity 0.5s;
-        }
-        .wake-loader {
-            width: 50px;
-            height: 50px;
-            border: 4px solid rgba(255,255,255,0.3);
-            border-top: 4px solid white;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .wake-text {
-            color: white;
-            margin-top: 20px;
-            font-family: 'Tajawal', sans-serif;
-        }
-        
+        /* بطاقة الإعدادات */
         .settings-card {
             background: white;
             border-radius: 24px;
@@ -62,6 +32,8 @@
             border-bottom: 2px solid #667eea;
             display: inline-block;
         }
+        
+        /* عنصر الإعداد */
         .setting-item {
             display: flex;
             justify-content: space-between;
@@ -83,6 +55,8 @@
         .setting-name { font-weight: 500; color: #2c3e50; }
         .setting-value { font-size: 12px; color: #7f8c8d; margin-top: 4px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
         .setting-value.bio { max-width: 200px; }
+        
+        /* أزرار */
         .btn-edit, .btn-delete, .btn-change {
             padding: 6px 16px;
             border-radius: 20px;
@@ -97,6 +71,8 @@
         .btn-delete:hover { background: #c0392b; }
         .btn-change { background: #48bb78; color: white; }
         .btn-change:hover { background: #38a169; }
+        
+        /* قائمة الحسابات */
         .account-item {
             display: flex;
             justify-content: space-between;
@@ -112,6 +88,8 @@
         .account-icon { font-size: 28px; }
         .account-name { font-weight: 500; }
         .account-username { font-size: 11px; color: #7f8c8d; direction: ltr; }
+        
+        /* زر الحفظ الرئيسي */
         .save-btn {
             width: 100%;
             padding: 14px;
@@ -126,6 +104,8 @@
             transition: all 0.2s;
         }
         .save-btn:hover { opacity: 0.9; transform: scale(1.02); }
+        
+        /* نافذة منبثقة للتعديل */
         .modal {
             display: none;
             position: fixed;
@@ -165,11 +145,14 @@
             border-radius: 10px;
             cursor: pointer;
         }
+        
+        /* حالة التحميل */
         .loading {
             text-align: center;
             padding: 40px;
             color: #667eea;
         }
+        
         @media (max-width: 500px) {
             body { padding: 10px; }
             .setting-value { max-width: 120px; font-size: 10px; }
@@ -177,19 +160,14 @@
     </style>
 </head>
 <body>
-    <div id="wakeScreen" class="wake-screen">
-        <div style="text-align: center;">
-            <div class="wake-loader"></div>
-            <div class="wake-text">⏳ جاري تجهيز لوحة التحكم...</div>
-            <div class="wake-text" style="font-size: 12px; opacity: 0.7;">يرجى الانتظار قليلاً</div>
-        </div>
-    </div>
-
     <div class="container" id="app">
         <div class="loading" id="loading">⏳ جاري تحميل الإعدادات...</div>
+        
         <div id="settingsContent" style="display: none;">
+            <!-- الاسم والنبذة والصورة -->
             <div class="settings-card">
                 <div class="section-title">👤 الملف الشخصي</div>
+                
                 <div class="setting-item">
                     <div class="setting-label">
                         <span class="setting-icon">✏️</span>
@@ -200,6 +178,7 @@
                     </div>
                     <button class="btn-edit" onclick="editDisplayName()">تعديل</button>
                 </div>
+                
                 <div class="setting-item">
                     <div class="setting-label">
                         <span class="setting-icon">📝</span>
@@ -210,6 +189,7 @@
                     </div>
                     <button class="btn-edit" onclick="editBio()">تعديل</button>
                 </div>
+                
                 <div class="setting-item">
                     <div class="setting-label">
                         <span class="setting-icon">🖼️</span>
@@ -220,6 +200,7 @@
                     </div>
                     <button class="btn-change" onclick="changeAvatar()">تغيير</button>
                 </div>
+                
                 <div class="setting-item">
                     <div class="setting-label">
                         <span class="setting-icon">🎨</span>
@@ -232,12 +213,14 @@
                 </div>
             </div>
             
+            <!-- الحسابات الاجتماعية -->
             <div class="settings-card">
                 <div class="section-title">📱 حسابات التواصل</div>
                 <div id="accountsList"></div>
                 <button class="btn-edit" style="width:100%; margin-top:10px;" onclick="addAccount()">➕ إضافة حساب جديد</button>
             </div>
             
+            <!-- أزرار إضافية -->
             <div class="settings-card">
                 <div class="section-title">⚠️ إجراءات متقدمة</div>
                 <div class="setting-item">
@@ -271,94 +254,87 @@
                     <button class="btn-delete" onclick="deletePage()">حذف</button>
                 </div>
             </div>
+            
             <button class="save-btn" onclick="closeWebApp()">✅ تم - إغلاق</button>
         </div>
     </div>
-
-    <div id="bioModal" class="modal"><div class="modal-content"><h3>📝 تعديل النبذة</h3><textarea id="bioInput" rows="3" placeholder="أدخل النبذة الجديدة..."></textarea><div class="modal-buttons"><button onclick="saveBio()" style="background:#667eea; color:white;">💾 حفظ</button><button onclick="closeModal('bioModal')" style="background:#ccc;">إلغاء</button></div></div></div>
-    <div id="nameModal" class="modal"><div class="modal-content"><h3>✏️ تعديل اسم العرض</h3><input type="text" id="nameInput" placeholder="الاسم الجديد"><div class="modal-buttons"><button onclick="saveName()" style="background:#667eea; color:white;">💾 حفظ</button><button onclick="closeModal('nameModal')" style="background:#ccc;">إلغاء</button></div></div></div>
-    <div id="themeModal" class="modal"><div class="modal-content"><h3>🎨 اختيار الثيم</h3><div style="display: flex; gap: 10px; margin: 15px 0;"><button onclick="setTheme('default')" style="flex:1; padding:10px; background:#667eea; color:white; border:none; border-radius:10px;">☀️ فاتح</button><button onclick="setTheme('dark')" style="flex:1; padding:10px; background:#1a1a2e; color:white; border:none; border-radius:10px;">🌙 داكن</button></div><button onclick="closeModal('themeModal')" style="width:100%; padding:10px; background:#ccc; border:none; border-radius:10px;">إلغاء</button></div></div>
-    <div id="addAccountModal" class="modal"><div class="modal-content"><h3>➕ إضافة حساب جديد</h3><select id="platformSelect" style="width:100%; padding:10px; margin:10px 0; border-radius:10px;"><option value="youtube">🎬 YouTube</option><option value="instagram">📸 Instagram</option><option value="tiktok">🎵 TikTok</option><option value="facebook">📘 Facebook</option></select><input type="text" id="accountIdentifier" placeholder="معرف الحساب (مثال: @username)"><div class="modal-buttons"><button onclick="saveAccount()" style="background:#48bb78; color:white;">➕ إضافة</button><button onclick="closeModal('addAccountModal')" style="background:#ccc;">إلغاء</button></div></div></div>
-
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- نافذة تعديل النبذة -->
+    <div id="bioModal" class="modal">
+        <div class="modal-content">
+            <h3>📝 تعديل النبذة</h3>
+            <textarea id="bioInput" rows="3" placeholder="أدخل النبذة الجديدة..."></textarea>
+            <div class="modal-buttons">
+                <button onclick="saveBio()" style="background:#667eea; color:white;">💾 حفظ</button>
+                <button onclick="closeModal('bioModal')" style="background:#ccc;">إلغاء</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- نافذة تعديل الاسم -->
+    <div id="nameModal" class="modal">
+        <div class="modal-content">
+            <h3>✏️ تعديل اسم العرض</h3>
+            <input type="text" id="nameInput" placeholder="الاسم الجديد">
+            <div class="modal-buttons">
+                <button onclick="saveName()" style="background:#667eea; color:white;">💾 حفظ</button>
+                <button onclick="closeModal('nameModal')" style="background:#ccc;">إلغاء</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- نافذة تغيير الثيم -->
+    <div id="themeModal" class="modal">
+        <div class="modal-content">
+            <h3>🎨 اختيار الثيم</h3>
+            <div style="display: flex; gap: 10px; margin: 15px 0;">
+                <button onclick="setTheme('default')" style="flex:1; padding:10px; background:#667eea; color:white; border:none; border-radius:10px;">☀️ فاتح</button>
+                <button onclick="setTheme('dark')" style="flex:1; padding:10px; background:#1a1a2e; color:white; border:none; border-radius:10px;">🌙 داكن</button>
+            </div>
+            <button onclick="closeModal('themeModal')" style="width:100%; padding:10px; background:#ccc; border:none; border-radius:10px;">إلغاء</button>
+        </div>
+    </div>
+    
+    <!-- نافذة إضافة حساب -->
+    <div id="addAccountModal" class="modal">
+        <div class="modal-content">
+            <h3>➕ إضافة حساب جديد</h3>
+            <select id="platformSelect" style="width:100%; padding:10px; margin:10px 0; border-radius:10px;">
+                <option value="youtube">🎬 YouTube</option>
+                <option value="instagram">📸 Instagram</option>
+                <option value="tiktok">🎵 TikTok</option>
+                <option value="facebook">📘 Facebook</option>
+            </select>
+            <input type="text" id="accountIdentifier" placeholder="معرف الحساب (مثال: @username)">
+            <div class="modal-buttons">
+                <button onclick="saveAccount()" style="background:#48bb78; color:white;">➕ إضافة</button>
+                <button onclick="closeModal('addAccountModal')" style="background:#ccc;">إلغاء</button>
+            </div>
+        </div>
+    </div>
+    
     <script>
         let userData = {};
-        let tg = null;
-        let userId = null;
+        let tg = window.Telegram.WebApp;
         
-        // إخفاء شاشة البداية بعد 3 ثواني
-        setTimeout(function() {
-            var wakeScreen = document.getElementById('wakeScreen');
-            if (wakeScreen) { 
-                wakeScreen.style.opacity = '0'; 
-                setTimeout(function() { wakeScreen.style.display = 'none'; }, 500); 
-            }
-        }, 3000);
+        // تهيئة الصفحة
+        tg.ready();
+        tg.expand();
         
-        // الحصول على userId
-        async function getUserId() {
-            // من تليجرام
-            try {
-                tg = window.Telegram.WebApp;
-                tg.ready();
-                tg.expand();
-                if (tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) { 
-                    return tg.initDataUnsafe.user.id;
-                }
-            } catch(e) { 
-                console.log("Not in Telegram WebApp"); 
-            }
-            
-            // من الرابط
-            const urlParams = new URLSearchParams(window.location.search);
-            const urlUserId = urlParams.get('user_id');
-            if (urlUserId) {
-                return parseInt(urlUserId);
-            }
-            
-            // من التخزين المحلي
-            const storedUserId = localStorage.getItem('bio_user_id');
-            if (storedUserId) {
-                return parseInt(storedUserId);
-            }
-            
-            return null;
-        }
-        
-        // التهيئة
-        async function init() {
-            document.getElementById('loading').innerHTML = '⏳ جاري تحميل الإعدادات...';
-            document.getElementById('loading').style.display = 'block';
-            
-            userId = await getUserId();
-            
-            if (!userId) {
-                document.getElementById('loading').innerHTML = '❌ حدث خطأ: لم يتم التعرف على المستخدم.<br><br>💡 يرجى فتح الصفحة من داخل البوت على تليجرام.';
-                return;
-            }
-            
-            localStorage.setItem('bio_user_id', userId);
-            await loadData();
-        }
-        
-        // تحميل البيانات
+        // جلب البيانات من البوت
         async function loadData() {
             try {
-                const response = await fetch(`/webapp/api/bio-settings?user_id=${userId}`);
-                const data = await response.json();
-                
-                if (data.error) {
-                    document.getElementById('loading').innerHTML = '❌ ' + data.error;
-                    return;
-                }
-                
-                userData = data;
+                const response = await fetch('/webapp/api/bio-settings', {
+                    headers: { 'X-Telegram-User-Id': tg.initDataUnsafe.user.id }
+                });
+                userData = await response.json();
                 
                 document.getElementById('displayNameValue').innerText = userData.display_name || '-';
                 document.getElementById('bioValue').innerText = userData.bio || 'لا يوجد';
                 document.getElementById('avatarValue').innerText = userData.avatar_url ? '✅ محددة' : '❌ غير محددة';
                 document.getElementById('themeValue').innerText = userData.theme_name == 'default' ? '☀️ فاتح' : '🌙 داكن';
                 
+                // عرض الحسابات
                 const accountsList = document.getElementById('accountsList');
                 accountsList.innerHTML = '';
                 for (const [platform, acc] of Object.entries(userData.accounts || {})) {
@@ -384,26 +360,25 @@
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('settingsContent').style.display = 'block';
             } catch(e) {
-                document.getElementById('loading').innerHTML = '❌ خطأ في تحميل البيانات: ' + e.message;
+                document.getElementById('loading').innerHTML = '❌ خطأ في تحميل البيانات';
             }
         }
         
-        // إرسال طلب
+        // إرسال طلب إلى البوت
         async function sendAction(action, data) {
-            try {
-                const response = await fetch('/webapp/api/action', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action, user_id: userId, ...data })
-                });
-                return await response.json();
-            } catch(e) {
-                return { success: false, error: e.message };
-            }
+            const response = await fetch('/webapp/api/action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Telegram-User-Id': tg.initDataUnsafe.user.id },
+                body: JSON.stringify({ action, ...data })
+            });
+            return await response.json();
         }
         
         // دوال التعديل
-        function editDisplayName() { document.getElementById('nameInput').value = userData.display_name || ''; document.getElementById('nameModal').style.display = 'flex'; }
+        function editDisplayName() {
+            document.getElementById('nameInput').value = userData.display_name || '';
+            document.getElementById('nameModal').style.display = 'flex';
+        }
         
         async function saveName() {
             const newName = document.getElementById('nameInput').value;
@@ -412,12 +387,15 @@
             if (result.success) {
                 userData.display_name = newName;
                 document.getElementById('displayNameValue').innerText = newName;
-                if (tg) tg.showAlert('✅ تم تحديث الاسم بنجاح'); else alert('✅ تم تحديث الاسم بنجاح');
+                tg.showAlert('✅ تم تحديث الاسم بنجاح');
             }
             closeModal('nameModal');
         }
         
-        function editBio() { document.getElementById('bioInput').value = userData.bio || ''; document.getElementById('bioModal').style.display = 'flex'; }
+        function editBio() {
+            document.getElementById('bioInput').value = userData.bio || '';
+            document.getElementById('bioModal').style.display = 'flex';
+        }
         
         async function saveBio() {
             const newBio = document.getElementById('bioInput').value;
@@ -425,120 +403,126 @@
             if (result.success) {
                 userData.bio = newBio;
                 document.getElementById('bioValue').innerText = newBio || 'لا يوجد';
-                if (tg) tg.showAlert('✅ تم تحديث النبذة بنجاح'); else alert('✅ تم تحديث النبذة بنجاح');
+                tg.showAlert('✅ تم تحديث النبذة بنجاح');
             }
             closeModal('bioModal');
         }
         
-        function changeAvatar() { 
-            if (tg) {
-                tg.showPopup({ title: '🖼️ تغيير الصورة الشخصية', message: 'أدخل رابط الصورة الجديدة (URL):', buttons: [{ type: 'ok' }, { type: 'cancel' }] }, async (buttonId) => { 
-                    if (buttonId === 'ok') { tg.showAlert('⚠️ هذه الميزة ستضاف قريباً'); } 
-                });
-            } else { 
-                alert('⚠️ هذه الميزة ستضاف قريباً'); 
-            }
+        function changeAvatar() {
+            tg.showPopup({
+                title: '🖼️ تغيير الصورة الشخصية',
+                message: 'أدخل رابط الصورة الجديدة (URL):',
+                buttons: [{ type: 'ok' }, { type: 'cancel' }]
+            }, async (buttonId) => {
+                if (buttonId === 'ok') {
+                    tg.showAlert('⚠️ هذه الميزة ستضاف قريباً');
+                }
+            });
         }
         
-        function changeTheme() { document.getElementById('themeModal').style.display = 'flex'; }
+        function changeTheme() {
+            document.getElementById('themeModal').style.display = 'flex';
+        }
         
         async function setTheme(theme) {
             const result = await sendAction('update_theme', { theme });
             if (result.success) {
                 userData.theme_name = theme;
                 document.getElementById('themeValue').innerText = theme == 'default' ? '☀️ فاتح' : '🌙 داكن';
-                if (tg) tg.showAlert(`✅ تم تغيير الثيم إلى ${theme == 'default' ? 'الفاتح' : 'الداكن'}`); else alert(`✅ تم تغيير الثيم إلى ${theme == 'default' ? 'الفاتح' : 'الداكن'}`);
+                tg.showAlert(`✅ تم تغيير الثيم إلى ${theme == 'default' ? 'الفاتح' : 'الداكن'}`);
             }
             closeModal('themeModal');
         }
         
-        function addAccount() { document.getElementById('addAccountModal').style.display = 'flex'; }
+        function addAccount() {
+            document.getElementById('addAccountModal').style.display = 'flex';
+        }
         
         async function saveAccount() {
             const platform = document.getElementById('platformSelect').value;
             const identifier = document.getElementById('accountIdentifier').value;
             if (!identifier) return;
             const result = await sendAction('add_account', { platform, identifier });
-            if (result.success) { 
-                if (tg) tg.showAlert('✅ تم إضافة الحساب بنجاح'); else alert('✅ تم إضافة الحساب بنجاح'); 
-                loadData(); 
+            if (result.success) {
+                tg.showAlert('✅ تم إضافة الحساب بنجاح');
+                loadData();
             }
             closeModal('addAccountModal');
         }
         
         async function deleteAccount(platform) {
-            const confirmMsg = `هل أنت متأكد من حذف حساب ${platform}؟`;
-            if (tg) {
-                tg.showPopup({ title: '⚠️ تأكيد الحذف', message: confirmMsg, buttons: [{ type: 'ok', text: 'نعم' }, { type: 'cancel', text: 'إلغاء' }] }, async (buttonId) => {
-                    if (buttonId === 'ok') {
-                        const result = await sendAction('delete_account', { platform });
-                        if (result.success) { if (tg) tg.showAlert(`✅ تم حذف حساب ${platform}`); loadData(); }
-                    }
-                });
-            } else {
-                if (confirm(confirmMsg)) {
+            tg.showPopup({
+                title: '⚠️ تأكيد الحذف',
+                message: `هل أنت متأكد من حذف حساب ${platform}؟`,
+                buttons: [{ type: 'ok', text: 'نعم' }, { type: 'cancel', text: 'إلغاء' }]
+            }, async (buttonId) => {
+                if (buttonId === 'ok') {
                     const result = await sendAction('delete_account', { platform });
-                    if (result.success) { alert(`✅ تم حذف حساب ${platform}`); loadData(); }
+                    if (result.success) {
+                        tg.showAlert(`✅ تم حذف حساب ${platform}`);
+                        loadData();
+                    }
                 }
-            }
+            });
         }
         
         async function resetPage() {
-            const confirmMsg = 'هل أنت متأكد من إعادة تعيين صفحة البايو؟ سيتم مسح النبذة والصورة فقط.';
-            if (tg) {
-                tg.showPopup({ title: '⚠️ تحذير', message: confirmMsg, buttons: [{ type: 'ok', text: 'نعم' }, { type: 'cancel', text: 'إلغاء' }] }, async (buttonId) => {
-                    if (buttonId === 'ok') {
-                        const result = await sendAction('reset_page');
-                        if (result.success) { if (tg) tg.showAlert('✅ تم إعادة تعيين الصفحة'); loadData(); }
-                    }
-                });
-            } else {
-                if (confirm(confirmMsg)) {
+            tg.showPopup({
+                title: '⚠️ تحذير',
+                message: 'هل أنت متأكد من إعادة تعيين صفحة البايو؟ سيتم مسح النبذة والصورة فقط.',
+                buttons: [{ type: 'ok', text: 'نعم' }, { type: 'cancel', text: 'إلغاء' }]
+            }, async (buttonId) => {
+                if (buttonId === 'ok') {
                     const result = await sendAction('reset_page');
-                    if (result.success) { alert('✅ تم إعادة تعيين الصفحة'); loadData(); }
+                    if (result.success) {
+                        tg.showAlert('✅ تم إعادة تعيين الصفحة');
+                        loadData();
+                    }
                 }
-            }
+            });
         }
         
         async function resetUrl() {
-            const confirmMsg = 'إنشاء رابط جديد سيوقف الرابط القديم. هل أنت متأكد؟';
-            if (tg) {
-                tg.showPopup({ title: '⚠️ تحذير', message: confirmMsg, buttons: [{ type: 'ok', text: 'نعم' }, { type: 'cancel', text: 'إلغاء' }] }, async (buttonId) => {
-                    if (buttonId === 'ok') {
-                        const result = await sendAction('reset_url');
-                        if (result.success) { if (tg) tg.showAlert(`✅ الرابط الجديد: ${result.new_url}`); }
-                    }
-                });
-            } else {
-                if (confirm(confirmMsg)) {
+            tg.showPopup({
+                title: '⚠️ تحذير',
+                message: 'إنشاء رابط جديد سيوقف الرابط القديم. هل أنت متأكد؟',
+                buttons: [{ type: 'ok', text: 'نعم' }, { type: 'cancel', text: 'إلغاء' }]
+            }, async (buttonId) => {
+                if (buttonId === 'ok') {
                     const result = await sendAction('reset_url');
-                    if (result.success) { alert(`✅ الرابط الجديد: ${result.new_url}`); }
+                    if (result.success) {
+                        tg.showAlert(`✅ الرابط الجديد: ${result.new_url}`);
+                    }
                 }
-            }
+            });
         }
         
         async function deletePage() {
-            const confirmMsg = 'سيتم حذف صفحة البايو بالكامل ولا يمكن التراجع. هل أنت متأكد؟';
-            if (tg) {
-                tg.showPopup({ title: '⚠️ تحذير نهائي', message: confirmMsg, buttons: [{ type: 'ok', text: 'نعم' }, { type: 'cancel', text: 'إلغاء' }] }, async (buttonId) => {
-                    if (buttonId === 'ok') {
-                        const result = await sendAction('delete_page');
-                        if (result.success) { if (tg) tg.showAlert('✅ تم حذف الصفحة'); tg.close(); }
-                    }
-                });
-            } else {
-                if (confirm(confirmMsg)) {
+            tg.showPopup({
+                title: '⚠️ تحذير نهائي',
+                message: 'سيتم حذف صفحة البايو بالكامل ولا يمكن التراجع. هل أنت متأكد؟',
+                buttons: [{ type: 'ok', text: 'نعم' }, { type: 'cancel', text: 'إلغاء' }]
+            }, async (buttonId) => {
+                if (buttonId === 'ok') {
                     const result = await sendAction('delete_page');
-                    if (result.success) { alert('✅ تم حذف الصفحة'); window.close(); }
+                    if (result.success) {
+                        tg.showAlert('✅ تم حذف الصفحة');
+                        tg.close();
+                    }
                 }
-            }
+            });
         }
         
-        function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
-        function closeWebApp() { if (tg) tg.close(); else window.close(); }
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
         
-        // بدء التشغيل
-        init();
+        function closeWebApp() {
+            tg.close();
+        }
+        
+        loadData();
     </script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </body>
 </html>
