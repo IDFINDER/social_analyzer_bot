@@ -1040,6 +1040,8 @@ async def bio_settings_command(update: Update, context: ContextTypes.DEFAULT_TYP
         [InlineKeyboardButton("🔄 إعادة تعيين (مسح النبذة والصورة)", callback_data="bio_reset_page_warning")],
         [InlineKeyboardButton("🔗 إنشاء رابط جديد للصفحة", callback_data="bio_reset_url_warning")],
         [InlineKeyboardButton("🗑️ حذف صفحة البايو بالكامل", callback_data="bio_delete_page_warning")],
+        # 👇 أضف الزر الجديد هنا 👇
+        [InlineKeyboardButton("🖥️ لوحة تحكم متقدمة (تجريبي)", web_app=WebAppInfo(url=f"https://{RENDER_URL}/webapp/bio-settings"))],
         [InlineKeyboardButton("🔙 رجوع", callback_data="main_menu")]
     ]
     
