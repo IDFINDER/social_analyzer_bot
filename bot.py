@@ -494,7 +494,17 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 👨‍💻 <b>المطور:</b> @E_Alshabany
 """
-    await update.message.reply_text(help_text, parse_mode='HTML', reply_markup=get_main_keyboard(is_premium))
+    # إنشاء لوحة مفاتيح مدمجة
+    keyboard = [
+        [InlineKeyboardButton("📋 سياسة الخصوصية", url="https://social-analyzer-flask.onrender.com/privacy")],
+        [InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")]
+    ]
+    
+    await update.message.reply_text(
+        help_text, 
+        parse_mode='HTML', 
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
 # =================================================================================
 # القسم 9: أوامر البوت - التحليل (Analysis Commands)
