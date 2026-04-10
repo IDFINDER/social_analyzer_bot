@@ -254,40 +254,6 @@ def bio_page(page_url):
 # =================================================================================
 # القسم: WebApp لإعدادات صفحة البايو
 # =================================================================================
-
-@app.route('/webapp/bio-settings')
-def webapp_bio_settings():
-    """صفحة إعدادات البايو المنبثقة"""
-    return render_template('bio_settings_webapp.html')
-
-@app.route('/webapp/api/bio-settings')
-def webapp_get_settings():
-    """API لجلب إعدادات المستخدم"""
-    try:
-        # الحصول على user_id من معامل GET (لأنه أسهل)
-        user_id = request.args.get('user_id')
-        
-        if not user_id:
-            return jsonify({'error': 'Unauthorized: user_id required'}), 401
-        
-        user_id = int(user_id)
-        
-        user_info = get_user_info(user_id)
-        if not user_info:
-            return jsonify({'error': 'User not found'}), 404
-        
-        bio_page = get_bio_page(user_id)
-        
-        return jsonify({
-            'display_name': user_info.get('first_name', ''),
-            'bio': bio_page.get('bio', '') if bio_page else '',
-            'avatar_url': bio_page.get('avatar_url') if bio_page else None,
-            'theme_name': bio_page.get('theme_name', 'default') if bio_page else 'default',
-            'accounts': get_user_social_accounts(user_id)
-        })
-    except Exception as e:
-        logger.error(f"Error in webapp_get_settings: {e}")
-        return jsonify({'error': str(e)}), 500
         
 @app.route('/webapp/api/action', methods=['POST'])
 def webapp_action():
