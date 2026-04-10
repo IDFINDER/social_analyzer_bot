@@ -35,10 +35,10 @@ else:
     logger.warning("⚠️ SUPABASE_SERVICE_ROLE_KEY not set, using anon key for admin operations")
 
 
-# ========== دوال المستخدمين ==========
+# ========== دوال المستخدمين (قراءة فقط - supabase) ==========
 
 def get_or_create_user(user_id, first_name, username, language_code):
-    """جلب أو إنشاء مستخدم (بدون تعارض مع البوتات الأخرى)"""
+    """جلب أو إنشاء مستخدم"""
     try:
         response = supabase.table('users').select('*').eq('user_id', user_id).execute()
         
@@ -219,7 +219,7 @@ def get_total_analyses(user_id):
     return usage.get('total_uses', 0) if usage else 0
 
 
-# ========== دوال حسابات المستخدمين ==========
+# ========== دوال حسابات المستخدمين (قراءة/كتابة - supabase) ==========
 
 def get_user_social_accounts(user_id):
     """جلب جميع حسابات المستخدم"""
@@ -272,7 +272,7 @@ def delete_user_account(user_id, platform):
         return False
 
 
-# ========== دوال Gemini API ==========
+# ========== دوال Gemini API (قراءة/كتابة - supabase) ==========
 
 def get_gemini_usage(user_id):
     """الحصول على استخدامات Gemini للمستخدم"""
@@ -359,7 +359,7 @@ def increment_gemini_usage(user_id):
         return False
 
 
-# ========== دوال صفحة البايو (نسخة متطورة) ==========
+# ========== دوال صفحة البايو (كتابة - supabase_admin) ==========
 
 def generate_bio_url(user_id):
     """إنشاء رابط فريد لصفحة البايو"""
@@ -371,7 +371,7 @@ def generate_bio_url(user_id):
 
 
 def get_bio_page(user_id):
-    """جلب صفحة البايو للمستخدم باستخدام user_id"""
+    """جلب صفحة البايو للمستخدم (قراءة فقط - supabase)"""
     try:
         response = supabase.table('bio_pages').select('*').eq('user_id', user_id).execute()
         if response.data:
@@ -383,7 +383,7 @@ def get_bio_page(user_id):
 
 
 def get_bio_page_by_page_url(page_url):
-    """جلب صفحة البايو بواسطة page_url (للعرض العام)"""
+    """جلب صفحة البايو بواسطة page_url (قراءة فقط - supabase)"""
     try:
         response = supabase.table('bio_pages').select('*').eq('page_url', page_url).eq('is_enabled', True).execute()
         if response.data:
@@ -395,7 +395,7 @@ def get_bio_page_by_page_url(page_url):
 
 
 def create_or_update_bio_page(user_id, display_name, accounts, custom_links=None, bio=None):
-    """إنشاء أو تحديث صفحة البايو - باستخدام supabase_admin للكتابة"""
+    """إنشاء أو تحديث صفحة البايو (كتابة - supabase_admin)"""
     try:
         existing = supabase_admin.table('bio_pages').select('page_url').eq('user_id', user_id).execute()
         
@@ -432,7 +432,7 @@ def create_or_update_bio_page(user_id, display_name, accounts, custom_links=None
 
 
 def increment_bio_views(page_url):
-    """زيادة عدد مشاهدات صفحة البايو"""
+    """زيادة عدد مشاهدات صفحة البايو (تحديث - supabase)"""
     try:
         response = supabase.table('bio_pages').select('views_count').eq('page_url', page_url).execute()
         
@@ -451,7 +451,7 @@ def increment_bio_views(page_url):
 
 
 def disable_bio_page(user_id):
-    """تعطيل صفحة البايو"""
+    """تعطيل صفحة البايو (كتابة - supabase_admin)"""
     try:
         supabase_admin.table('bio_pages').update({
             'is_enabled': False,
@@ -464,7 +464,7 @@ def disable_bio_page(user_id):
 
 
 def update_bio_theme(user_id, theme_name):
-    """تحديث ثيم صفحة البايو"""
+    """تحديث ثيم صفحة البايو (كتابة - supabase_admin)"""
     try:
         supabase_admin.table('bio_pages').update({
             'theme_name': theme_name,
@@ -477,7 +477,7 @@ def update_bio_theme(user_id, theme_name):
 
 
 def update_bio_text(user_id, bio_text):
-    """تحديث النبذة المختصرة في صفحة البايو"""
+    """تحديث النبذة (كتابة - supabase_admin)"""
     try:
         result = supabase_admin.table('bio_pages').update({
             'bio': bio_text,
@@ -494,7 +494,7 @@ def update_bio_text(user_id, bio_text):
 
 
 def update_bio_avatar(user_id, avatar_url):
-    """تحديث الصورة الشخصية في صفحة البايو"""
+    """تحديث الصورة الشخصية (كتابة - supabase_admin)"""
     try:
         result = supabase_admin.table('bio_pages').update({
             'avatar_url': avatar_url,
@@ -511,7 +511,7 @@ def update_bio_avatar(user_id, avatar_url):
 
 
 def add_custom_link(user_id, title, url):
-    """إضافة رابط مخصص"""
+    """إضافة رابط مخصص (كتابة - supabase_admin)"""
     try:
         bio = get_bio_page(user_id)
         custom_links = bio.get('custom_links', []) if bio else []
@@ -528,7 +528,7 @@ def add_custom_link(user_id, title, url):
 
 
 def remove_custom_link(user_id, link_index):
-    """حذف رابط مخصص"""
+    """حذف رابط مخصص (كتابة - supabase_admin)"""
     try:
         bio = get_bio_page(user_id)
         if not bio:
@@ -546,12 +546,10 @@ def remove_custom_link(user_id, link_index):
         return False
 
 
-# =================================================================================
-# القسم: دوال لوحة تحكم المدير (Admin Dashboard)
-# =================================================================================
+# ========== دوال لوحة تحكم المدير (قراءة - supabase) ==========
 
 def get_all_users_with_stats(bot_name=None):
-    """جلب جميع المستخدمين مع إحصائياتهم الكاملة - مع تصفية حسب البوت"""
+    """جلب جميع المستخدمين مع إحصائياتهم الكاملة"""
     try:
         if bot_name is None:
             bot_name = os.environ.get('BOT_NAME', 'social_analyzer')
@@ -605,12 +603,12 @@ def get_all_users_with_stats(bot_name=None):
 
 
 def get_global_stats(bot_name=None):
-    """جلب إحصائيات عامة للوحة التحكم - مع تصفية حسب البوت"""
+    """جلب إحصائيات عامة للوحة التحكم"""
     try:
         if bot_name is None:
             bot_name = os.environ.get('BOT_NAME', 'social_analyzer')
         
-        usage_response = supabase.table('bot_usage').select('user_id').eq('bot_name', bot_name).execute()
+        usage_response = supabase.table('bot_usage').select('*').eq('bot_name', bot_name).execute()
         user_ids = [u['user_id'] for u in usage_response.data] if usage_response.data else []
         
         if not user_ids:
