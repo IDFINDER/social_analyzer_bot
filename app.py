@@ -239,6 +239,113 @@ def bio_page(page_url):
         return f"Internal error: {e}", 500
 
 # =================================================================================
+# القسم: WebApp لإعدادات صفحة البايو
+# =================================================================================
+
+@app.route('/webapp/bio-settings')
+def webapp_bio_settings():
+    """صفحة إعدادات البايو المنبثقة"""
+    return render_template('bio_settings_webapp.html')
+
+@app.route('/webapp/api/bio-settings')
+def webapp_get_settings():
+    """API لجلب إعدادات المستخدم"""
+    try:
+        user_id = int(request.headers.get('X-Telegram-User-Id', 0))
+        if not user_id:
+            return jsonify({'error': 'Unauthorized'}), 401
+        
+        user_info = get_user_info(user_id)
+        bio_page = get_bio_page(user_id)
+        
+        return jsonify({
+            'display_name': user_info.get('first_name', ''),
+            'bio': bio_page.get('bio', '') if bio_page else '',
+            'avatar_url': bio_page.get('avatar_url') if bio_page else None,
+            'theme_name': bio_page.get('theme_name', 'default') if bio_page else 'default',
+            'accounts': get_user_social_accounts(user_id)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/webapp/api/action', methods=['POST'])
+def webapp_action():
+    """API لتنفيذ الإجراءات من WebApp"""
+    try:
+        user_id = int(request.headers.get('X-Telegram-User-Id', 0))
+        if not user_id:
+            return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+        
+        data = request.get_json()
+        action = data.get('action')
+        
+        if action == 'update_name':
+            new_name = data.get('name')
+            supabase.table('users').update({'first_name': new_name}).eq('user_id', user_id).execute()
+            # تحديث صفحة البايو
+            accounts = get_user_social_accounts(user_id)
+            formatted = {p: {'account_identifier': a['account_identifier']} for p, a in accounts.items()}
+            create_or_update_bio_page(user_id, new_name, formatted)
+            return jsonify({'success': True})
+        
+        elif action == 'update_bio':
+            new_bio = data.get('bio')
+            update_bio_text(user_id, new_bio)
+            return jsonify({'success': True})
+        
+        elif action == 'update_theme':
+            theme = data.get('theme')
+            update_bio_theme(user_id, theme)
+            return jsonify({'success': True})
+        
+        elif action == 'add_account':
+            platform = data.get('platform')
+            identifier = data.get('identifier')
+            save_user_account(user_id, platform, identifier)
+            # تحديث صفحة البايو
+            accounts = get_user_social_accounts(user_id)
+            user_info = get_user_info(user_id)
+            formatted = {p: {'account_identifier': a['account_identifier']} for p, a in accounts.items()}
+            create_or_update_bio_page(user_id, user_info.get('first_name', 'مستخدم'), formatted)
+            return jsonify({'success': True})
+        
+        elif action == 'delete_account':
+            platform = data.get('platform')
+            delete_user_account(user_id, platform)
+            # تحديث صفحة البايو
+            accounts = get_user_social_accounts(user_id)
+            user_info = get_user_info(user_id)
+            formatted = {p: {'account_identifier': a['account_identifier']} for p, a in accounts.items()}
+            create_or_update_bio_page(user_id, user_info.get('first_name', 'مستخدم'), formatted)
+            return jsonify({'success': True})
+        
+        elif action == 'reset_page':
+            update_bio_text(user_id, '')
+            update_bio_avatar(user_id, None)
+            return jsonify({'success': True})
+        
+        elif action == 'reset_url':
+            accounts = get_user_social_accounts(user_id)
+            user_info = get_user_info(user_id)
+            formatted = {p: {'account_identifier': a['account_identifier']} for p, a in accounts.items()}
+            # حذف الصفحة القديمة
+            from utils.db import supabase_admin
+            supabase_admin.table('bio_pages').delete().eq('user_id', user_id).execute()
+            # إنشاء صفحة جديدة
+            new_url = create_or_update_bio_page(user_id, user_info.get('first_name', 'مستخدم'), formatted)
+            flask_url = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
+            return jsonify({'success': True, 'new_url': f"https://{flask_url}/bio/{new_url}"})
+        
+        elif action == 'delete_page':
+            from utils.db import supabase_admin
+            supabase_admin.table('bio_pages').delete().eq('user_id', user_id).execute()
+            return jsonify({'success': True})
+        
+        return jsonify({'success': False, 'error': 'Unknown action'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+# =================================================================================
 # القسم 8: واجهة برمجة التطبيقات (API Endpoints)
 # =================================================================================
 
