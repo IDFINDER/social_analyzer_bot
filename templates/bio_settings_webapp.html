@@ -300,16 +300,23 @@
             }, 500);
         });
         
-        // تهيئة تليجرام
-        try {
-            tg = window.Telegram.WebApp;
-            tg.ready();
-            tg.expand();
-            if (tg.initDataUnsafe && tg.initDataUnsafe.user) { userId = tg.initDataUnsafe.user.id; }
-        } catch(e) { console.log("Not in Telegram WebApp"); }
-        
-        // إذا لم يتم العثور على userId، استخدم معرف تجريبي (للتجربة من المتصفح)
-        if (!userId) { userId = 7850462368; }
+        // تهيئة تليجرام والحصول على userId
+try {
+    tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) { 
+        userId = tg.initDataUnsafe.user.id; 
+    }
+} catch(e) { 
+    console.log("Not in Telegram WebApp"); 
+}
+
+// التحقق من وجود userId - لا تضع قيمة افتراضية!
+if (!userId) { 
+    document.getElementById('loading').innerHTML = '❌ حدث خطأ: لم يتم التعرف على المستخدم. يرجى إعادة فتح الصفحة من البوت.';
+    return;
+}
         
         async function loadData() {
             try {
