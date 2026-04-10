@@ -468,6 +468,261 @@ if (!userId) {
         function closeWebApp() { if (tg) tg.close(); else window.close(); }
         
         loadData();
-    </script>
-</body>
-</html>
+    <script>
+    let userData = {};
+    let tg = null;
+    let userId = null;
+    
+    // إخفاء شاشة البداية بعد 3 ثواني كحد أقصى
+    setTimeout(function() {
+        var wakeScreen = document.getElementById('wakeScreen');
+        if (wakeScreen && wakeScreen.style.display !== 'none') { 
+            wakeScreen.style.opacity = '0'; 
+            setTimeout(function() { wakeScreen.style.display = 'none'; }, 500); 
+        }
+    }, 3000);
+    
+    // محاولة الحصول على userId من عدة مصادر
+    async function getUserId() {
+        // المصدر 1: من تليجرام WebApp
+        try {
+            tg = window.Telegram.WebApp;
+            tg.ready();
+            tg.expand();
+            if (tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) { 
+                return tg.initDataUnsafe.user.id;
+            }
+        } catch(e) { 
+            console.log("Not in Telegram WebApp"); 
+        }
+        
+        // المصدر 2: من رابط URL (user_id=xxx)
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlUserId = urlParams.get('user_id');
+        if (urlUserId) {
+            return parseInt(urlUserId);
+        }
+        
+        // المصدر 3: من التخزين المحلي (للتجربة)
+        const storedUserId = localStorage.getItem('bio_user_id');
+        if (storedUserId) {
+            return parseInt(storedUserId);
+        }
+        
+        return null;
+    }
+    
+    // بدء التحميل
+    async function init() {
+        // إظهار رسالة التحميل
+        document.getElementById('loading').innerHTML = '⏳ جاري تحميل الإعدادات...';
+        document.getElementById('loading').style.display = 'block';
+        
+        // الحصول على userId
+        userId = await getUserId();
+        
+        if (!userId) {
+            document.getElementById('loading').innerHTML = '❌ حدث خطأ: لم يتم التعرف على المستخدم.<br><br>💡 يرجى فتح الصفحة من داخل البوت على تليجرام.';
+            return;
+        }
+        
+        // حفظ userId في التخزين المحلي للاستخدام المستقبلي
+        localStorage.setItem('bio_user_id', userId);
+        
+        // تحميل البيانات
+        await loadData();
+    }
+    
+    // جلب البيانات من البوت
+    async function loadData() {
+        try {
+            const apiUrl = `/webapp/api/bio-settings?user_id=${userId}`;
+            console.log("Fetching:", apiUrl);
+            
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+            
+            if (data.error) {
+                document.getElementById('loading').innerHTML = '❌ ' + data.error;
+                return;
+            }
+            
+            userData = data;
+            
+            document.getElementById('displayNameValue').innerText = userData.display_name || '-';
+            document.getElementById('bioValue').innerText = userData.bio || 'لا يوجد';
+            document.getElementById('avatarValue').innerText = userData.avatar_url ? '✅ محددة' : '❌ غير محددة';
+            document.getElementById('themeValue').innerText = userData.theme_name == 'default' ? '☀️ فاتح' : '🌙 داكن';
+            
+            // عرض الحسابات
+            const accountsList = document.getElementById('accountsList');
+            accountsList.innerHTML = '';
+            for (const [platform, acc] of Object.entries(userData.accounts || {})) {
+                const icons = { youtube:'🎬', instagram:'📸', tiktok:'🎵', facebook:'📘' };
+                accountsList.innerHTML += `
+                    <div class="account-item">
+                        <div class="account-info">
+                            <span class="account-icon">${icons[platform] || '🔗'}</span>
+                            <div>
+                                <div class="account-name">${platform.charAt(0).toUpperCase() + platform.slice(1)}</div>
+                                <div class="account-username">@${acc.account_identifier?.replace('@', '') || '-'}</div>
+                            </div>
+                        </div>
+                        <button class="btn-delete" onclick="deleteAccount('${platform}')">🗑️ حذف</button>
+                    </div>
+                `;
+            }
+            
+            if (Object.keys(userData.accounts || {}).length === 0) {
+                accountsList.innerHTML = '<div style="text-align:center; padding:20px; color:#999;">لا توجد حسابات مسجلة</div>';
+            }
+            
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('settingsContent').style.display = 'block';
+        } catch(e) {
+            document.getElementById('loading').innerHTML = '❌ خطأ في تحميل البيانات: ' + e.message;
+            console.error("Load error:", e);
+        }
+    }
+    
+    // إرسال طلب إلى البوت
+    async function sendAction(action, data) {
+        try {
+            const response = await fetch('/webapp/api/action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, user_id: userId, ...data })
+            });
+            return await response.json();
+        } catch(e) {
+            console.error("Action error:", e);
+            return { success: false, error: e.message };
+        }
+    }
+    
+    // دوال التعديل (ابقها كما هي)
+    function editDisplayName() { document.getElementById('nameInput').value = userData.display_name || ''; document.getElementById('nameModal').style.display = 'flex'; }
+    
+    async function saveName() {
+        const newName = document.getElementById('nameInput').value;
+        if (!newName) return;
+        const result = await sendAction('update_name', { name: newName });
+        if (result.success) {
+            userData.display_name = newName;
+            document.getElementById('displayNameValue').innerText = newName;
+            if (tg) tg.showAlert('✅ تم تحديث الاسم بنجاح'); else alert('✅ تم تحديث الاسم بنجاح');
+        }
+        closeModal('nameModal');
+    }
+    
+    function editBio() { document.getElementById('bioInput').value = userData.bio || ''; document.getElementById('bioModal').style.display = 'flex'; }
+    
+    async function saveBio() {
+        const newBio = document.getElementById('bioInput').value;
+        const result = await sendAction('update_bio', { bio: newBio });
+        if (result.success) {
+            userData.bio = newBio;
+            document.getElementById('bioValue').innerText = newBio || 'لا يوجد';
+            if (tg) tg.showAlert('✅ تم تحديث النبذة بنجاح'); else alert('✅ تم تحديث النبذة بنجاح');
+        }
+        closeModal('bioModal');
+    }
+    
+    function changeAvatar() { if (tg) tg.showPopup({ title: '🖼️ تغيير الصورة الشخصية', message: 'أدخل رابط الصورة الجديدة (URL):', buttons: [{ type: 'ok' }, { type: 'cancel' }] }, async (buttonId) => { if (buttonId === 'ok') { tg.showAlert('⚠️ هذه الميزة ستضاف قريباً'); } }); else alert('⚠️ هذه الميزة ستضاف قريباً'); }
+    function changeTheme() { document.getElementById('themeModal').style.display = 'flex'; }
+    
+    async function setTheme(theme) {
+        const result = await sendAction('update_theme', { theme });
+        if (result.success) {
+            userData.theme_name = theme;
+            document.getElementById('themeValue').innerText = theme == 'default' ? '☀️ فاتح' : '🌙 داكن';
+            if (tg) tg.showAlert(`✅ تم تغيير الثيم إلى ${theme == 'default' ? 'الفاتح' : 'الداكن'}`); else alert(`✅ تم تغيير الثيم إلى ${theme == 'default' ? 'الفاتح' : 'الداكن'}`);
+        }
+        closeModal('themeModal');
+    }
+    
+    function addAccount() { document.getElementById('addAccountModal').style.display = 'flex'; }
+    
+    async function saveAccount() {
+        const platform = document.getElementById('platformSelect').value;
+        const identifier = document.getElementById('accountIdentifier').value;
+        if (!identifier) return;
+        const result = await sendAction('add_account', { platform, identifier });
+        if (result.success) { if (tg) tg.showAlert('✅ تم إضافة الحساب بنجاح'); else alert('✅ تم إضافة الحساب بنجاح'); loadData(); }
+        closeModal('addAccountModal');
+    }
+    
+    async function deleteAccount(platform) {
+        const confirmMsg = `هل أنت متأكد من حذف حساب ${platform}؟`;
+        if (tg) {
+            tg.showPopup({ title: '⚠️ تأكيد الحذف', message: confirmMsg, buttons: [{ type: 'ok', text: 'نعم' }, { type: 'cancel', text: 'إلغاء' }] }, async (buttonId) => {
+                if (buttonId === 'ok') {
+                    const result = await sendAction('delete_account', { platform });
+                    if (result.success) { if (tg) tg.showAlert(`✅ تم حذف حساب ${platform}`); loadData(); }
+                }
+            });
+        } else {
+            if (confirm(confirmMsg)) {
+                const result = await sendAction('delete_account', { platform });
+                if (result.success) { alert(`✅ تم حذف حساب ${platform}`); loadData(); }
+            }
+        }
+    }
+    
+    async function resetPage() {
+        const confirmMsg = 'هل أنت متأكد من إعادة تعيين صفحة البايو؟ سيتم مسح النبذة والصورة فقط.';
+        if (tg) {
+            tg.showPopup({ title: '⚠️ تحذير', message: confirmMsg, buttons: [{ type: 'ok', text: 'نعم' }, { type: 'cancel', text: 'إلغاء' }] }, async (buttonId) => {
+                if (buttonId === 'ok') {
+                    const result = await sendAction('reset_page');
+                    if (result.success) { if (tg) tg.showAlert('✅ تم إعادة تعيين الصفحة'); loadData(); }
+                }
+            });
+        } else {
+            if (confirm(confirmMsg)) {
+                const result = await sendAction('reset_page');
+                if (result.success) { alert('✅ تم إعادة تعيين الصفحة'); loadData(); }
+            }
+        }
+    }
+    
+    async function resetUrl() {
+        const confirmMsg = 'إنشاء رابط جديد سيوقف الرابط القديم. هل أنت متأكد؟';
+        if (tg) {
+            tg.showPopup({ title: '⚠️ تحذير', message: confirmMsg, buttons: [{ type: 'ok', text: 'نعم' }, { type: 'cancel', text: 'إلغاء' }] }, async (buttonId) => {
+                if (buttonId === 'ok') {
+                    const result = await sendAction('reset_url');
+                    if (result.success) { if (tg) tg.showAlert(`✅ الرابط الجديد: ${result.new_url}`); }
+                }
+            });
+        } else {
+            if (confirm(confirmMsg)) {
+                const result = await sendAction('reset_url');
+                if (result.success) { alert(`✅ الرابط الجديد: ${result.new_url}`); }
+            }
+        }
+    }
+    
+    async function deletePage() {
+        const confirmMsg = 'سيتم حذف صفحة البايو بالكامل ولا يمكن التراجع. هل أنت متأكد؟';
+        if (tg) {
+            tg.showPopup({ title: '⚠️ تحذير نهائي', message: confirmMsg, buttons: [{ type: 'ok', text: 'نعم' }, { type: 'cancel', text: 'إلغاء' }] }, async (buttonId) => {
+                if (buttonId === 'ok') {
+                    const result = await sendAction('delete_page');
+                    if (result.success) { if (tg) tg.showAlert('✅ تم حذف الصفحة'); tg.close(); }
+                }
+            });
+        } else {
+            if (confirm(confirmMsg)) {
+                const result = await sendAction('delete_page');
+                if (result.success) { alert('✅ تم حذف الصفحة'); window.close(); }
+            }
+        }
+    }
+    
+    function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
+    function closeWebApp() { if (tg) tg.close(); else window.close(); }
+    
+    // بدء التهيئة
+    init();
+</script>
