@@ -5,7 +5,64 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>إعدادات صفحة البايو</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
+    <!-- في قسم style، أضف -->
+<style>
+    /* شاشة تحميل لتغطية فترة الاستيقاظ */
+    .wake-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        transition: opacity 0.5s;
+    }
+    .wake-loader {
+        width: 50px;
+        height: 50px;
+        border: 4px solid rgba(255,255,255,0.3);
+        border-top: 4px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    .wake-text {
+        color: white;
+        margin-top: 20px;
+        font-family: 'Tajawal', sans-serif;
+    }
+</style>
+
+<!-- بعد opening body tag، أضف -->
+<div id="wakeScreen" class="wake-screen">
+    <div style="text-align: center;">
+        <div class="wake-loader"></div>
+        <div class="wake-text">⏳ جاري تجهيز لوحة التحكم...</div>
+        <div class="wake-text" style="font-size: 12px; opacity: 0.7;">يرجى الانتظار قليلاً</div>
+    </div>
+</div>
+
+<script>
+    // إخفاء شاشة الاستيقاظ بعد تحميل الصفحة
+    window.addEventListener('load', function() {
+        setTimeout(function() {
+            var wakeScreen = document.getElementById('wakeScreen');
+            if (wakeScreen) {
+                wakeScreen.style.opacity = '0';
+                setTimeout(function() {
+                    wakeScreen.style.display = 'none';
+                }, 500);
+            }
+        }, 500);
+    });
+</script>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Tajawal', 'Segoe UI', sans-serif;
