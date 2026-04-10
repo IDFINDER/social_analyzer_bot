@@ -264,11 +264,18 @@ def webapp_bio_settings():
 def webapp_get_settings():
     """API لجلب إعدادات المستخدم"""
     try:
-        user_id = int(request.headers.get('X-Telegram-User-Id', 0))
+        # الحصول على user_id من معامل GET (لأنه أسهل)
+        user_id = request.args.get('user_id')
+        
         if not user_id:
-            return jsonify({'error': 'Unauthorized'}), 401
+            return jsonify({'error': 'Unauthorized: user_id required'}), 401
+        
+        user_id = int(user_id)
         
         user_info = get_user_info(user_id)
+        if not user_info:
+            return jsonify({'error': 'User not found'}), 404
+        
         bio_page = get_bio_page(user_id)
         
         return jsonify({
@@ -279,8 +286,9 @@ def webapp_get_settings():
             'accounts': get_user_social_accounts(user_id)
         })
     except Exception as e:
+        logger.error(f"Error in webapp_get_settings: {e}")
         return jsonify({'error': str(e)}), 500
-
+        
 @app.route('/webapp/api/action', methods=['POST'])
 def webapp_action():
     """API لتنفيذ الإجراءات من WebApp"""
