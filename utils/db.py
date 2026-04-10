@@ -16,14 +16,23 @@ logger = logging.getLogger(__name__)
 # ========== إعدادات Supabase ==========
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_KEY = os.environ.get('SUPABASE_ANON_KEY')
+SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
 BOT_NAME = os.environ.get('BOT_NAME', 'social_analyzer')
-FREE_LIMIT = int(os.environ.get('FREE_LIMIT', '2'))  # 2 تحليلات يومياً للمجانيين
-GEMINI_DAILY_LIMIT = int(os.environ.get('GEMINI_DAILY_LIMIT', '5'))  # 5 توصيات يومياً للمميزين
+FREE_LIMIT = int(os.environ.get('FREE_LIMIT', '2'))
+GEMINI_DAILY_LIMIT = int(os.environ.get('GEMINI_DAILY_LIMIT', '5'))
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     raise ValueError("SUPABASE_URL and SUPABASE_KEY are required")
 
+# عميل عام (للوظائف العادية - قراءة فقط)
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# عميل مدير (للعمليات الحساسة - كتابة/حذف/تحديث)
+if SUPABASE_SERVICE_KEY:
+    supabase_admin: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+else:
+    supabase_admin = supabase  # fallback في حال عدم وجود Service Key
+    logger.warning("⚠️ SUPABASE_SERVICE_ROLE_KEY not set, using anon key for admin operations")
 
 
 # ========== دوال المستخدمين ==========
