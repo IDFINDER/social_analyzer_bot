@@ -31,24 +31,20 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 if SUPABASE_SERVICE_KEY:
     supabase_admin: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 else:
-    supabase_admin = supabase  # fallback في حال عدم وجود Service Key
+    supabase_admin = supabase
     logger.warning("⚠️ SUPABASE_SERVICE_ROLE_KEY not set, using anon key for admin operations")
 
 
 # ========== دوال المستخدمين ==========
 
 def get_or_create_user(user_id, first_name, username, language_code):
-    """
-    جلب أو إنشاء مستخدم (بدون تعارض مع البوتات الأخرى)
-    """
+    """جلب أو إنشاء مستخدم (بدون تعارض مع البوتات الأخرى)"""
     try:
-        # محاولة جلب المستخدم أولاً
         response = supabase.table('users').select('*').eq('user_id', user_id).execute()
         
         if response.data:
             user = response.data[0]
             logger.info(f"✅ مستخدم موجود مسبقاً: {user_id}")
-            # تحديث معلومات المستخدم إذا تغيرت
             if user.get('first_name') != first_name or user.get('username') != username:
                 supabase.table('users').update({
                     'first_name': first_name,
@@ -57,7 +53,6 @@ def get_or_create_user(user_id, first_name, username, language_code):
                 }).eq('user_id', user_id).execute()
             return user
         
-        # مستخدم جديد
         new_user = {
             'user_id': user_id,
             'first_name': first_name,
@@ -99,9 +94,7 @@ def get_user_usage(user_id):
 
 
 def increment_usage(user_id, platform, analysis_results=None):
-    """
-    زيادة عدد استخدامات المستخدم حسب المنصة
-    """
+    """زيادة عدد استخدامات المستخدم حسب المنصة"""
     try:
         user = get_user_info(user_id)
         if not user:
@@ -112,17 +105,14 @@ def increment_usage(user_id, platform, analysis_results=None):
         usage = get_user_usage(user_id)
         today = date.today().isoformat()
         
-        # ========== تحديد اسم العمود حسب المنصة ==========
         platform_column_map = {
             'youtube': 'youtube_uses',
             'instagram': 'instagram_uses',
             'tiktok': 'tiktok_uses',
             'facebook': 'facebook_uses'
         }
-        
         platform_column = platform_column_map.get(platform, 'youtube_uses')
         
-        # إعادة تعيين الاستخدامات اليومية للمجانيين فقط
         if usage and usage.get('last_use_date') != today:
             if user['status'] == 'free':
                 supabase.table('bot_usage').update({
@@ -131,40 +121,34 @@ def increment_usage(user_id, platform, analysis_results=None):
                     'username': username,
                     'first_name': first_name
                 }).eq('user_id', user_id).eq('bot_name', BOT_NAME).execute()
-                # إعادة جلب usage بعد التحديث
                 usage = get_user_usage(user_id)
         
-        # الحصول على القيم الحالية
         current_platform_uses = usage.get(platform_column, 0) if usage else 0
         current_daily_uses = usage.get('daily_uses', 0) if usage else 0
         current_total_uses = usage.get('total_uses', 0) if usage else 0
         
-        # حساب القيم الجديدة
         new_platform_uses = current_platform_uses + 1
         new_daily_uses = current_daily_uses + 1 if user['status'] == 'free' else current_daily_uses
         new_total_uses = current_total_uses + 1
         
-        # ========== تحديث قاعدة البيانات ==========
         update_data = {
             'total_uses': new_total_uses,
             'updated_at': datetime.now().isoformat(),
             'username': username,
             'first_name': first_name,
-            platform_column: new_platform_uses  # تحديث عمود المنصة المحددة
+            platform_column: new_platform_uses
         }
         
         if user['status'] == 'free':
             update_data['daily_uses'] = new_daily_uses
             update_data['last_use_date'] = today
         
-        # استخدام upsert لتجنب التكرار
-        result = supabase.table('bot_usage').upsert({
+        supabase.table('bot_usage').upsert({
             'user_id': user_id,
             'bot_name': BOT_NAME,
             **update_data
         }, on_conflict='user_id,bot_name').execute()
         
-        # تسجيل في جدول التحليلات
         if analysis_results:
             supabase.table('analysis_history').insert({
                 'user_id': user_id,
@@ -182,7 +166,7 @@ def increment_usage(user_id, platform, analysis_results=None):
                 'analysis_duration': analysis_results.get('duration')
             }).execute()
         
-        logger.info(f"✅ Usage incremented for user {user_id} on platform {platform} (column: {platform_column})")
+        logger.info(f"✅ Usage incremented for user {user_id} on platform {platform}")
         return True
         
     except Exception as e:
@@ -196,7 +180,6 @@ def can_analyze(user_id):
     if not user:
         return True, 0
     
-    # التحقق من انتهاء الاشتراك المميز
     if user['status'] == 'premium' and user.get('premium_until'):
         if datetime.strptime(user['premium_until'], '%Y-%m-%d').date() < date.today():
             supabase.table('users').update({'status': 'free', 'premium_until': None}).eq('user_id', user_id).execute()
@@ -205,7 +188,6 @@ def can_analyze(user_id):
     if user['status'] == 'premium':
         return True, 0
     
-    # للمستخدمين المجانيين
     try:
         response = supabase.table('bot_usage').select('daily_uses').eq('user_id', user_id).eq('bot_name', BOT_NAME).execute()
         daily_uses = response.data[0]['daily_uses'] if response.data else 0
@@ -309,11 +291,9 @@ def can_use_gemini(user_id):
     try:
         user = get_user_info(user_id)
         
-        # المجانيون لا يمكنهم استخدام Gemini
         if user['status'] == 'free':
             return False, 0, "💎 هذه الميزة متاحة فقط للمستخدمين المميزين!"
         
-        # جلب استخدامات Gemini
         usage = get_gemini_usage(user_id)
         today = date.today().isoformat()
         
@@ -382,11 +362,12 @@ def increment_gemini_usage(user_id):
 # ========== دوال صفحة البايو (نسخة متطورة) ==========
 
 def generate_bio_url(user_id):
+    """إنشاء رابط فريد لصفحة البايو"""
     random_part = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
     time_part = datetime.now().timestamp()
     hash_input = f"{user_id}_{random_part}_{time_part}"
     url_hash = hashlib.md5(hash_input.encode()).hexdigest()[:12]
-    return url_hash  # إزالة "bio_" من البداية
+    return url_hash
 
 
 def get_bio_page(user_id):
@@ -414,20 +395,13 @@ def get_bio_page_by_page_url(page_url):
 
 
 def create_or_update_bio_page(user_id, display_name, accounts, custom_links=None, bio=None):
-    """إنشاء أو تحديث صفحة البايو (بدون تكرار)"""
+    """إنشاء أو تحديث صفحة البايو - باستخدام supabase_admin للكتابة"""
     try:
-        import hashlib
-        import random
-        import string
-        from datetime import datetime
-        
-        # التحقق من وجود صفحة مسبقاً
-        existing = supabase.table('bio_pages').select('page_url').eq('user_id', user_id).execute()
+        existing = supabase_admin.table('bio_pages').select('page_url').eq('user_id', user_id).execute()
         
         if existing.data:
-            # تحديث الصفحة الموجودة
             page_url = existing.data[0]['page_url']
-            supabase.table('bio_pages').update({
+            supabase_admin.table('bio_pages').update({
                 'display_name': display_name,
                 'bio': bio or '',
                 'accounts': accounts,
@@ -436,14 +410,8 @@ def create_or_update_bio_page(user_id, display_name, accounts, custom_links=None
             }).eq('user_id', user_id).execute()
             logger.info(f"✅ تم تحديث صفحة البايو للمستخدم {user_id}")
         else:
-            # إنشاء صفحة جديدة
-            random_part = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
-            time_part = datetime.now().timestamp()
-            hash_input = f"{user_id}_{random_part}_{time_part}"
-            url_hash = hashlib.md5(hash_input.encode()).hexdigest()[:12]
             page_url = generate_bio_url(user_id)
-            
-            supabase.table('bio_pages').insert({
+            supabase_admin.table('bio_pages').insert({
                 'user_id': user_id,
                 'display_name': display_name,
                 'bio': bio or '',
@@ -466,14 +434,12 @@ def create_or_update_bio_page(user_id, display_name, accounts, custom_links=None
 def increment_bio_views(page_url):
     """زيادة عدد مشاهدات صفحة البايو"""
     try:
-        # جلب القيمة الحالية
         response = supabase.table('bio_pages').select('views_count').eq('page_url', page_url).execute()
         
         if response.data:
             current_views = response.data[0].get('views_count', 0)
             new_views = current_views + 1
             
-            # تحديث القيمة الجديدة
             supabase.table('bio_pages').update({
                 'views_count': new_views
             }).eq('page_url', page_url).execute()
@@ -487,7 +453,7 @@ def increment_bio_views(page_url):
 def disable_bio_page(user_id):
     """تعطيل صفحة البايو"""
     try:
-        supabase.table('bio_pages').update({
+        supabase_admin.table('bio_pages').update({
             'is_enabled': False,
             'updated_at': datetime.now().isoformat()
         }).eq('user_id', user_id).execute()
@@ -500,7 +466,7 @@ def disable_bio_page(user_id):
 def update_bio_theme(user_id, theme_name):
     """تحديث ثيم صفحة البايو"""
     try:
-        supabase.table('bio_pages').update({
+        supabase_admin.table('bio_pages').update({
             'theme_name': theme_name,
             'updated_at': datetime.now().isoformat()
         }).eq('user_id', user_id).execute()
@@ -513,7 +479,7 @@ def update_bio_theme(user_id, theme_name):
 def update_bio_text(user_id, bio_text):
     """تحديث النبذة المختصرة في صفحة البايو"""
     try:
-        result = supabase.table('bio_pages').update({
+        result = supabase_admin.table('bio_pages').update({
             'bio': bio_text,
             'updated_at': datetime.now().isoformat()
         }).eq('user_id', user_id).execute()
@@ -526,10 +492,11 @@ def update_bio_text(user_id, bio_text):
         logger.error(f"Error updating bio: {e}")
         return False
 
+
 def update_bio_avatar(user_id, avatar_url):
     """تحديث الصورة الشخصية في صفحة البايو"""
     try:
-        result = supabase.table('bio_pages').update({
+        result = supabase_admin.table('bio_pages').update({
             'avatar_url': avatar_url,
             'updated_at': datetime.now().isoformat()
         }).eq('user_id', user_id).execute()
@@ -542,44 +509,15 @@ def update_bio_avatar(user_id, avatar_url):
         logger.error(f"Error updating avatar: {e}")
         return False
 
-def update_bio_theme(user_id, theme_name):
-    """تحديث ثيم صفحة البايو"""
-    try:
-        result = supabase.table('bio_pages').update({
-            'theme_name': theme_name,
-            'updated_at': datetime.now().isoformat()
-        }).eq('user_id', user_id).execute()
-        
-        if result.data:
-            logger.info(f"✅ Theme updated for user {user_id} to {theme_name}")
-            return True
-        return False
-    except Exception as e:
-        logger.error(f"Error updating theme: {e}")
-        return False
-
-
-def update_bio_avatar(user_id, avatar_url):
-    """تحديث الصورة الشخصية"""
-    try:
-        supabase.table('bio_pages').update({
-            'avatar_url': avatar_url,
-            'updated_at': datetime.now().isoformat()
-        }).eq('user_id', user_id).execute()
-        return True
-    except Exception as e:
-        logger.error(f"Error updating avatar: {e}")
-        return False
-
 
 def add_custom_link(user_id, title, url):
     """إضافة رابط مخصص"""
     try:
         bio = get_bio_page(user_id)
-        custom_links = bio.get('custom_links', [])
+        custom_links = bio.get('custom_links', []) if bio else []
         custom_links.append({'title': title, 'url': url})
         
-        supabase.table('bio_pages').update({
+        supabase_admin.table('bio_pages').update({
             'custom_links': custom_links,
             'updated_at': datetime.now().isoformat()
         }).eq('user_id', user_id).execute()
@@ -593,10 +531,12 @@ def remove_custom_link(user_id, link_index):
     """حذف رابط مخصص"""
     try:
         bio = get_bio_page(user_id)
+        if not bio:
+            return False
         custom_links = bio.get('custom_links', [])
         if 0 <= link_index < len(custom_links):
             custom_links.pop(link_index)
-            supabase.table('bio_pages').update({
+            supabase_admin.table('bio_pages').update({
                 'custom_links': custom_links,
                 'updated_at': datetime.now().isoformat()
             }).eq('user_id', user_id).execute()
@@ -604,6 +544,8 @@ def remove_custom_link(user_id, link_index):
     except Exception as e:
         logger.error(f"Error removing custom link: {e}")
         return False
+
+
 # =================================================================================
 # القسم: دوال لوحة تحكم المدير (Admin Dashboard)
 # =================================================================================
@@ -611,33 +553,27 @@ def remove_custom_link(user_id, link_index):
 def get_all_users_with_stats(bot_name=None):
     """جلب جميع المستخدمين مع إحصائياتهم الكاملة - مع تصفية حسب البوت"""
     try:
-        # إذا لم يتم تحديد اسم البوت، استخدم الافتراضي
         if bot_name is None:
             bot_name = os.environ.get('BOT_NAME', 'social_analyzer')
         
-        # جلب المستخدمين الذين لديهم استخدامات لهذا البوت فقط
         usage_response = supabase.table('bot_usage').select('user_id').eq('bot_name', bot_name).execute()
         user_ids = [u['user_id'] for u in usage_response.data] if usage_response.data else []
         
         if not user_ids:
             return []
         
-        # جلب تفاصيل المستخدمين
         users_response = supabase.table('users').select('*').in_('user_id', user_ids).order('user_id', desc=False).execute()
         users = users_response.data if users_response.data else []
         
-        # جلب إحصائيات الاستخدام لكل بوت
         all_usage = {}
         for user_id in user_ids:
             usage_resp = supabase.table('bot_usage').select('*').eq('user_id', user_id).eq('bot_name', bot_name).execute()
             if usage_resp.data:
                 all_usage[user_id] = usage_resp.data[0]
         
-        # جلب صفحات البايو
         bio_response = supabase.table('bio_pages').select('user_id, page_url, views_count').in_('user_id', user_ids).execute()
         bio_pages = {b['user_id']: b for b in bio_response.data} if bio_response.data else {}
         
-        # تجميع البيانات
         result = []
         for user in users:
             usage = all_usage.get(user['user_id'], {})
@@ -667,13 +603,13 @@ def get_all_users_with_stats(bot_name=None):
         logger.error(f"Error in get_all_users_with_stats: {e}")
         return []
 
+
 def get_global_stats(bot_name=None):
     """جلب إحصائيات عامة للوحة التحكم - مع تصفية حسب البوت"""
     try:
         if bot_name is None:
             bot_name = os.environ.get('BOT_NAME', 'social_analyzer')
         
-        # جلب المستخدمين الذين لديهم استخدامات لهذا البوت
         usage_response = supabase.table('bot_usage').select('user_id').eq('bot_name', bot_name).execute()
         user_ids = [u['user_id'] for u in usage_response.data] if usage_response.data else []
         
@@ -690,23 +626,19 @@ def get_global_stats(bot_name=None):
                 'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             }
         
-        # إحصائيات المستخدمين
         users_response = supabase.table('users').select('status').in_('user_id', user_ids).execute()
         users = users_response.data if users_response.data else []
         total_users = len(users)
         premium_users = len([u for u in users if u.get('status') == 'premium'])
         free_users = total_users - premium_users
         
-        # إجمالي الاستخدامات لهذا البوت
         total_uses = sum([u.get('total_uses', 0) for u in usage_response.data]) if usage_response.data else 0
         total_daily = sum([u.get('daily_uses', 0) for u in usage_response.data]) if usage_response.data else 0
         
-        # صفحات البايو للمستخدمين فقط
         bio_response = supabase.table('bio_pages').select('views_count').in_('user_id', user_ids).execute()
         total_bio_pages = len(bio_response.data) if bio_response.data else 0
         total_bio_views = sum([b.get('views_count', 0) for b in bio_response.data]) if bio_response.data else 0
         
-        # إحصائيات المنصات
         platform_stats = {'youtube': 0, 'instagram': 0, 'tiktok': 0, 'facebook': 0}
         for u in usage_response.data:
             platform_stats['youtube'] += u.get('youtube_uses', 0)
@@ -739,6 +671,7 @@ def get_global_stats(bot_name=None):
             'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
 
+
 def upgrade_user_to_premium(user_id, duration_days=365):
     """ترقية مستخدم إلى خطة مميزة"""
     try:
@@ -756,6 +689,7 @@ def upgrade_user_to_premium(user_id, duration_days=365):
     except Exception as e:
         logger.error(f"Error upgrading user {user_id}: {e}")
         return False
+
 
 def downgrade_user_to_free(user_id):
     """خفض مستخدم إلى خطة مجانية"""
