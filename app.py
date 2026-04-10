@@ -22,7 +22,21 @@ from functools import wraps
 
 # إضافة مجلد utils إلى المسار
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from utils.db import get_bio_page_by_page_url, get_user_info, increment_bio_views, supabase
+from utils.db import (
+    get_bio_page_by_page_url, 
+    get_user_info, 
+    increment_bio_views, 
+    supabase,
+    get_bio_page,
+    get_user_social_accounts,
+    save_user_account,
+    delete_user_account,
+    create_or_update_bio_page,
+    update_bio_text,
+    update_bio_theme,
+    update_bio_avatar,
+    supabase_admin
+)
 from utils.helpers import escape_html
 
 # إعدادات logging
@@ -31,7 +45,6 @@ logging.basicConfig(
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
-
 # =================================================================================
 # القسم 2: تهيئة التطبيق والمتغيرات
 # =================================================================================
