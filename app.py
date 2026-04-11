@@ -700,6 +700,16 @@ def google_verification_file():
         return content, 200, {'Content-Type': 'text/html'}
     except Exception as e:
         return f"File not found: {e}", 404
+
+@app.route('/tiktokqpTHen1C0AsF1UmIXCVMMc6qc8EgpOAO.txt')
+def tiktok_verification():
+    """ملف التحقق من TikTok"""
+    try:
+        with open('static/tiktokqpTHen1C0AsF1UmIXCVMMc6qc8EgpOAO.txt', 'r', encoding='utf-8') as f:
+            content = f.read()
+        return content, 200, {'Content-Type': 'text/plain'}
+    except Exception as e:
+        return f"File not found: {e}", 404
 # =================================================================================
 # القسم 15: تشغيل التطبيق
 # =================================================================================
