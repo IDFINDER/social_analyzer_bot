@@ -475,6 +475,23 @@ def update_bio_theme(user_id, theme_name):
         logger.error(f"Error updating theme: {e}")
         return False
 
+def get_all_themes():
+    """جلب جميع الثيمات المتاحة من قاعدة البيانات"""
+    try:
+        response = supabase.table('themes').select('*').order('sort_order').execute()
+        if response.data:
+            return response.data
+        # fallback في حال عدم وجود جدول themes
+        return [
+            {'name': 'default', 'display_name': 'فاتح', 'sort_order': 1},
+            {'name': 'dark', 'display_name': 'داكن', 'sort_order': 2},
+        ]
+    except Exception as e:
+        logger.error(f"Error getting themes: {e}")
+        return [
+            {'name': 'default', 'display_name': 'فاتح', 'sort_order': 1},
+            {'name': 'dark', 'display_name': 'داكن', 'sort_order': 2},
+        ]
 
 def update_bio_text(user_id, bio_text):
     """تحديث النبذة (كتابة - supabase_admin)"""
