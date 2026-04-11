@@ -710,6 +710,164 @@ def tiktok_verification():
         return content, 200, {'Content-Type': 'text/plain'}
     except Exception as e:
         return f"File not found: {e}", 404
+
+# =================================================================================
+# القسم: تكامل TikTok OAuth
+# =================================================================================
+
+import secrets
+import requests
+from urllib.parse import urlencode
+
+# إعدادات TikTok
+TIKTOK_CLIENT_KEY = os.environ.get('TIKTOK_CLIENT_KEY', '')
+TIKTOK_CLIENT_SECRET = os.environ.get('TIKTOK_CLIENT_SECRET', '')
+TIKTOK_REDIRECT_URI = f"https://{RENDER_URL}/callback/tiktok"
+
+@app.route('/login/tiktok')
+def tiktok_login():
+    """بدء عملية تسجيل الدخول بتيك توك"""
+    if not TIKTOK_CLIENT_KEY:
+        return "TikTok API not configured", 500
+    
+    # إنشاء معاملات OAuth 2.0
+    state = secrets.token_urlsafe(32)
+    # تخزين state في الجلسة للتحقق لاحقاً
+    session['tiktok_state'] = state
+    
+    params = {
+        'client_key': TIKTOK_CLIENT_KEY,
+        'scope': 'user.info.basic,user.info.profile,user.info.stats,video.list',
+        'response_type': 'code',
+        'redirect_uri': TIKTOK_REDIRECT_URI,
+        'state': state
+    }
+    
+    auth_url = f"https://www.tiktok.com/v2/auth/authorize/?{urlencode(params)}"
+    return redirect(auth_url)
+
+@app.route('/callback/tiktok')
+def tiktok_callback():
+    """معالج إعادة التوجيه بعد تسجيل الدخول"""
+    # التحقق من وجود خطأ
+    error = request.args.get('error')
+    if error:
+        return f"Error: {error}", 400
+    
+    # التحقق من state
+    state = request.args.get('state')
+    stored_state = session.get('tiktok_state')
+    if not state or state != stored_state:
+        return "Invalid state parameter", 400
+    
+    # الحصول على رمز التفويض
+    code = request.args.get('code')
+    if not code:
+        return "No authorization code received", 400
+    
+    # تبادل الرمز للحصول على access token
+    token_url = "https://open-api.tiktok.com/oauth/access_token/"
+    
+    data = {
+        'client_key': TIKTOK_CLIENT_KEY,
+        'client_secret': TIKTOK_CLIENT_SECRET,
+        'code': code,
+        'grant_type': 'authorization_code',
+        'redirect_uri': TIKTOK_REDIRECT_URI
+    }
+    
+    try:
+        response = requests.post(token_url, data=data)
+        token_data = response.json()
+        
+        if token_data.get('data', {}).get('access_token'):
+            access_token = token_data['data']['access_token']
+            open_id = token_data['data']['open_id']
+            
+            # تخزين التوكن (في تطبيق حقيقي، احفظه في قاعدة البيانات)
+            session['tiktok_access_token'] = access_token
+            session['tiktok_open_id'] = open_id
+            
+            # عرض صفحة نجاح مع رابط للبوت
+            return render_template_string('''
+                <!DOCTYPE html>
+                <html dir="rtl" lang="ar">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>تم الاتصال بنجاح</title>
+                    <style>
+                        body {
+                            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            min-height: 100vh;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            margin: 0;
+                            padding: 20px;
+                        }
+                        .card {
+                            background: white;
+                            border-radius: 20px;
+                            padding: 40px;
+                            text-align: center;
+                            max-width: 400px;
+                            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+                        }
+                        h1 { color: #2c3e50; margin-bottom: 10px; }
+                        .success { color: #48bb78; font-size: 64px; }
+                        button {
+                            background: #667eea;
+                            color: white;
+                            border: none;
+                            padding: 12px 30px;
+                            border-radius: 10px;
+                            margin-top: 20px;
+                            cursor: pointer;
+                        }
+                        button:hover { opacity: 0.9; }
+                    </style>
+                </head>
+                <body>
+                    <div class="card">
+                        <div class="success">✅</div>
+                        <h1>تم الاتصال بتيك توك بنجاح!</h1>
+                        <p>يمكنك الآن العودة إلى البوت واستخدام ميزات تحليل تيك توك.</p>
+                        <button onclick="window.location.href='https://t.me/Social_Media_tools_bot'">
+                            🚀 العودة إلى البوت
+                        </button>
+                    </div>
+                </body>
+                </html>
+            ''')
+        else:
+            return f"Error getting access token: {token_data}", 400
+            
+    except Exception as e:
+        return f"Exception: {e}", 500
+
+@app.route('/tiktok/profile')
+def tiktok_profile():
+    """جلب معلومات ملف تعريف المستخدم (بعد المصادقة)"""
+    access_token = session.get('tiktok_access_token')
+    open_id = session.get('tiktok_open_id')
+    
+    if not access_token:
+        return redirect(url_for('tiktok_login'))
+    
+    # جلب معلومات المستخدم
+    user_info_url = "https://open-api.tiktok.com/user/info/"
+    params = {
+        'access_token': access_token,
+        'open_id': open_id
+    }
+    
+    try:
+        response = requests.get(user_info_url, params=params)
+        data = response.json()
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 # =================================================================================
 # القسم 15: تشغيل التطبيق
 # =================================================================================
