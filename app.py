@@ -730,9 +730,7 @@ def tiktok_login():
     if not TIKTOK_CLIENT_KEY:
         return "TikTok API not configured", 500
     
-    # إنشاء معاملات OAuth 2.0
     state = secrets.token_urlsafe(32)
-    # تخزين state في الجلسة للتحقق لاحقاً
     session['tiktok_state'] = state
     
     params = {
@@ -749,25 +747,20 @@ def tiktok_login():
 @app.route('/callback/tiktok')
 def tiktok_callback():
     """معالج إعادة التوجيه بعد تسجيل الدخول"""
-    # التحقق من وجود خطأ
     error = request.args.get('error')
     if error:
         return f"Error: {error}", 400
     
-    # التحقق من state
     state = request.args.get('state')
     stored_state = session.get('tiktok_state')
     if not state or state != stored_state:
         return "Invalid state parameter", 400
     
-    # الحصول على رمز التفويض
     code = request.args.get('code')
     if not code:
         return "No authorization code received", 400
     
-    # تبادل الرمز للحصول على access token
     token_url = "https://open-api.tiktok.com/oauth/access_token/"
-    
     data = {
         'client_key': TIKTOK_CLIENT_KEY,
         'client_secret': TIKTOK_CLIENT_SECRET,
@@ -784,11 +777,9 @@ def tiktok_callback():
             access_token = token_data['data']['access_token']
             open_id = token_data['data']['open_id']
             
-            # تخزين التوكن (في تطبيق حقيقي، احفظه في قاعدة البيانات)
             session['tiktok_access_token'] = access_token
             session['tiktok_open_id'] = open_id
             
-            # عرض صفحة نجاح مع رابط للبوت
             return render_template_string('''
                 <!DOCTYPE html>
                 <html dir="rtl" lang="ar">
@@ -855,7 +846,6 @@ def tiktok_profile():
     if not access_token:
         return redirect(url_for('tiktok_login'))
     
-    # جلب معلومات المستخدم
     user_info_url = "https://open-api.tiktok.com/user/info/"
     params = {
         'access_token': access_token,
@@ -868,6 +858,99 @@ def tiktok_profile():
         return jsonify(data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/debug/tiktok-flow')
+def tiktok_flow_debug():
+    """صفحة توضيحية لتدفق TikTok OAuth"""
+    return '''
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+        <meta charset="UTF-8">
+        <title>تدفق TikTok - شرح</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+                background: #f5f7fa;
+                padding: 20px;
+            }
+            .container {
+                max-width: 800px;
+                margin: 0 auto;
+                background: white;
+                border-radius: 20px;
+                padding: 30px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            h1 { color: #2c3e50; }
+            .step {
+                background: #f8f9fa;
+                padding: 15px;
+                margin: 15px 0;
+                border-radius: 10px;
+                border-right: 4px solid #667eea;
+            }
+            .code {
+                background: #2d2d2d;
+                color: #f8f8f2;
+                padding: 10px;
+                border-radius: 8px;
+                font-family: monospace;
+                font-size: 12px;
+                overflow-x: auto;
+            }
+            .success { color: #48bb78; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🔄 تدفق تكامل TikTok</h1>
+            <p>شرح كيفية عمل المصادقة وإعادة التوجيه</p>
+            
+            <div class="step">
+                <strong>📌 الخطوة 1: بدء المصادقة</strong><br>
+                المستخدم يضغط على رابط تسجيل الدخول:<br>
+                <code>/login/tiktok</code>
+            </div>
+            
+            <div class="step">
+                <strong>📌 الخطوة 2: إعادة التوجيه إلى TikTok</strong><br>
+                يتم توجيه المستخدم إلى:<br>
+                <code>https://www.tiktok.com/v2/auth/authorize/...</code>
+            </div>
+            
+            <div class="step">
+                <strong>📌 الخطوة 3: تسجيل الدخول والموافقة</strong><br>
+                المستخدم يسجل دخوله على TikTok ويوافق على الصلاحيات
+            </div>
+            
+            <div class="step">
+                <strong>📌 الخطوة 4: إعادة التوجيه إلى callback</strong><br>
+                TikTok يعيد توجيه المستخدم إلى:<br>
+                <code class="success">✅ /callback/tiktok?code=xxxx&state=yyyy</code>
+            </div>
+            
+            <div class="step">
+                <strong>📌 الخطوة 5: تبادل الرمز للحصول على Access Token</strong><br>
+                الخادم يرسل طلباً إلى:<br>
+                <code>https://open-api.tiktok.com/oauth/access_token/</code>
+            </div>
+            
+            <div class="step">
+                <strong>📌 الخطوة 6: عرض النتيجة</strong><br>
+                تظهر صفحة النجاح مع رابط العودة إلى البوت
+            </div>
+            
+            <hr>
+            <p><strong>🔗 روابط الاختبار:</strong></p>
+            <ul>
+                <li><a href="/login/tiktok" target="_blank">بدء تسجيل الدخول بتيك توك</a></li>
+                <li><a href="/tiktok/profile" target="_blank">عرض معلومات الملف الشخصي (بعد المصادقة)</a></li>
+            </ul>
+        </div>
+    </body>
+    </html>
+    '''
 # =================================================================================
 # القسم 15: تشغيل التطبيق
 # =================================================================================
