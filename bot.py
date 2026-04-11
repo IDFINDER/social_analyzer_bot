@@ -1558,6 +1558,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "bio_settings_theme":
         await bio_change_theme_callback(update, context)
     
+    # ========== معالج تغيير الثيم من القائمة (الجديد) ==========
+    elif data.startswith("bio_set_theme_"):
+        theme_name = data.replace("bio_set_theme_", "")
+        update_bio_theme(user_id, theme_name)
+        await query.answer(f"✅ تم تغيير الثيم إلى {theme_name}")
+        await bio_settings_command(update, context)
+    
     # ----- أزرار تعديل النبذة والصورة -----
     elif data == "bio_edit_bio":
         await bio_edit_bio_callback(update, context)
