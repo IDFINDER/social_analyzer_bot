@@ -8,7 +8,10 @@
     <!-- الخطوط -->
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     
-    <!-- القالب الأساسي (ضروري للهيكل) -->
+    <!-- تحميل CSS الأساسي أولاً -->
+    <link rel="preload" href="{{ url_for('static', filename='themes/' + theme_name + '.css') }}" as="style">
+    <link rel="stylesheet" href="{{ url_for('static', filename='themes/' + theme_name + '.css') }}">
+    
     <style>
         /* ===== القواعد الأساسية (ثابتة لجميع القوالب) ===== */
         * {
@@ -33,40 +36,57 @@
             transition: all 0.3s ease;
         }
         
-        /* الصورة الشخصية */
+        /* ===== تحسينات الصورة الشخصية ===== */
         .avatar-container {
             position: relative;
-            width: 120px;
-            height: 120px;
+            width: 140px;
+            height: 140px;
             margin: 0 auto 20px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
         }
         
         .avatar {
             width: 100%;
             height: 100%;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 4px solid white;
+            object-fit: cover;  /* تغطي الإطار بالكامل مع الحفاظ على النسب */
+            object-position: center;
             transition: transform 0.3s ease;
+            display: block;
         }
         
         .avatar:hover {
             transform: scale(1.05);
         }
         
-        .avatar-placeholder {
+        /* صورة احتياطية (في حال فشل تحميل الصورة) */
+        .avatar-fallback {
             width: 100%;
             height: 100%;
-            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 55px;
-            transition: transform 0.3s ease;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 48px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
         }
         
-        .avatar-placeholder:hover {
-            transform: scale(1.05);
+        .avatar-fallback span {
+            font-size: 56px;
+        }
+        
+        .avatar-container.loading {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.6; transform: scale(0.98); }
+            50% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0.6; transform: scale(0.98); }
         }
         
         h1 {
@@ -195,97 +215,13 @@
             font-size: 11px;
         }
         
-        /* زر تغيير الثيم */
-        .theme-picker {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            border-radius: 50px;
-            padding: 8px 15px;
-            cursor: pointer;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            z-index: 100;
-            transition: all 0.3s ease;
-        }
-        
-        .theme-picker:hover {
-            transform: scale(1.05);
-        }
-        
-        .theme-option {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: 0.2s;
-        }
-        
-        .theme-option:hover {
-            transform: scale(1.1);
-        }
-        
-        /* نافذة اختيار القوالب */
-        .theme-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        
-        .theme-modal-content {
-            padding: 25px;
-            border-radius: 20px;
-            width: 90%;
-            max-width: 350px;
-            text-align: center;
-        }
-        
-        .theme-preset {
-            display: inline-block;
-            width: 80px;
-            padding: 10px;
-            margin: 8px;
-            border-radius: 15px;
-            cursor: pointer;
-            text-align: center;
-            transition: 0.3s;
-            border: 2px solid transparent;
-        }
-        
-        .theme-preset.selected {
-            border-color: #333;
-            transform: scale(1.05);
-        }
-        
-        .theme-preset:hover {
-            transform: scale(1.05);
-        }
-        
-        .save-theme {
-            border: none;
-            padding: 10px 20px;
-            border-radius: 25px;
-            margin-top: 15px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        
         @media (max-width: 600px) {
             body { padding: 15px; }
             .container { padding: 25px 15px; }
             h1 { font-size: 24px; }
             .account-btn { width: 95%; padding: 10px 15px; }
-            .avatar-container { width: 90px; height: 90px; }
+            .avatar-container { width: 100px; height: 100px; }
+            .avatar-fallback { font-size: 36px; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
         }
         
@@ -299,20 +235,65 @@
         }
     </style>
     
-    <!-- القالب المخصص (يتم تحميله حسب اختيار المستخدم) -->
-    <link id="themeStylesheet" rel="stylesheet" href="{{ url_for('static', filename='themes/' + theme_name + '.css') }}">
+    <!-- شاشة التحميل -->
+    <style>
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
+        }
+        
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-top: 5px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            margin-top: 20px;
+            color: white;
+            font-family: 'Tajawal', sans-serif;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        .loading-subtext {
+            margin-top: 10px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+        }
+    </style>
 </head>
 <body>
+    <!-- شاشة التحميل -->
+    <div id="loading-screen">
+        <div style="text-align: center;">
+            <div class="loader"></div>
+            <div class="loading-text">جاري تحميل صفحة البايو...</div>
+            <div class="loading-subtext">يرجى الانتظار قليلاً</div>
+        </div>
+    </div>
+    
     <div class="container">
-        <!-- الصورة الشخصية -->
-        <div class="avatar-container">
-            {% if avatar_url %}
-            <img src="{{ avatar_url }}" class="avatar" alt="{{ display_name }}">
-            {% else %}
-            <div class="avatar-placeholder">
-                👤
-            </div>
-            {% endif %}
+        <!-- الصورة الشخصية مع تحسينات متعددة -->
+        <div class="avatar-container" id="avatarContainer">
+            <div id="avatarContent"></div>
         </div>
         
         <!-- الاسم -->
@@ -326,24 +307,11 @@
         <div class="bio">{{ bio }}</div>
         {% endif %}
         
-        <!-- الإحصائيات (للمستخدمين المميزين) -->
-        {% if is_premium and stats %}
-        <div class="stats-grid">
-            {% for platform, data in stats.items() %}
-            <div class="stat-card">
-                <div class="stat-icon">{{ data.icon }}</div>
-                <div class="stat-value">{{ data.followers }}</div>
-                <div class="stat-label">{{ data.name }}</div>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-        
         <!-- أزرار الحسابات -->
         {% for account in accounts %}
         <a href="{{ account.url }}" class="account-btn {{ account.platform }}" target="_blank" rel="noopener noreferrer">
-            <img src="{{ account.icon }}" class="account-icon" alt="{{ account.name }}">
-            {{ account.name }}
+            <img src="{{ account.icon }}" class="account-icon" alt="{{ account.name }}" onerror="this.style.display='none'; this.nextSibling.style.display='inline';">
+            <span style="display: inline-block;">{{ account.name }}</span>
         </a>
         {% endfor %}
         
@@ -365,79 +333,88 @@
         {% endif %}
     </div>
     
-    <!-- زر تغيير الثيم (للمستخدمين المميزين فقط) -->
-    {% if is_premium %}
-    <div class="theme-picker" onclick="showThemeModal()">
-        🎨 تغيير الثيم
-    </div>
-    
-    <!-- نافذة اختيار القوالب -->
-    <div id="themeModal" class="theme-modal">
-        <div class="theme-modal-content" style="background: var(--modal-bg, white);">
-            <h3>🎨 اختر ثيمك المفضل</h3>
-            <div>
-                <div class="theme-preset" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;" onclick="selectTheme('default')">
-                    🌙 فاتح
-                </div>
-                <div class="theme-preset" style="background: #1a1a2e; color: white; border: 1px solid #4facfe;" onclick="selectTheme('dark')">
-                    🌙 داكن
-                </div>
-            </div>
-            <button class="save-theme" onclick="saveTheme()">💾 تطبيق</button>
-            <button onclick="closeThemeModal()" style="margin-top:10px; background:none; border:none; cursor:pointer;">❌ إلغاء</button>
-        </div>
-    </div>
-    {% endif %}
-    
     <script>
-        let selectedThemeName = '{{ theme_name }}';
-        
-        function showThemeModal() {
-            document.getElementById('themeModal').style.display = 'flex';
-        }
-        
-        function closeThemeModal() {
-            document.getElementById('themeModal').style.display = 'none';
-        }
-        
-        function selectTheme(theme) {
-            selectedThemeName = theme;
-            // معاينة حية - تغيير القالب مؤقتاً
-            document.getElementById('themeStylesheet').href = `/static/themes/${theme}.css`;
-        }
-        
-        function saveTheme() {
-            // إرسال الثيم المختار إلى الخادم
-            fetch('/api/save_theme', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    user_id: {{ user_id }},
-                    theme_name: selectedThemeName
-                })
-            }).then(response => response.json())
-              .then(data => {
-                  if(data.status === 'ok') {
-                      // حفظ بنجاح
-                      closeThemeModal();
-                  } else {
-                      alert('حدث خطأ، حاول مرة أخرى');
-                  }
-              }).catch(error => {
-                  console.error('Error:', error);
-                  alert('حدث خطأ في الاتصال');
-              });
-        }
-        
-        // إغلاق النافذة عند النقر خارجها
-        window.onclick = function(event) {
-            const modal = document.getElementById('themeModal');
-            if (event.target === modal) {
-                closeThemeModal();
+        // إخفاء شاشة التحميل بعد تحميل الصفحة بالكامل
+        window.addEventListener('load', function() {
+            var loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen) {
+                loadingScreen.style.opacity = '0';
+                setTimeout(function() {
+                    loadingScreen.style.display = 'none';
+                }, 500);
             }
-        }
+        });
+        
+        // تحسين عرض الصورة الشخصية
+        (function() {
+            const avatarUrl = "{{ avatar_url | default('') }}";
+            const displayName = "{{ display_name | default('') }}";
+            const avatarContainer = document.getElementById('avatarContainer');
+            const avatarContent = document.getElementById('avatarContent');
+            
+            // دالة إنشاء صورة احتياطية (أفاتار بالاسم)
+            function createFallbackAvatar() {
+                // الحصول على الحرف الأول من الاسم
+                const firstLetter = displayName ? displayName.charAt(0) : '?';
+                // ألوان عشوائية متناسقة
+                const colors = [
+                    '#667eea', '#48bb78', '#ed8936', '#e74c3c', '#3498db', 
+                    '#9b59b6', '#1abc9c', '#e67e22', '#2ecc71', '#f39c12'
+                ];
+                // اختيار لون بناءً على طول الاسم
+                const colorIndex = displayName.length % colors.length;
+                const bgColor = colors[colorIndex];
+                
+                avatarContent.innerHTML = `
+                    <div class="avatar-fallback" style="background: linear-gradient(135deg, ${bgColor} 0%, ${bgColor}cc 100%);">
+                        <span>${firstLetter}</span>
+                    </div>
+                `;
+            }
+            
+            // إذا كان هناك رابط صورة
+            if (avatarUrl && avatarUrl.trim() !== '') {
+                // إضافة تأثير تحميل
+                avatarContainer.classList.add('loading');
+                
+                // إنشاء عنصر img
+                const img = new Image();
+                img.className = 'avatar';
+                img.alt = displayName;
+                img.style.display = 'none';  // مخفي حتى يتم التحميل
+                
+                img.onload = function() {
+                    // الصورة تحمّلت بنجاح
+                    avatarContainer.classList.remove('loading');
+                    img.style.display = 'block';
+                    avatarContent.innerHTML = '';
+                    avatarContent.appendChild(img);
+                };
+                
+                img.onerror = function() {
+                    // فشل تحميل الصورة → استخدام الصورة الاحتياطية
+                    console.log('فشل تحميل الصورة من:', avatarUrl);
+                    avatarContainer.classList.remove('loading');
+                    createFallbackAvatar();
+                };
+                
+                img.src = avatarUrl;
+                
+                // مهلة زمنية (إذا استغرق التحميل أكثر من 5 ثوان)
+                setTimeout(function() {
+                    if (avatarContainer.classList.contains('loading')) {
+                        console.log('انتهت مهلة تحميل الصورة');
+                        avatarContainer.classList.remove('loading');
+                        if (!avatarContent.querySelector('img')) {
+                            createFallbackAvatar();
+                        }
+                    }
+                }, 5000);
+            } else {
+                // لا يوجد رابط صورة → استخدام الصورة الاحتياطية مباشرة
+                createFallbackAvatar();
+            }
+        })();
     </script>
 </body>
 </html>
