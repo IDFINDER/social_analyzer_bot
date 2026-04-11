@@ -1037,22 +1037,35 @@ async def bio_settings_command(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.edit_message_text("❌ لم يتم العثور على صفحة البايو. اضغط على '📄 صفحة البايو' أولاً.")
         return
     
-    theme_name = bio_page.get('theme_name', 'default')
+    current_theme = bio_page.get('theme_name', 'default')
     current_bio = bio_page.get('bio', 'لا يوجد')
     current_avatar = bio_page.get('avatar_url', None)
     
+    # جلب جميع الثيمات المتاحة
+    from utils.db import get_all_themes
+    all_themes = get_all_themes()
+    
     bio_preview = current_bio[:40] + "..." if len(current_bio) > 40 else current_bio
     
-    keyboard = [
-        [InlineKeyboardButton(f"🎨 الثيم الحالي: {'فاتح' if theme_name == 'default' else 'داكن'}", callback_data="bio_settings_theme")],
+    # بناء قائمة أزرار الثيمات
+    keyboard = []
+    for theme in all_themes:
+        theme_name = theme.get('name')
+        theme_display = theme.get('display_name', theme_name.capitalize())
+        is_current = (theme_name == current_theme)
+        # علامة ✅ بجانب الثيم الحالي
+        display_text = f"{'✅ ' if is_current else '   '}{theme_display}"
+        keyboard.append([InlineKeyboardButton(display_text, callback_data=f"bio_set_theme_{theme_name}")])
+    
+    # إضافة باقي الأزرار
+    keyboard.extend([
         [InlineKeyboardButton(f"📝 تعديل النبذة ({bio_preview})", callback_data="bio_edit_bio")],
         [InlineKeyboardButton(f"🖼️ تغيير الصورة الشخصية {'✅' if current_avatar else '❌'}", callback_data="bio_edit_avatar")],
         [InlineKeyboardButton("🔄 إعادة تعيين (مسح النبذة والصورة)", callback_data="bio_reset_page_warning")],
         [InlineKeyboardButton("🔗 إنشاء رابط جديد للصفحة", callback_data="bio_reset_url_warning")],
         [InlineKeyboardButton("🗑️ حذف صفحة البايو بالكامل", callback_data="bio_delete_page_warning")],
-        # 👇 أضف الزر الجديد هنا 👇
         [InlineKeyboardButton("🔙 رجوع", callback_data="main_menu")]
-    ]
+    ])
     
     page_url = bio_page.get('page_url')
     flask_url = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
@@ -1065,8 +1078,9 @@ async def bio_settings_command(update: Update, context: ContextTypes.DEFAULT_TYP
         f"📊 <b>الإعدادات الحالية:</b>\n"
         f"📝 النبذة: {bio_preview}\n"
         f"🖼️ الصورة الشخصية: {'موجودة ✅' if current_avatar else 'غير محددة ❌'}\n"
-        f"🎨 الثيم: {'فاتح ☀️' if theme_name == 'default' else 'داكن 🌙'}\n"
         f"👁️ المشاهدات: {bio_page.get('views_count', 0)}\n\n"
+        f"🎨 <b>اختر الثيم المفضل لديك:</b>\n"
+        f"💡 اضغط على أي ثيم لتغييره فوراً\n\n"
         f"⚠️ <b>تنبيه:</b> الإجراءات التالية تتطلب تأكيداً إضافياً:\n"
         f"• إعادة تعيين (مسح النبذة والصورة)\n"
         f"• إنشاء رابط جديد (سيوقف الرابط القديم)\n"
