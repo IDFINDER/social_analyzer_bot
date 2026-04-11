@@ -1,0 +1,98 @@
+/* ocean.css - القالب المحيط (أزرق) لصفحة البايو */
+
+/* خلفية الصفحة - تدرج أزرق محيطي */
+body {
+    background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
+}
+
+/* بطاقة المحتوى */
+.container {
+    background: #ffffff;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* الصورة الرمزية */
+.avatar {
+    border: 4px solid #ffffff;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.avatar-container {
+    background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
+}
+
+/* الاسم */
+h1 {
+    color: #1a365d;
+}
+
+/* اليوزرنيم */
+.username {
+    color: #2b6cb0;
+}
+
+/* النبذة */
+.bio {
+    background: #ebf8ff;
+    color: #2c5282;
+    border: 1px solid #90cdf4;
+}
+
+/* الخط الفاصل */
+.divider {
+    background: linear-gradient(to right, transparent, #90cdf4, transparent);
+}
+
+/* بطاقات الإحصائيات */
+.stat-card {
+    background: #ebf8ff;
+    border: 1px solid #90cdf4;
+}
+
+.stat-value {
+    color: #3182ce;
+}
+
+.stat-label {
+    color: #2c5282;
+}
+
+/* الروابط المخصصة - تدرج أزرق محيطي */
+.custom-link {
+    background: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
+}
+
+.custom-link:hover {
+    background: linear-gradient(135deg, #2c5282 0%, #319795 100%);
+}
+
+/* التذييل */
+.footer {
+    border-top-color: #90cdf4;
+    color: #2c5282;
+}
+
+.footer a {
+    color: #3182ce;
+}
+
+.footer a:hover {
+    color: #2b6cb0;
+}
+
+/* عدد المشاهدات */
+.views {
+    color: #2c5282;
+}
+
+/* زر تغيير الثيم */
+.theme-picker {
+    background: #ffffff;
+    color: #3182ce;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border: 1px solid #90cdf4;
+}
+
+.theme-picker:hover {
+    background: #ebf8ff;
+}
