@@ -662,47 +662,88 @@ async def analyze_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
 
 async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """تقديم توصيات الذكاء الاصطناعي"""
+    print("🔍 [DEBUG 1] ========== START ai_recommendations ==========")
+    
     query = update.callback_query
+    print(f"🔍 [DEBUG 2] query received: {query.data if query else 'None'}")
+    
     await query.answer()
+    print("🔍 [DEBUG 3] query.answer() completed")
     
     user_id = query.from_user.id
     channel_id = query.data.split('_')[-1]
+    print(f"🔍 [DEBUG 4] user_id = {user_id}")
+    print(f"🔍 [DEBUG 5] channel_id = {channel_id}")
     
     user_info = get_user_info(user_id)
+    print(f"🔍 [DEBUG 6] user_info = {user_info}")
+    
     is_premium = user_info['status'] == 'premium' if user_info else False
+    print(f"🔍 [DEBUG 7] is_premium = {is_premium}")
     
     if not is_premium:
+        print("🔍 [DEBUG 8] ❌ User is NOT premium - exiting")
         await query.edit_message_text(
             "💎 هذه الميزة متاحة فقط للمستخدمين المميزين!\n\nللاشتراك: /premium"
         )
         return
     
+    print("🔍 [DEBUG 9] ✅ User IS premium - continuing")
+    
     can_use, remaining, error_msg = can_use_gemini(user_id)
+    print(f"🔍 [DEBUG 10] can_use = {can_use}, remaining = {remaining}")
+    print(f"🔍 [DEBUG 11] error_msg = {error_msg}")
     
     if not can_use:
+        print("🔍 [DEBUG 12] ❌ Cannot use Gemini - exiting")
         await query.edit_message_text(error_msg)
         return
     
+    print("🔍 [DEBUG 13] ✅ Can use Gemini - continuing")
+    
     youtube_account = get_user_account(user_id, 'youtube')
+    print(f"🔍 [DEBUG 14] youtube_account = {youtube_account}")
+    
     if not youtube_account:
+        print("🔍 [DEBUG 15] ❌ No YouTube account found - exiting")
         await query.edit_message_text("❌ لم يتم العثور على حساب يوتيوب مسجل")
         return
     
-    channel_details, _ = await get_channel_details(youtube_account['account_identifier'])
+    print("🔍 [DEBUG 16] ✅ YouTube account found - continuing")
+    
+    print("🔍 [DEBUG 17] Calling get_channel_details...")
+    channel_details, error = await get_channel_details(youtube_account['account_identifier'])
+    print(f"🔍 [DEBUG 18] channel_details = {channel_details is not None}")
+    print(f"🔍 [DEBUG 19] error = {error}")
+    
+    if error:
+        print(f"🔍 [DEBUG 20] ❌ Error from get_channel_details: {error}")
+        await query.edit_message_text(f"❌ حدث خطأ: {error}")
+        return
     
     if not channel_details:
+        print("🔍 [DEBUG 21] ❌ No channel_details found - exiting")
         await query.edit_message_text("❌ لم يتم العثور على القناة")
         return
     
+    print("🔍 [DEBUG 22] ✅ Channel found - continuing")
+    
     await query.edit_message_text("🤖 جاري توليد توصيات الذكاء الاصطناعي...")
+    print("🔍 [DEBUG 23] Sent 'Generating' message")
     
     increment_gemini_usage(user_id)
+    print("🔍 [DEBUG 24] increment_gemini_usage completed")
     
+    print("🔍 [DEBUG 25] Calling get_channel_recommendations (Gemini API)...")
     recommendations = await get_channel_recommendations(channel_details)
+    print(f"🔍 [DEBUG 26] recommendations received (length: {len(recommendations) if recommendations else 0})")
+    print(f"🔍 [DEBUG 27] recommendations preview: {recommendations[:200] if recommendations else 'None'}...")
     
     response = f"🤖 <b>توصيات الذكاء الاصطناعي:</b>\n\n{recommendations}\n\n📊 <b>المتبقي اليوم:</b> {remaining - 1}/5 توصيات"
     
     await query.edit_message_text(response, parse_mode='HTML')
+    print("🔍 [DEBUG 28] ✅ Response sent successfully!")
+    print("🔍 [DEBUG 29] ========== END ai_recommendations ==========")
 
 # =================================================================================
 # القسم 11: أوامر البوت - صفحة البايو (Bio Page)
