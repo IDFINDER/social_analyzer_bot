@@ -149,7 +149,38 @@ def increment_usage(user_id, platform, analysis_results=None):
             **update_data
         }, on_conflict='user_id,bot_name').execute()
         
+        # ========== حفظ سجل التحليل مع تحويل الأرقام ==========
         if analysis_results:
+            # دالة مساعدة لتحويل الأرقام المنسقة (مثل "2.5M", "1.2K") إلى أرقام صحيحة
+            def parse_number(value):
+                if value is None:
+                    return None
+                if isinstance(value, (int, float)):
+                    return int(value)
+                if not isinstance(value, str):
+                    return None
+                try:
+                    value = value.upper().strip()
+                    if 'M' in value:
+                        # تحويل الملايين (مثال: 2.5M -> 2500000)
+                        return int(float(value.replace('M', '')) * 1_000_000)
+                    elif 'K' in value:
+                        # تحويل الآلاف (مثال: 1.2K -> 1200)
+                        return int(float(value.replace('K', '')) * 1_000)
+                    else:
+                        # محاولة تحويل النص إلى رقم مباشرة
+                        return int(float(value))
+                except (ValueError, TypeError):
+                    # في حالة فشل التحويل، نرجع None
+                    return None
+            
+            # تحويل القيم قبل الإدراج
+            subscribers_raw = analysis_results.get('subscribers')
+            subscribers_clean = parse_number(subscribers_raw)
+            
+            total_posts_raw = analysis_results.get('total_posts')
+            total_posts_clean = parse_number(total_posts_raw)
+            
             supabase.table('analysis_history').insert({
                 'user_id': user_id,
                 'username': username,
@@ -157,8 +188,8 @@ def increment_usage(user_id, platform, analysis_results=None):
                 'platform': platform,
                 'analysis_date': datetime.now().isoformat(),
                 'account_name': analysis_results.get('account_name'),
-                'subscribers': analysis_results.get('subscribers'),
-                'total_posts': analysis_results.get('total_posts'),
+                'subscribers': subscribers_clean,      # قيمة رقمية صحيحة
+                'total_posts': total_posts_clean,      # قيمة رقمية صحيحة
                 'top_posts': analysis_results.get('top_posts'),
                 'top_comments': analysis_results.get('top_comments'),
                 'ai_recommendations': analysis_results.get('ai_recommendations'),
