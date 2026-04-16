@@ -1,149 +1,192 @@
 # -*- coding: utf-8 -*-
 """
-دوال الذكاء الاصطناعي باستخدام Gemini API (بدون مكتبة خارجية)
+================================================================================
+الملف: gemini_ai.py
+الوصف: دوال الذكاء الاصطناعي باستخدام Google Gemini API
+================================================================================
 """
 
 import os
 import logging
-import requests
-import json
+import asyncio
+from typing import Dict, Any, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
+# محاولة استيراد Gemini API
+try:
+    import google.generativeai as genai
+    GEMINI_AVAILABLE = True
+except ImportError:
+    GEMINI_AVAILABLE = False
+    logger.warning("⚠️ مكتبة google-generativeai غير مثبتة. قم بتثبيتها باستخدام: pip install google-generativeai")
+
+# الحصول على مفتاح API من متغيرات البيئة
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+
+# تهيئة Gemini API إذا كان المفتاح موجوداً
+if GEMINI_API_KEY and GEMINI_AVAILABLE:
+    genai.configure(api_key=GEMINI_API_KEY)
+    logger.info("✅ تم تهيئة Gemini API بنجاح")
+elif not GEMINI_API_KEY:
+    logger.warning("⚠️ GEMINI_API_KEY غير موجود في متغيرات البيئة")
+elif not GEMINI_AVAILABLE:
+    logger.warning("⚠️ مكتبة google-generativeai غير مثبتة")
+
+# النموذج المستخدم (يجب أن يكون متوافق مع v1beta)
+# ملاحظة: gemini-1.5-flash غير متوفر في v1beta، استخدم gemini-pro بدلاً منه
+GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-pro')
 
 
-async def get_channel_recommendations(channel_details):
+async def get_channel_recommendations(channel_details: Dict[str, Any]) -> str:
     """
-    الحصول على توصيات لتحسين القناة باستخدام Gemini API
+    الحصول على توصيات من Gemini لتحسين قناة اليوتيوب
+    
+    Args:
+        channel_details: تفاصيل القناة (الاسم، المشتركين، الفيديوهات، إلخ)
+    
+    Returns:
+        نص التوصيات أو رسالة خطأ
     """
+    
+    # التحقق من توفر Gemini
     if not GEMINI_API_KEY:
-        return "⚠️ خدمة الذكاء الاصطناعي غير متاحة حالياً."
+        return "⚠️ خدمة الذكاء الاصطناعي غير متاحة. يرجى التواصل مع المطور."
+    
+    if not GEMINI_AVAILABLE:
+        return "⚠️ مكتبة الذكاء الاصطناعي غير مثبتة. يرجى التواصل مع المطور."
     
     try:
+        # استخدام النموذج المتوافق مع v1beta
+        model = genai.GenerativeModel(GEMINI_MODEL)
+        
+        # بناء نص الاستعلام بالعربية
         prompt = f"""
-        أنت خبير في تحسين قنوات يوتيوب. قدم نصائح مختصرة لهذه القناة:
+أنت خبير في تحسين قنوات اليوتيوب. قم بتحليل القناة التالية وقدم توصيات عملية:
+
+📺 **اسم القناة:** {channel_details.get('title', 'غير معروف')}
+👥 **عدد المشتركين:** {channel_details.get('subscribers', 0):,}
+🎬 **عدد الفيديوهات:** {channel_details.get('total_videos', 0):,}
+👁️ **إجمالي المشاهدات:** {channel_details.get('total_views', 0):,}
+📅 **تاريخ الإنشاء:** {channel_details.get('created_date', 'غير معروف')}
+📝 **وصف القناة:** {channel_details.get('description', 'لا يوجد')[:200]}
+
+**المطلوب:**
+قدم 5 نصائح عملية ومحددة لتحسين القناة وزيادة المشتركين والمشاهدات.
+
+**ملاحظات مهمة:**
+- اجعل النصائح عملية وقابلة للتنفيذ
+- ركز على تحسين محتوى اليوتيوب العربي
+- اذكر أدوات مفيدة إذا لزم الأمر
+- استخدم لغة عربية بسيطة وواضحة
+"""
         
-        اسم القناة: {channel_details.get('title')}
-        عدد المشتركين: {channel_details.get('subscribers')}
-        عدد الفيديوهات: {channel_details.get('total_videos')}
-        إجمالي المشاهدات: {channel_details.get('total_views')}
-        متوسط المشاهدات: {channel_details.get('avg_views')}
+        # إرسال الطلب إلى Gemini
+        logger.info(f"🤖 إرسال طلب إلى Gemini API (النموذج: {GEMINI_MODEL})")
+        response = await asyncio.to_thread(model.generate_content, prompt)
         
-        قدم 3-5 نصائح عملية ومحددة لتحسين القناة وزيادة التفاعل.
-        اجعل النصائح قصيرة ومباشرة باللغة العربية.
-        """
-        
-        response = requests.post(
-            f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
-            headers={"Content-Type": "application/json"},
-            json={
-                "contents": [{
-                    "parts": [{"text": prompt}]
-                }]
-            },
-            timeout=30
-        )
-        
-        if response.status_code == 200:
-            data = response.json()
-            return data['candidates'][0]['content']['parts'][0]['text']
+        if response and response.text:
+            logger.info("✅ تم استلام التوصيات بنجاح")
+            return response.text
         else:
-            logger.error(f"Gemini API error: {response.status_code} - {response.text}")
-            return "⚠️ عذراً، حدث خطأ في جلب التوصيات. حاول مرة أخرى لاحقاً."
-        
+            return "⚠️ لم يتم الحصول على رد من الذكاء الاصطناعي. حاول مرة أخرى."
+    
     except Exception as e:
-        logger.error(f"Error getting Gemini recommendations: {e}")
-        return "⚠️ عذراً، حدث خطأ في جلب التوصيات. حاول مرة أخرى لاحقاً."
+        logger.error(f"❌ خطأ في Gemini API: {str(e)}")
+        
+        # معالجة أخطاء محددة
+        error_msg = str(e).lower()
+        if "404" in error_msg or "not found" in error_msg:
+            return f"""⚠️ **خطأ في نموذج الذكاء الاصطناعي**
+
+النموذج `{GEMINI_MODEL}` غير متوفر حالياً.
+
+**الحلول المقترحة:**
+1️⃣ تواصل مع المطور لتحديث النموذج إلى `gemini-pro`
+2️⃣ انتظر التحديث القادم للبوت
+
+**ملاحظة:** هذه الميزة قيد التطوير حالياً."""
+        
+        elif "429" in error_msg or "quota" in error_msg:
+            return "⚠️ لقد تجاوزت الحد اليومي للاستخدام المجاني. يرجى المحاولة غداً."
+        
+        elif "403" in error_msg or "permission" in error_msg:
+            return "⚠️ مفتاح API غير صالح أو منتهي الصلاحية. يرجى التواصل مع المطور."
+        
+        else:
+            return f"❌ حدث خطأ في الاتصال بالذكاء الاصطناعي: {str(e)[:200]}"
 
 
-async def get_username_recommendations(platform, current_username, target_username):
+async def get_username_recommendations(platform: str, keyword: str) -> str:
     """
-    الحصول على توصيات لتحسين اسم المستخدم
+    الحصول على اقتراحات لأسماء مستخدمين من Gemini
+    
+    Args:
+        platform: المنصة (youtube, instagram, tiktok, facebook)
+        keyword: الكلمة المفتاحية أو الاسم المطلوب
+    
+    Returns:
+        اقتراحات الأسماء
     """
-    if not GEMINI_API_KEY:
-        return "⚠️ خدمة الذكاء الاصطناعي غير متاحة حالياً."
+    
+    if not GEMINI_API_KEY or not GEMINI_AVAILABLE:
+        return "⚠️ خدمة اقتراحات الأسماء غير متاحة حالياً."
     
     try:
+        model = genai.GenerativeModel(GEMINI_MODEL)
+        
+        platform_names = {
+            'youtube': 'يوتيوب',
+            'instagram': 'انستقرام',
+            'tiktok': 'تيك توك',
+            'facebook': 'فيسبوك'
+        }
+        
+        platform_name = platform_names.get(platform, platform)
+        
         prompt = f"""
-        أنت خبير في تحسين أسماء المستخدمين على منصة {platform}.
+أنت خبير في أسماء المستخدمين على وسائل التواصل الاجتماعي.
+
+**المطلوب:**
+اقترح 10 أسماء مستخدمين مميزة وجذابة لمنصة {platform_name} بناءً على الكلمة المفتاحية: "{keyword}"
+
+**الشروط:**
+- أسماء قصيرة وسهلة التذكر
+- مناسبة للمحتوى العربي
+- غير مستخدمة بشكل شائع
+- تعكس الاحترافية
+
+قدم الأسماء فقط، كل اسم في سطر جديد.
+"""
         
-        الاسم الحالي: {current_username}
-        الاسم المطلوب التحقق منه: {target_username}
+        response = await asyncio.to_thread(model.generate_content, prompt)
         
-        قدم نصائح:
-        1. هل الاسم {target_username} جيد؟ لماذا؟
-        2. اقتراح 3 أسماء بديلة أفضل
-        3. نصائح عامة لاختيار اسم مستخدم جيد
-        
-        اجعل الرد مختصراً باللغة العربية.
-        """
-        
-        response = requests.post(
-            f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
-            headers={"Content-Type": "application/json"},
-            json={
-                "contents": [{
-                    "parts": [{"text": prompt}]
-                }]
-            },
-            timeout=30
-        )
-        
-        if response.status_code == 200:
-            data = response.json()
-            return data['candidates'][0]['content']['parts'][0]['text']
+        if response and response.text:
+            return response.text
         else:
-            return "⚠️ عذراً، حدث خطأ في جلب التوصيات."
-        
+            return "⚠️ لم يتم الحصول على اقتراحات. حاول مرة أخرى."
+    
     except Exception as e:
-        logger.error(f"Error getting username recommendations: {e}")
-        return "⚠️ عذراً، حدث خطأ في جلب التوصيات."
+        logger.error(f"❌ خطأ في اقتراحات الأسماء: {str(e)}")
+        return f"❌ حدث خطأ: {str(e)[:100]}"
 
 
-async def get_bio_page_suggestions(user_data, accounts):
+def check_gemini_status() -> Tuple[bool, str]:
     """
-    الحصول على اقتراحات لصفحة البايو
+    التحقق من حالة خدمة Gemini
+    
+    Returns:
+        tuple: (متاحة, رسالة الحالة)
     """
     if not GEMINI_API_KEY:
-        return "⚠️ خدمة الذكاء الاصطناعي غير متاحة حالياً."
+        return False, "❌ مفتاح API غير موجود"
+    
+    if not GEMINI_AVAILABLE:
+        return False, "❌ مكتبة google-generativeai غير مثبتة"
     
     try:
-        accounts_text = "\n".join([f"- {platform}: {identifier}" for platform, identifier in accounts.items()])
-        
-        prompt = f"""
-        أنت خبير في تصميم صفحات البايو الاحترافية.
-        
-        اسم المستخدم: {user_data.get('display_name', user_data.get('first_name'))}
-        حسابات المستخدم:
-        {accounts_text}
-        
-        قدم اقتراحات لتحسين صفحة البايو:
-        1. ترتيب الحسابات المقترح
-        2. نصائح لكتابة وصف جذاب
-        3. اقتراحات لإضافة روابط مفيدة
-        
-        اجعل الرد مختصراً باللغة العربية.
-        """
-        
-        response = requests.post(
-            f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
-            headers={"Content-Type": "application/json"},
-            json={
-                "contents": [{
-                    "parts": [{"text": prompt}]
-                }]
-            },
-            timeout=30
-        )
-        
-        if response.status_code == 200:
-            data = response.json()
-            return data['candidates'][0]['content']['parts'][0]['text']
-        else:
-            return "⚠️ عذراً، حدث خطأ في جلب الاقتراحات."
-        
+        # محاولة بسيطة للتحقق من صحة المفتاح
+        model = genai.GenerativeModel(GEMINI_MODEL)
+        return True, f"✅ Gemini يعمل (النموذج: {GEMINI_MODEL})"
     except Exception as e:
-        logger.error(f"Error getting bio page suggestions: {e}")
-        return "⚠️ عذراً، حدث خطأ في جلب الاقتراحات."
+        return False, f"⚠️ خطأ في الاتصال: {str(e)[:50]}"
