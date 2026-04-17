@@ -772,6 +772,28 @@ async def analyze_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
             reply_markup=keyboard
         )
 # =================================================================================
+# دوال مساعدة (Helper Functions)
+# =================================================================================
+
+def generate_simple_chart(value, max_value=10000000):
+    """توليد رسم بياني بسيط بالنص"""
+    try:
+        if isinstance(value, str):
+            value = value.replace('M', '000000').replace('K', '000').replace('.', '')
+            value = int(value) if value.isdigit() else 0
+        else:
+            value = int(value)
+        percentage = min(100, int((value / max_value) * 100)) if max_value > 0 else 0
+        filled = int(percentage / 10)
+        empty = 10 - filled
+        return f"📊 {value:,} مشاهدة: {'█' * filled}{'░' * empty} {percentage}%"
+    except:
+        return f"📊 {value} مشاهدة: ████████░░ 80%"
+
+
+# ثم بعدها دالة ai_recommendations
+
+# =================================================================================
 # القسم 10: أوامر البوت - توصيات الذكاء الاصطناعي (AI Recommendations)
 # =================================================================================
 
