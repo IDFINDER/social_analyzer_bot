@@ -1915,7 +1915,18 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer("🎵 هذه الميزة قيد التطوير حالياً", show_alert=True)
     elif data == "analyze_facebook":
         await query.answer("📘 هذه الميزة قيد التطوير حالياً", show_alert=True)
-    
+    # ========== أزرار الاشتراك ==========
+    elif data == "subscribe_monthly":
+        await subscription_callback(update, context, 'monthly')
+    elif data == "subscribe_half_yearly":
+        await subscription_callback(update, context, 'half_yearly')
+    elif data == "subscribe_yearly":
+        await subscription_callback(update, context, 'yearly')
+    elif data == "subscribe_lifetime":
+        await subscription_callback(update, context, 'lifetime')
+    elif data == "subscribe_promo":
+        await subscription_callback(update, context, 'promo')
+ 
     # ----- زر القائمة الرئيسية -----
     elif data == "main_menu":
         user_info = get_user_info(user_id)
