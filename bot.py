@@ -776,90 +776,206 @@ async def analyze_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
 # =================================================================================
 
 async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """تقديم توصيات الذكاء الاصطناعي"""
-    print("🔍 [DEBUG 1] ========== START ai_recommendations ==========")
-    
+    """تقديم توصيات الذكاء الاصطناعي (نسخة متقدمة مع تحليل تاريخي)"""
     query = update.callback_query
-    print(f"🔍 [DEBUG 2] query received: {query.data if query else 'None'}")
-    
     await query.answer()
-    print("🔍 [DEBUG 3] query.answer() completed")
     
     user_id = query.from_user.id
     channel_id = query.data.split('_')[-1]
-    print(f"🔍 [DEBUG 4] user_id = {user_id}")
-    print(f"🔍 [DEBUG 5] channel_id = {channel_id}")
     
     user_info = get_user_info(user_id)
-    print(f"🔍 [DEBUG 6] user_info = {user_info}")
-    
     is_premium = user_info['status'] == 'premium' if user_info else False
-    print(f"🔍 [DEBUG 7] is_premium = {is_premium}")
     
     if not is_premium:
-        print("🔍 [DEBUG 8] ❌ User is NOT premium - exiting")
         await query.edit_message_text(
             "💎 هذه الميزة متاحة فقط للمستخدمين المميزين!\n\nللاشتراك: /premium"
         )
         return
     
-    print("🔍 [DEBUG 9] ✅ User IS premium - continuing")
-    
+    # التحقق من صلاحية استخدام Gemini
     can_use, remaining, error_msg = can_use_gemini(user_id)
-    print(f"🔍 [DEBUG 10] can_use = {can_use}, remaining = {remaining}")
-    print(f"🔍 [DEBUG 11] error_msg = {error_msg}")
     
     if not can_use:
-        print("🔍 [DEBUG 12] ❌ Cannot use Gemini - exiting")
         await query.edit_message_text(error_msg)
         return
     
-    print("🔍 [DEBUG 13] ✅ Can use Gemini - continuing")
-    
+    # جلب تفاصيل القناة
     youtube_account = get_user_account(user_id, 'youtube')
-    print(f"🔍 [DEBUG 14] youtube_account = {youtube_account}")
-    
     if not youtube_account:
-        print("🔍 [DEBUG 15] ❌ No YouTube account found - exiting")
         await query.edit_message_text("❌ لم يتم العثور على حساب يوتيوب مسجل")
         return
     
-    print("🔍 [DEBUG 16] ✅ YouTube account found - continuing")
-    
-    print("🔍 [DEBUG 17] Calling get_channel_details...")
-    channel_details, error = await get_channel_details(youtube_account['account_identifier'])
-    print(f"🔍 [DEBUG 18] channel_details = {channel_details is not None}")
-    print(f"🔍 [DEBUG 19] error = {error}")
-    
-    if error:
-        print(f"🔍 [DEBUG 20] ❌ Error from get_channel_details: {error}")
-        await query.edit_message_text(f"❌ حدث خطأ: {error}")
-        return
+    channel_details, _ = await get_channel_details(youtube_account['account_identifier'])
     
     if not channel_details:
-        print("🔍 [DEBUG 21] ❌ No channel_details found - exiting")
         await query.edit_message_text("❌ لم يتم العثور على القناة")
         return
     
-    print("🔍 [DEBUG 22] ✅ Channel found - continuing")
+    # ========== جلب التحليلات التاريخية ==========
+    from utils.db import get_analyses_for_ai, calculate_growth_metrics
     
-    await query.edit_message_text("🤖 جاري توليد توصيات الذكاء الاصطناعي...")
-    print("🔍 [DEBUG 23] Sent 'Generating' message")
+    account_identifier = youtube_account['account_identifier']
+    analyses = get_analyses_for_ai(user_id, 'youtube', account_identifier)
     
+    first_analysis = analyses.get('first')
+    latest_analyses = analyses.get('latest_analyses', [])
+    
+    # حساب مقاييس النمو
+    growth_metrics = calculate_growth_metrics(first_analysis, latest_analyses[0] if latest_analyses else None)
+    
+    # ========== تحليل إضافي للمحتوى ==========
+    # استخراج عناوين الفيديوهات الأخيرة لتحليل النوع
+    video_titles = [v.get('title', '') for v in channel_details.get('latest_videos', [])[:5]]
+    
+    # تحليل فئات المحتوى من العناوين
+    content_categories = []
+    keywords = {
+        'تعليم': ['تعلم', 'درس', 'شرح', 'كيف', 'دورة', 'مهارة'],
+        'ترفيه': ['كوميدي', 'ضحك', 'مزح', 'تحدي', 'لعبة'],
+        'أخبار': ['خبر', 'حدث', 'عاجل', 'تطور', 'إعلان'],
+        'تكنولوجيا': ['هاتف', 'كمبيوتر', 'تطبيق', 'برنامج', 'تقنية', 'AI'],
+        'رياضة': ['مباراة', 'هدف', 'فريق', 'بطل', 'كأس'],
+        'طبخ': ['وصفة', 'أكلة', 'طبخ', 'مطبخ', 'سناك'],
+        'سفر': ['رحلة', 'سفر', 'مكان', 'وجهة', 'سياحة']
+    }
+    
+    for title in video_titles:
+        title_lower = title.lower()
+        for category, words in keywords.items():
+            if any(word in title_lower for word in words):
+                content_categories.append(category)
+                break
+    
+    # أكثر فئة شيوعاً
+    from collections import Counter
+    top_category = Counter(content_categories).most_common(1)[0][0] if content_categories else None
+    
+    # ========== تحليل أوقات النشر ==========
+    posting_times = []
+    for video in channel_details.get('latest_videos', [])[:10]:
+        published_at = video.get('published_at', '')
+        if published_at:
+            try:
+                dt = datetime.fromisoformat(published_at.replace('Z', '+00:00'))
+                posting_times.append(dt.hour)
+            except:
+                pass
+    
+    best_hour = Counter(posting_times).most_common(1)[0][0] if posting_times else None
+    
+    # ========== إعداد الـ Prompt المتقدم ==========
+    await query.edit_message_text("🤖 جاري تحليل بيانات قناتك وتوليد توصيات ذكية...")
+    
+    # زيادة عدد استخدامات Gemini
     increment_gemini_usage(user_id)
-    print("🔍 [DEBUG 24] increment_gemini_usage completed")
     
-    print("🔍 [DEBUG 25] Calling get_channel_recommendations (Gemini API)...")
-    recommendations = await get_channel_recommendations(channel_details)
-    print(f"🔍 [DEBUG 26] recommendations received (length: {len(recommendations) if recommendations else 0})")
-    print(f"🔍 [DEBUG 27] recommendations preview: {recommendations[:200] if recommendations else 'None'}...")
+    # بناء الـ Prompt المحسن
+    prompt = f"""
+أنت خبير استراتيجي في تحسين قنوات يوتيوب وتحليل أدائها. بناءً على البيانات التالية، قدم توصيات ذكية ومخصصة:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📺 معلومات القناة
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• الاسم: {channel_details.get('title', 'غير معروف')}
+• تاريخ الإنشاء: {channel_details.get('published_at', 'غير معروف')}
+• البلد: {channel_details.get('country', 'غير محدد')}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 الإحصائيات الحالية
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• المشتركين: {channel_details.get('subscribers', '0')}
+• إجمالي المشاهدات: {channel_details.get('total_views', '0')}
+• عدد الفيديوهات: {channel_details.get('total_videos', '0')}
+• متوسط المشاهدات لكل فيديو: {channel_details.get('avg_views', '0')}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📈 تطور القناة (مقارنة مع أول تحليل)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• نمو المشتركين: +{growth_metrics.get('subscribers_growth', 0):,} ({growth_metrics.get('subscribers_percent', 0)}%)
+• نمو المشاهدات: +{growth_metrics.get('views_growth', 0):,} ({growth_metrics.get('views_percent', 0)}%)
+• الفترة الزمنية: {growth_metrics.get('analysis_period_days', 0)} يوماً
+• نسبة التفاعل المقدرة: {channel_details.get('engagement_rate', '0')}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎬 تحليل المحتوى
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• عناوين الفيديوهات الأخيرة: {', '.join(video_titles[:3])}
+• الفئة الأكثر شيوعاً: {top_category or 'غير محدد'}
+• أفضل وقت للنشر: {best_hour}:00 أو {best_hour+1}:00
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+قدم توصياتك في هذه المجالات (اجعلها قصيرة ومباشرة، 4-6 نقاط):
+
+1️⃣ **تحسين المحتوى** - بناءً على فئة القناة وعناوين الفيديوهات
+2️⃣ **استراتيجية النشر** - بناءً على أوقات النشر وأيامه
+3️⃣ **نمو الجمهور** - بناءً على معدل نمو المشتركين
+4️⃣ **تحسين نسبة المشاهدة** - نصائح لزيادة الاحتفاظ بالمشاهدين
+5️⃣ **أخطاء شائعة يجب تجنبها** - بناءً على البيانات المتاحة
+6️⃣ **خطوات محددة للشهر القادم** - أهداف قابلة للتحقيق
+
+استخدم اللغة العربية البسيطة، واجعل التوصيات عملية وقابلة للتنفيذ فوراً.
+"""
     
-    response = f"🤖 <b>توصيات الذكاء الاصطناعي:</b>\n\n{recommendations}\n\n📊 <b>المتبقي اليوم:</b> {remaining - 1}/5 توصيات"
+    # استدعاء Gemini API
+    from utils.gemini_ai import get_channel_recommendations
+    
+    # استخدام دالة التوصيات المحسنة
+    recommendations = await get_advanced_recommendations(channel_details, prompt)
+    
+    # تنسيق الرد
+    response = f"🤖 <b>توصيات الذكاء الاصطناعي المخصصة</b>\n\n"
+    
+    if growth_metrics.get('subscribers_growth', 0) != 0:
+        response += f"📊 <b>تحليل التطور:</b>\n"
+        response += f"• نمو المشتركين: +{growth_metrics.get('subscribers_growth', 0):,} ({growth_metrics.get('subscribers_percent', 0)}%)\n"
+        response += f"• نمو المشاهدات: +{growth_metrics.get('views_growth', 0):,} ({growth_metrics.get('views_percent', 0)}%)\n\n"
+    
+    response += f"💡 <b>التوصيات:</b>\n{recommendations}\n\n"
+    response += f"📊 <b>المتبقي اليوم:</b> {remaining - 1}/5 توصيات\n"
+    response += f"💎 <b>مستوى التوصية:</b> متقدم (تحليل تاريخي + فوري)"
     
     await query.edit_message_text(response, parse_mode='HTML')
-    print("🔍 [DEBUG 28] ✅ Response sent successfully!")
-    print("🔍 [DEBUG 29] ========== END ai_recommendations ==========")
 
+
+async def get_advanced_recommendations(channel_details, prompt):
+    """دالة مساعدة للحصول على توصيات متقدمة من Gemini API"""
+    import requests
+    import json
+    
+    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+    GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+    
+    if not GEMINI_API_KEY:
+        return "⚠️ خدمة الذكاء الاصطناعي غير متاحة حالياً."
+    
+    try:
+        response = requests.post(
+            f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
+            headers={"Content-Type": "application/json"},
+            json={
+                "contents": [{
+                    "parts": [{"text": prompt}]
+                }],
+                "generationConfig": {
+                    "temperature": 0.7,
+                    "maxOutputTokens": 800,
+                    "topP": 0.9
+                }
+            },
+            timeout=45
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            return data['candidates'][0]['content']['parts'][0]['text']
+        else:
+            logger.error(f"Gemini API error: {response.status_code} - {response.text}")
+            return "⚠️ عذراً، حدث خطأ في جلب التوصيات. حاول مرة أخرى لاحقاً."
+        
+    except Exception as e:
+        logger.error(f"Error getting Gemini recommendations: {e}")
+        return "⚠️ عذراً، حدث خطأ في جلب التوصيات. حاول مرة أخرى لاحقاً."
 # =================================================================================
 # القسم 11: أوامر البوت - صفحة البايو (Bio Page)
 # =================================================================================
