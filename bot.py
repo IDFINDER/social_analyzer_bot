@@ -824,7 +824,6 @@ async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE)
     growth_metrics = calculate_growth_metrics(first_analysis, latest_analyses[0] if latest_analyses else None)
     
     # ========== تحليل إضافي للمحتوى ==========
-    # استخراج عناوين الفيديوهات الأخيرة لتحليل النوع
     video_titles = [v.get('title', '') for v in channel_details.get('latest_videos', [])[:5]]
     
     # تحليل فئات المحتوى من العناوين
@@ -846,7 +845,6 @@ async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 content_categories.append(category)
                 break
     
-    # أكثر فئة شيوعاً
     from collections import Counter
     top_category = Counter(content_categories).most_common(1)[0][0] if content_categories else None
     
@@ -917,8 +915,8 @@ async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE)
 استخدم اللغة العربية البسيطة، واجعل التوصيات عملية وقابلة للتنفيذ فوراً.
 """
     
-    # استدعاء Gemini API
-    from utils.gemini_ai import get_channel_recommendations
+    # ========== استدعاء Gemini API (الجزء المصحح) ==========
+    from utils.gemini_ai import get_advanced_recommendations
     
     # استخدام دالة التوصيات المحسنة
     recommendations = await get_advanced_recommendations(channel_details, prompt)
