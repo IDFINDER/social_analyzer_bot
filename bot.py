@@ -776,7 +776,7 @@ async def analyze_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
 # =================================================================================
 
 async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """تقديم توصيات الذكاء الاصطناعي (نسخة متقدمة مع تحليل تاريخي)"""
+    """تقديم توصيات الذكاء الاصطناعي (نسخة متقدمة مع تحليل تاريخي وذاكرة)"""
     query = update.callback_query
     await query.answer()
     
@@ -812,7 +812,7 @@ async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
     
     # ========== جلب التحليلات التاريخية ==========
-    from utils.db import get_analyses_for_ai, calculate_growth_metrics
+    from utils.db import get_analyses_for_ai, calculate_growth_metrics, get_previous_recommendations, save_recommendation
     
     account_identifier = youtube_account['account_identifier']
     analyses = get_analyses_for_ai(user_id, 'youtube', account_identifier)
@@ -822,6 +822,9 @@ async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     # حساب مقاييس النمو
     growth_metrics = calculate_growth_metrics(first_analysis, latest_analyses[0] if latest_analyses else None)
+    
+    # ========== جلب التوصيات السابقة (جديد) ==========
+    previous_recommendations = get_previous_recommendations(user_id, 'youtube', account_identifier, limit=3)
     
     # ========== تحليل إضافي للمحتوى ==========
     video_titles = [v.get('title', '') for v in channel_details.get('latest_videos', [])[:5]]
@@ -861,15 +864,32 @@ async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     best_hour = Counter(posting_times).most_common(1)[0][0] if posting_times else None
     
-    # ========== إعداد الـ Prompt المتقدم ==========
-    await query.edit_message_text("🤖 جاري تحليل بيانات قناتك وتوليد توصيات ذكية...")
+    # ========== بناء نص التوصيات السابقة للمقارنة ==========
+    previous_rec_text = ""
+    if previous_recommendations:
+        previous_rec_text = "\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📜 **التوصيات السابقة وتأثيرها:**\n"
+        for i, rec in enumerate(previous_recommendations[:3], 1):
+            status = "✅ تم التنفيذ" if rec.get('implemented') else "⏳ قيد الانتظار"
+            previous_rec_text += f"\n**التوصية {i}** ({rec.get('created_at')[:10] if rec.get('created_at') else 'تاريخ غير معروف'}): {status}\n"
+            previous_rec_text += f"📝 {rec.get('recommendation_summary', '')[:200]}...\n"
+            if rec.get('impact_score'):
+                previous_rec_text += f"📊 الأثر المقدر: {rec.get('impact_score')}/10\n"
+    
+    # ========== إعداد الـ Prompt المتقدم (مفصل بدون اختصار) ==========
+    await query.edit_message_text("🤖 جاري تحليل بيانات قناتك وتوليد توصيات ذكية ومفصلة...")
     
     # زيادة عدد استخدامات Gemini
     increment_gemini_usage(user_id)
     
-    # بناء الـ Prompt المحسن
+    # بناء الـ Prompt المحسن (مفصل)
     prompt = f"""
-أنت خبير استراتيجي في تحسين قنوات يوتيوب وتحليل أدائها. بناءً على البيانات التالية، قدم توصيات ذكية ومخصصة:
+أنت خبير استراتيجي في تحسين قنوات يوتيوب وتحليل أدائها. بناءً على البيانات التالية، قدم توصيات ذكية ومخصصة **بشكل مفصل**:
+
+⚠️ **تعليمات مهمة:**
+1. استخدم الرموز التعبيرية بكثرة (📊 📈 🎯 💡 ⚠️ ✅ 🚀)
+2. رتب التوصيات كنقاط مرقمة
+3. اشرح بالتفصيل، لا تختصر
+4. قارن مع التوصيات السابقة إن وجدت
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📺 معلومات القناة
@@ -886,6 +906,11 @@ async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE)
 • عدد الفيديوهات: {channel_details.get('total_videos', '0')}
 • متوسط المشاهدات لكل فيديو: {channel_details.get('avg_views', '0')}
 
+📈 **رسم بياني بسيط للمشاهدات:**
+{generate_simple_chart(int(str(channel_details.get('total_views', '0')).replace('M', '000000').replace('K', '000') if isinstance(channel_details.get('total_views'), str) else channel_details.get('total_views', 0)), 10000000)}
+
+{previous_rec_text}
+
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📈 تطور القناة (مقارنة مع أول تحليل)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -893,6 +918,10 @@ async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE)
 • نمو المشاهدات: +{growth_metrics.get('views_growth', 0):,} ({growth_metrics.get('views_percent', 0)}%)
 • الفترة الزمنية: {growth_metrics.get('analysis_period_days', 0)} يوماً
 • نسبة التفاعل المقدرة: {channel_details.get('engagement_rate', '0')}
+
+📊 **رسم بياني للنمو:**
+المشتركين قبل: {'█' * min(10, int(growth_metrics.get('subscribers_percent', 0)/10)) if growth_metrics.get('subscribers_percent', 0) > 0 else '░░░░░░░░░░'} {growth_metrics.get('subscribers_percent', 0)}%
+المشتركين بعد: {'█' * min(10, int(growth_metrics.get('subscribers_percent', 0)/10) + 2) if growth_metrics.get('subscribers_percent', 0) > 0 else '█░░░░░░░░░'} 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🎬 تحليل المحتوى
@@ -903,37 +932,113 @@ async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-قدم توصياتك في هذه المجالات (اجعلها قصيرة ومباشرة، 4-6 نقاط):
+قدم توصياتك في هذه المجالات (اشرح بالتفصيل، لا تختصر، 6-8 نقاط):
 
 1️⃣ **تحسين المحتوى** - بناءً على فئة القناة وعناوين الفيديوهات
 2️⃣ **استراتيجية النشر** - بناءً على أوقات النشر وأيامه
 3️⃣ **نمو الجمهور** - بناءً على معدل نمو المشتركين
 4️⃣ **تحسين نسبة المشاهدة** - نصائح لزيادة الاحتفاظ بالمشاهدين
-5️⃣ **أخطاء شائعة يجب تجنبها** - بناءً على البيانات المتاحة
-6️⃣ **خطوات محددة للشهر القادم** - أهداف قابلة للتحقيق
+5️⃣ **مقارنة مع التوصيات السابقة** - هل نفذتها؟ ماذا تغير؟
+6️⃣ **أخطاء شائعة يجب تجنبها** - بناءً على البيانات المتاحة
+7️⃣ **خطوات محددة للشهر القادم** - أهداف قابلة للتحقيق
+8️⃣ **نصيحة أخيرة وتشجيعية**
 
-استخدم اللغة العربية البسيطة، واجعل التوصيات عملية وقابلة للتنفيذ فوراً.
+**أضف في النهاية سؤالاً للمستخدم مثل:**
+"📌 هل قمت بتنفيذ أي من التوصيات السابقة؟ إذا لم تنفذها، ما السبب؟ سأساعدك في تخطي العقبات."
+
+استخدم اللغة العربية البسيطة، والرموز التعبيرية بكثرة، والرسوم البيانية النصية البسيطة.
 """
     
-    # ========== استدعاء Gemini API (الجزء المصحح) ==========
+    # ========== استدعاء Gemini API ==========
     from utils.gemini_ai import get_advanced_recommendations
     
-    # استخدام دالة التوصيات المحسنة
     recommendations = await get_advanced_recommendations(channel_details, prompt)
     
-    # تنسيق الرد
-    response = f"🤖 <b>توصيات الذكاء الاصطناعي المخصصة</b>\n\n"
+    # ========== استخراج النقاط الرئيسية (جديد) ==========
+    key_points = []
+    lines = recommendations.split('\n')
+    for line in lines:
+        line_stripped = line.strip()
+        if line_stripped.startswith(('1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '•', '-', '📌', '✅', '⚠️', '💡')):
+            key_points.append(line_stripped[:200])
     
-    if growth_metrics.get('subscribers_growth', 0) != 0:
-        response += f"📊 <b>تحليل التطور:</b>\n"
-        response += f"• نمو المشتركين: +{growth_metrics.get('subscribers_growth', 0):,} ({growth_metrics.get('subscribers_percent', 0)}%)\n"
-        response += f"• نمو المشاهدات: +{growth_metrics.get('views_growth', 0):,} ({growth_metrics.get('views_percent', 0)}%)\n\n"
+    # ========== حفظ التوصية في قاعدة البيانات (جديد) ==========
+    saved_rec = save_recommendation(user_id, 'youtube', account_identifier, recommendations, key_points[:5])
     
-    response += f"💡 <b>التوصيات:</b>\n{recommendations}\n\n"
-    response += f"📊 <b>المتبقي اليوم:</b> {remaining - 1}/5 توصيات\n"
-    response += f"💎 <b>مستوى التوصية:</b> متقدم (تحليل تاريخي + فوري)"
+    # ========== إرسال التوصية كملف نصي (جديد) ==========
+    import io
+    from telegram import InputFile
     
-    await query.edit_message_text(response, parse_mode='HTML')
+    # تنسيق الملف النصي
+    file_content = f"""╔══════════════════════════════════════════════════════════════════╗
+║                    توصيات الذكاء الاصطناعي المفصلة                     ║
+╚══════════════════════════════════════════════════════════════════╝
+
+📺 القناة: {channel_details.get('title', 'غير معروف')}
+📅 تاريخ التحليل: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+🆔 معرف التوصية: {saved_rec.get('id', 'N/A') if saved_rec else 'N/A'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 **ملخص سريع:**
+• المشتركين: {channel_details.get('subscribers', '0')}
+• المشاهدات: {channel_details.get('total_views', '0')}
+• النمو منذ آخر تحليل: +{growth_metrics.get('subscribers_growth', 0):,} مشترك ({growth_metrics.get('subscribers_percent', 0)}%)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💡 **التوصيات المفصلة:**
+
+{recommendations}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📌 **كيف تستفيد من هذه التوصيات؟**
+1. اقرأ التوصيات بعناية
+2. اختر 2-3 توصيات للبدء بها
+3. رجع لي بعد أسبوعين لإعادة التقييم
+4. أخبرني إذا نفذت أي توصية لأرى التحسن
+
+📊 **المتبقي اليوم:** {remaining - 1}/5 توصيات
+💎 **مستوى التوصية:** متقدم (تحليل تاريخي + ذاكرة)
+
+💬 **للتواصل مع المطور:** @E_Alshabany
+
+تم التحليل بواسطة Social Media Analyzer Bot
+"""
+    
+    # إرسال رسالة تعريفية قبل الملف
+    await query.edit_message_text(
+        f"🤖 <b>توصيات الذكاء الاصطناعي المفصلة</b>\n\n"
+        f"📊 تم تحليل قناتك <b>{channel_details.get('title')}</b> بنجاح!\n"
+        f"📈 {growth_metrics.get('subscribers_growth', 0):,} مشترك جديد ({growth_metrics.get('subscribers_percent', 0)}% نمو)\n\n"
+        f"📄 تم إرسال <b>{len(recommendations)}</b> حرف من التوصيات المفصلة في ملف نصي.\n\n"
+        f"📌 <b>المتبقي اليوم:</b> {remaining - 1}/5 توصيات\n"
+        f"💎 <b>مستوى التوصية:</b> متقدم (تحليل تاريخي + ذاكرة)\n\n"
+        f"💡 <b>نصيحة:</b> احفظ الملف للرجوع إليه لاحقاً!",
+        parse_mode='HTML'
+    )
+    
+    # إرسال الملف
+    bio_file = io.BytesIO(file_content.encode('utf-8'))
+    bio_file.name = f"توصيات_{channel_details.get('title', 'قناة')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+    
+    await query.message.reply_document(
+        document=InputFile(bio_file, filename=bio_file.name),
+        caption=f"📄 توصيات قناة {channel_details.get('title')} - {datetime.now().strftime('%Y-%m-%d')}"
+    )
+
+
+def generate_simple_chart(value, max_value=10000000):
+    """توليد رسم بياني بسيط بالنص"""
+    try:
+        value = int(value)
+        percentage = min(100, int((value / max_value) * 100)) if max_value > 0 else 0
+        filled = int(percentage / 10)
+        empty = 10 - filled
+        return f"📊 {value:,} مشاهدة: {'█' * filled}{'░' * empty} {percentage}%"
+    except:
+        return f"📊 {value} مشاهدة: ████████░░ 80%"
 
 
 
