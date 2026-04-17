@@ -94,9 +94,12 @@ async def get_channel_recommendations(channel_details):
 
 
 async def get_advanced_recommendations(channel_details, prompt):
-    result, error = await call_gemini_api(prompt, max_tokens=800)
-    return result if result else error
-
+    """الحصول على توصيات متقدمة من Gemini API (مع تحليل تاريخي)"""
+    result, error = await call_gemini_api(prompt, max_tokens=2000)  # زيادة إلى 2000
+    
+    if error:
+        return error
+    return result
 
 async def get_username_recommendations(platform, current_username, target_username):
     prompt = f"""
