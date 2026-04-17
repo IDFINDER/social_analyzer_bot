@@ -938,44 +938,7 @@ async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await query.edit_message_text(response, parse_mode='HTML')
 
 
-async def get_advanced_recommendations(channel_details, prompt):
-    """دالة مساعدة للحصول على توصيات متقدمة من Gemini API"""
-    import requests
-    import json
-    
-    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
-    GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
-    
-    if not GEMINI_API_KEY:
-        return "⚠️ خدمة الذكاء الاصطناعي غير متاحة حالياً."
-    
-    try:
-        response = requests.post(
-            f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
-            headers={"Content-Type": "application/json"},
-            json={
-                "contents": [{
-                    "parts": [{"text": prompt}]
-                }],
-                "generationConfig": {
-                    "temperature": 0.7,
-                    "maxOutputTokens": 800,
-                    "topP": 0.9
-                }
-            },
-            timeout=45
-        )
-        
-        if response.status_code == 200:
-            data = response.json()
-            return data['candidates'][0]['content']['parts'][0]['text']
-        else:
-            logger.error(f"Gemini API error: {response.status_code} - {response.text}")
-            return "⚠️ عذراً، حدث خطأ في جلب التوصيات. حاول مرة أخرى لاحقاً."
-        
-    except Exception as e:
-        logger.error(f"Error getting Gemini recommendations: {e}")
-        return "⚠️ عذراً، حدث خطأ في جلب التوصيات. حاول مرة أخرى لاحقاً."
+
 # =================================================================================
 # القسم 11: أوامر البوت - صفحة البايو (Bio Page)
 # =================================================================================
