@@ -556,7 +556,7 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def analyze_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE, query=None):
-    """تحليل قناة يوتيوب"""
+    """تحليل قناة يوتيوب (نسخة محسنة وشاملة مع حفظ التحليلات)"""
     user_id = update.effective_user.id if not query else query.from_user.id
     
     if query:
@@ -592,6 +592,7 @@ async def analyze_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
             )
             return
     
+    # جلب حساب يوتيوب المسجل
     youtube_account = get_user_account(user_id, 'youtube')
     
     if not youtube_account:
@@ -603,6 +604,7 @@ async def analyze_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
     
     status_msg = await message.reply_text("⏳ جاري تحليل القناة...")
     
+    # تحليل القناة
     channel_details, error = await get_channel_details(youtube_account['account_identifier'])
     
     if error:
@@ -613,6 +615,89 @@ async def analyze_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
         await status_msg.edit_text("❌ لم يتم العثور على القناة")
         return
     
+    # ========== حساب المقاييس المتقدمة ==========
+    def parse_count(value):
+        if isinstance(value, (int, float)):
+            return int(value)
+        if isinstance(value, str):
+            value = value.lower().replace('m', '000000').replace('k', '000')
+            try:
+                return int(float(value))
+            except:
+                return 0
+        return 0
+    
+    subscribers = parse_count(channel_details.get('subscribers', 0))
+    total_views = parse_count(channel_details.get('total_views', 0))
+    total_videos = parse_count(channel_details.get('total_videos', 0))
+    
+    # حساب متوسط المشاهدات
+    avg_views = total_views // total_videos if total_videos > 0 else 0
+    
+    # حساب نسبة التفاعل المقدرة
+    engagement_rate = round((avg_views / subscribers * 100), 2) if subscribers > 0 else 0
+    
+    # تحليل أوقات النشر (من أحدث الفيديوهات)
+    best_hour = None
+    best_day = None
+    posting_times = []
+    
+    for video in channel_details.get('latest_videos', [])[:10]:
+        published_at = video.get('published_at', '')
+        if published_at:
+            try:
+                dt = datetime.fromisoformat(published_at.replace('Z', '+00:00'))
+                posting_times.append({
+                    'hour': dt.hour,
+                    'day': dt.strftime('%A'),
+                    'date': dt
+                })
+            except:
+                pass
+    
+    if posting_times:
+        hour_counts = {}
+        day_counts = {}
+        for pt in posting_times:
+            hour_counts[pt['hour']] = hour_counts.get(pt['hour'], 0) + 1
+            day_counts[pt['day']] = day_counts.get(pt['day'], 0) + 1
+        
+        if hour_counts:
+            best_hour = max(hour_counts, key=hour_counts.get)
+        if day_counts:
+            best_day = max(day_counts, key=day_counts.get)
+    
+    # متوسط طول الفيديو (تقديري)
+    avg_video_duration = 600  # افتراضي 10 دقائق
+    
+    # ========== حفظ التحليلات في قاعدة البيانات ==========
+    account_identifier = youtube_account['account_identifier']
+    account_name = channel_details.get('title', '')
+    
+    # تجهيز بيانات التحليل
+    analysis_data = {
+        'subscribers': subscribers,
+        'followers': subscribers,
+        'total_views': total_views,
+        'total_videos': total_videos,
+        'total_posts': total_videos,
+        'avg_views_per_post': avg_views,
+        'avg_video_duration': avg_video_duration,
+        'engagement_rate': engagement_rate,
+        'best_posting_hour': best_hour,
+        'best_posting_day': best_day,
+        'top_posts': channel_details.get('latest_videos', [])[:5],
+        'account_name': account_name
+    }
+    
+    # ========== ✅ الدالة 1: حفظ التحليل الأول (مرة واحدة فقط) ==========
+    from utils.db import save_first_analysis, update_latest_analysis, get_analyses_for_ai, calculate_growth_metrics
+    save_first_analysis(user_id, 'youtube', account_identifier, account_name, analysis_data)
+    
+    # ========== ✅ الدالة 2: تحديث آخر تحليل (في كل مرة) ==========
+    update_latest_analysis(user_id, 'youtube', account_identifier, account_name, analysis_data)
+    
+    # ========== زيادة عدد الاستخدامات ==========
     remaining = get_remaining_analyses(user_id) if not is_premium else None
     increment_usage(user_id, 'youtube', {
         'account_name': channel_details['title'],
@@ -622,6 +707,14 @@ async def analyze_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
         'duration': 0
     })
     
+    # إضافة إحصائيات متقدمة للتقرير
+    from utils.helpers import format_number
+    channel_details['avg_views'] = format_number(avg_views)
+    channel_details['engagement_rate'] = f"{engagement_rate}%"
+    channel_details['best_posting_hour'] = best_hour
+    channel_details['best_posting_day'] = best_day
+    
+    # تنسيق التقرير
     message_text, file_data = format_channel_report(
         channel_details, user_id, is_premium, remaining
     )
@@ -646,16 +739,38 @@ async def analyze_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE, qu
     else:
         await message.reply_text(message_text, parse_mode='HTML')
     
+    # ========== عرض توصيات الذكاء الاصطناعي للمميزين ==========
     if is_premium:
+        # ========== ✅ الدالة 3: جلب التحليلات للذكاء الاصطناعي ==========
+        analyses = get_analyses_for_ai(user_id, 'youtube', account_identifier)
+        
+        # ========== ✅ الدالة 4: حساب مقاييس النمو ==========
+        growth_metrics = calculate_growth_metrics(
+            analyses.get('first'), 
+            analyses.get('latest_analyses', [None])[0] if analyses.get('latest_analyses') else None
+        )
+        
+        # إضافة مقاييس النمو
+        channel_details['growth_metrics'] = growth_metrics
+        channel_details['has_history'] = analyses.get('first') is not None
+        
+        # رسالة توضيحية محسنة
+        ai_message = "🤖 <b>توصيات الذكاء الاصطناعي</b>\n\n"
+        if growth_metrics.get('subscribers_growth', 0) != 0:
+            ai_message += f"📊 <b>التطور منذ آخر تحليل:</b>\n"
+            ai_message += f"👥 المشتركين: +{growth_metrics.get('subscribers_growth', 0):,} ({growth_metrics.get('subscribers_percent', 0)}%)\n"
+            ai_message += f"👁️ المشاهدات: +{growth_metrics.get('views_growth', 0):,} ({growth_metrics.get('views_percent', 0)}%)\n"
+            ai_message += f"📹 الفيديوهات: +{growth_metrics.get('posts_growth', 0):,}\n\n"
+        ai_message += "✨ هل تريد الحصول على توصيات مخصصة لتحسين قناتك؟"
+        
         keyboard = InlineKeyboardMarkup([[
-            InlineKeyboardButton("🤖 توصيات الذكاء الاصطناعي", callback_data=f"ai_recommendations_{channel_details['channel_id']}")
+            InlineKeyboardButton("🤖 احصل على توصيات ذكية", callback_data=f"ai_recommendations_{channel_details['channel_id']}")
         ]])
         await message.reply_text(
-            "🤖 <b>هل تريد الحصول على توصيات لتحسين قناتك؟</b>",
+            ai_message,
             parse_mode='HTML',
             reply_markup=keyboard
         )
-
 # =================================================================================
 # القسم 10: أوامر البوت - توصيات الذكاء الاصطناعي (AI Recommendations)
 # =================================================================================
