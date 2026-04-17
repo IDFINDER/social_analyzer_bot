@@ -13,12 +13,14 @@ logger = logging.getLogger(__name__)
 # ========== إعدادات Gemini API ==========
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
-# النماذج المتاحة (من القائمة التي ظهرت)
-GEMINI_MODELS = [
-    "gemini-2.0-flash",           # سريع ومناسب للاستخدام العام
-    "gemini-2.5-flash",           # أحدث نسخة
-    "gemini-flash-latest",        # دائماً أحدث نسخة
-    "gemini-2.5-pro",             # أقوى ولكن أبطأ
+# الحصول على النموذج من متغيرات البيئة (يمكن تغييره دون تعديل الكود)
+GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-1.5-flash')
+
+# النماذج الاحتياطية (إذا فشل النموذج الرئيسي)
+FALLBACK_MODELS = [
+    "gemini-1.5-pro",
+    "gemini-pro",
+    "gemini-1.0-pro",
 ]
 
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
@@ -26,15 +28,18 @@ GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/{mode
 
 async def call_gemini_api(prompt, max_tokens=800):
     """
-    استدعاء Gemini API مع تجربة عدة نماذج
+    استدعاء Gemini API مع إمكانية استخدام نموذج بديل
     """
     if not GEMINI_API_KEY:
         return None, "⚠️ خدمة الذكاء الاصطناعي غير متاحة حالياً."
     
-    if GEMINI_API_KEY == "YOUR_API_KEY_HERE" or len(GEMINI_API_KEY) < 10:
-        return None, "⚠️ مفتاح API غير صالح. يرجى إضافة مفتاح صحيح في متغيرات البيئة."
+    if len(GEMINI_API_KEY) < 10:
+        return None, "⚠️ مفتاح API غير صالح."
     
-    for model in GEMINI_MODELS:
+    # قائمة النماذج للتجربة (الأساسي + الاحتياطية)
+    models_to_try = [GEMINI_MODEL] + FALLBACK_MODELS
+    
+    for model in models_to_try:
         try:
             api_url = GEMINI_BASE_URL.format(model=model)
             
@@ -60,20 +65,18 @@ async def call_gemini_api(prompt, max_tokens=800):
                 logger.info(f"✅ Gemini API succeeded with model: {model}")
                 return result, None
             else:
-                logger.warning(f"Model {model} failed: {response.status_code} - {response.text[:100]}")
+                logger.warning(f"Model {model} failed: {response.status_code}")
                 continue
                 
         except Exception as e:
             logger.warning(f"Error with model {model}: {e}")
             continue
     
-    return None, "⚠️ عذراً، جميع نماذج الذكاء الاصطناعي غير متاحة حالياً. تحقق من مفتاح API."
+    return None, "⚠️ عذراً، جميع نماذج الذكاء الاصطناعي غير متاحة حالياً."
 
 
+# باقي الدوال كما هي...
 async def get_channel_recommendations(channel_details):
-    """
-    الحصول على توصيات لتحسين القناة باستخدام Gemini API
-    """
     prompt = f"""
     أنت خبير في تحسين قنوات يوتيوب. قدم نصائح مختصرة لهذه القناة:
     
@@ -85,29 +88,16 @@ async def get_channel_recommendations(channel_details):
     
     قدم 3-5 نصائح عملية ومحددة باللغة العربية.
     """
-    
     result, error = await call_gemini_api(prompt, max_tokens=500)
-    
-    if error:
-        return error
-    return result
+    return result if result else error
 
 
 async def get_advanced_recommendations(channel_details, prompt):
-    """
-    الحصول على توصيات متقدمة من Gemini API (مع تحليل تاريخي)
-    """
     result, error = await call_gemini_api(prompt, max_tokens=800)
-    
-    if error:
-        return error
-    return result
+    return result if result else error
 
 
 async def get_username_recommendations(platform, current_username, target_username):
-    """
-    الحصول على توصيات لتحسين اسم المستخدم
-    """
     prompt = f"""
     أنت خبير في تحسين أسماء المستخدمين على منصة {platform}.
     
@@ -121,18 +111,11 @@ async def get_username_recommendations(platform, current_username, target_userna
     
     اجعل الرد مختصراً باللغة العربية.
     """
-    
     result, error = await call_gemini_api(prompt, max_tokens=400)
-    
-    if error:
-        return error
-    return result
+    return result if result else error
 
 
 async def get_bio_page_suggestions(user_data, accounts):
-    """
-    الحصول على اقتراحات لصفحة البايو
-    """
     accounts_text = "\n".join([f"- {platform}: {identifier}" for platform, identifier in accounts.items()])
     
     prompt = f"""
@@ -149,9 +132,5 @@ async def get_bio_page_suggestions(user_data, accounts):
     
     اجعل الرد مختصراً باللغة العربية.
     """
-    
     result, error = await call_gemini_api(prompt, max_tokens=500)
-    
-    if error:
-        return error
-    return result
+    return result if result else error
