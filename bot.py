@@ -971,12 +971,16 @@ async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE)
 استخدم اللغة العربية البسيطة، والرموز التعبيرية بكثرة، والرسوم البيانية النصية البسيطة.
 """
     
-    # ========== استدعاء Gemini API ==========
+        # ========== استدعاء Gemini API ==========
     from utils.gemini_ai import get_advanced_recommendations
     
     recommendations = await get_advanced_recommendations(channel_details, prompt)
     
-    # ========== استخراج النقاط الرئيسية (جديد) ==========
+    # ========== التحقق من أن التوصيات غير فارغة ==========
+    if not recommendations or len(recommendations) < 50:
+        recommendations = "⚠️ عذراً، لم يتمكن الذكاء الاصطناعي من توليد توصيات في هذا الوقت. يرجى المحاولة مرة أخرى لاحقاً."
+    
+    # ========== استخراج النقاط الرئيسية ==========
     key_points = []
     lines = recommendations.split('\n')
     for line in lines:
@@ -984,12 +988,16 @@ async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE)
         if line_stripped.startswith(('1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '•', '-', '📌', '✅', '⚠️', '💡')):
             key_points.append(line_stripped[:200])
     
-    # ========== حفظ التوصية في قاعدة البيانات (جديد) ==========
+    # ========== حفظ التوصية في قاعدة البيانات ==========
     saved_rec = save_recommendation(user_id, 'youtube', account_identifier, recommendations, key_points[:5])
     
-    # ========== إرسال التوصية كملف نصي (جديد) ==========
+    # ========== إرسال التوصية كملف نصي (مع التأكد من وجود المحتوى) ==========
     import io
     from telegram import InputFile
+    
+    # تأكد من أن recommendations غير فارغة
+    if not recommendations or recommendations.strip() == "":
+        recommendations = "لم يتمكن الذكاء الاصطناعي من توليد توصيات. يرجى المحاولة مرة أخرى."
     
     # تنسيق الملف النصي
     file_content = f"""╔══════════════════════════════════════════════════════════════════╗
@@ -1028,6 +1036,10 @@ async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 تم التحليل بواسطة Social Media Analyzer Bot
 """
+    
+    # طباعة للتأكد من وجود المحتوى (للتشخيص)
+    print(f"DEBUG: recommendations length = {len(recommendations)}")
+    print(f"DEBUG: file_content length = {len(file_content)}")
     
     # إرسال رسالة تعريفية قبل الملف
     await query.edit_message_text(
