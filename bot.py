@@ -425,15 +425,34 @@ async def my_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =================================================================================
 
 async def premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معلومات الاشتراك المميز"""
+    """معلومات الاشتراك المميز - خطط متعددة"""
     user_id = update.effective_user.id
     user_info = get_user_info(user_id)
     is_premium = user_info['status'] == 'premium' if user_info else False
     
+    # جلب الأسعار من قاعدة البيانات
+    from utils.db import get_all_prices
+    prices = get_all_prices()
+    
+    # التحقق من وجود عروض ترويجية
+    promo_text = ""
+    if prices.get('promo_active', False):
+        promo_text = f"\n🎉 <b>عرض خاص!</b>\n• نصف سنوي: {prices['promo_half_yearly']}$ فقط\n• سنوي: {prices['promo_yearly']}$ فقط\n"
+    
     if is_premium:
-        text = """
+        # جلب الاشتراك النشط
+        from utils.db import get_user_active_subscription
+        subscription = get_user_active_subscription(user_id)
+        
+        sub_text = ""
+        if subscription:
+            plan_name = subscription.get('subscription_plans_social', {}).get('name_ar', 'مميز')
+            end_date = subscription.get('end_date', '')
+            sub_text = f"\n📅 <b>خطتك:</b> {plan_name}\n⏰ <b>تنتهي في:</b> {end_date}\n"
+        
+        text = f"""
 👑 <b>أنت مشترك في الخطة المميزة!</b>
-
+{sub_text}
 ✅ <b>مميزات الاشتراك المميز:</b>
 • تحليل غير محدود لجميع الحسابات
 • توصيات الذكاء الاصطناعي (5 يومياً)
@@ -448,25 +467,51 @@ async def premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(text, parse_mode='HTML', reply_markup=get_main_keyboard(True))
     else:
         remaining = get_remaining_analyses(user_id)
+        
         text = f"""
 💎 <b>الاشتراك المميز</b>
 
 🎁 <b>مميزات الخطة المميزة:</b>
 • ✅ تحليل غير محدود
-• ✅ توصيات الذكاء الاصطناعي
+• ✅ توصيات الذكاء الاصطناعي (5 يومياً)
 • ✅ صفحة بايو شخصية
 • ✅ فحص توافر اليوزرنيم
 • ✅ دعم أولوية في المعالجة
 
-💰 <b>السعر:</b> <b>10 دولار مدى الحياة</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💰 <b>خطط الاشتراك:</b>
+
+🌙 <b>شهري:</b> {prices.get('price_monthly', 10)}$ / شهر
+📅 <b>نصف سنوي:</b> {prices.get('price_half_yearly', 30)}$ (5$ شهرياً)
+🎉 <b>سنوي:</b> {prices.get('price_yearly', 48)}$ (4$ شهرياً)
+💎 <b>مدى الحياة:</b> {prices.get('price_lifetime', 100)}$ (مرة واحدة)
+{promo_text}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📊 <b>حالتك الحالية:</b>
 • نوع الخطة: مجانية
-• التحليلات المتبقية اليوم: {remaining}/{FREE_LIMIT}
+• التحليلات المتبقية اليوم: {remaining}/{prices.get('free_limit', FREE_LIMIT)}
 
-🔽 <b>للاشتراك، اضغط على الزر أدناه:</b>
+🔽 <b>للاشتراك، اختر خطتك المفضلة:</b>
 """
-        await update.message.reply_text(text, parse_mode='HTML', reply_markup=get_premium_keyboard())
+        # إنشاء أزرار الخطط
+        keyboard = [
+            [InlineKeyboardButton("🌙 شهري - 10$", callback_data="subscribe_monthly")],
+            [InlineKeyboardButton("📅 نصف سنوي - 30$", callback_data="subscribe_half_yearly")],
+            [InlineKeyboardButton("🎉 سنوي - 48$", callback_data="subscribe_yearly")],
+            [InlineKeyboardButton("💎 مدى الحياة - 100$", callback_data="subscribe_lifetime")],
+            [InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")]
+        ]
+        
+        # إضافة زر العرض إذا كان مفعلاً
+        if prices.get('promo_active', False):
+            keyboard.insert(0, [InlineKeyboardButton("🎁 عرض العيد - خصم 20%", callback_data="subscribe_promo")])
+        
+        await update.message.reply_text(
+            text, 
+            parse_mode='HTML', 
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """تعليمات المساعدة"""
