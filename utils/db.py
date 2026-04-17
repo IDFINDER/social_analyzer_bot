@@ -609,6 +609,71 @@ def calculate_growth_metrics(first_analysis, latest_analysis):
         pass
     
     return growth
+
+# ========== دوال تحليلات الذكاء الاصطناعي (AI Analytics) ==========
+# ... دوال save_first_analysis, update_latest_analysis, etc. ...
+
+
+# ========== دوال حفظ التوصيات (Recommendations History) ==========
+# 👇 أضف الكود هنا 👇
+
+def save_recommendation(user_id, platform, account_identifier, recommendation_text, key_points=None):
+    """حفظ توصية الذكاء الاصطناعي في قاعدة البيانات"""
+    try:
+        summary = recommendation_text[:500] if len(recommendation_text) > 500 else recommendation_text
+        
+        data = {
+            'user_id': user_id,
+            'platform': platform,
+            'account_identifier': account_identifier,
+            'recommendation_text': recommendation_text,
+            'recommendation_summary': summary,
+            'key_points': key_points or [],
+            'created_at': datetime.now().isoformat()
+        }
+        
+        result = supabase.table('recommendations_history').insert(data).execute()
+        logger.info(f"✅ Recommendation saved for user {user_id}")
+        return result.data[0] if result.data else None
+    except Exception as e:
+        logger.error(f"Error saving recommendation: {e}")
+        return None
+
+
+def get_previous_recommendations(user_id, platform, account_identifier, limit=3):
+    """جلب التوصيات السابقة للمقارنة"""
+    try:
+        response = supabase.table('recommendations_history').select('*')\
+            .eq('user_id', user_id).eq('platform', platform)\
+            .eq('account_identifier', account_identifier)\
+            .order('created_at', desc=True).limit(limit).execute()
+        return response.data if response.data else []
+    except Exception as e:
+        logger.error(f"Error getting previous recommendations: {e}")
+        return []
+
+
+def update_recommendation_feedback(user_id, recommendation_id, implemented, feedback, impact_score=None):
+    """تحديث حالة التوصية (هل نفذها المستخدم؟)"""
+    try:
+        data = {
+            'implemented': implemented,
+            'feedback': feedback,
+            'updated_at': datetime.now().isoformat()
+        }
+        if impact_score:
+            data['impact_score'] = impact_score
+        
+        result = supabase.table('recommendations_history').update(data)\
+            .eq('id', recommendation_id).eq('user_id', user_id).execute()
+        return True
+    except Exception as e:
+        logger.error(f"Error updating recommendation feedback: {e}")
+        return False
+
+
+# ========== دوال صفحة البايو (كتابة - supabase_admin) ==========
+# دوال صفحة البايو تبدأ من هنا
 # ========== دوال صفحة البايو (كتابة - supabase_admin) ==========
 
 def generate_bio_url(user_id):
