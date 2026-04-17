@@ -18,6 +18,7 @@ GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-1.5-flash')
 
 # النماذج الاحتياطية (إذا فشل النموذج الرئيسي)
 FALLBACK_MODELS = [
+    "gemini-flash-latest",
     "gemini-1.5-pro",
     "gemini-pro",
     "gemini-1.0-pro",
