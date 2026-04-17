@@ -671,7 +671,184 @@ def update_recommendation_feedback(user_id, recommendation_id, implemented, feed
         logger.error(f"Error updating recommendation feedback: {e}")
         return False
 
+# =================================================================================
+# القسم: دوال الأسعار المتغيرة والإعدادات (Dynamic Settings)
+# =================================================================================
 
+def get_bot_setting(setting_key, default_value=None):
+    """الحصول على قيمة إعداد من قاعدة البيانات"""
+    try:
+        response = supabase.table('bot_settings_social').select('setting_value').eq('setting_key', setting_key).execute()
+        if response.data:
+            return response.data[0]['setting_value']
+        return default_value
+    except Exception as e:
+        logger.error(f"Error getting setting {setting_key}: {e}")
+        return default_value
+
+
+def get_all_prices():
+    """جلب جميع الأسعار الحالية من قاعدة البيانات"""
+    return {
+        'half_yearly': int(get_bot_setting('price_half_yearly', '30')),
+        'yearly': int(get_bot_setting('price_yearly', '48')),
+        'lifetime': int(get_bot_setting('price_lifetime', '100')),
+        'monthly': int(get_bot_setting('price_monthly', '10')),
+        'free_limit': int(get_bot_setting('free_limit', str(FREE_LIMIT))),
+        'promo_active': get_bot_setting('promo_active', 'false') == 'true',
+        'promo_half_yearly': int(get_bot_setting('promo_half_yearly', '25')),
+        'promo_yearly': int(get_bot_setting('promo_yearly', '40')),
+        'promo_end_date': get_bot_setting('promo_end_date', '')
+    }
+
+
+def update_bot_setting(setting_key, setting_value):
+    """تحديث قيمة إعداد في قاعدة البيانات"""
+    try:
+        supabase.table('bot_settings_social').update({
+            'setting_value': setting_value,
+            'updated_at': datetime.now().isoformat()
+        }).eq('setting_key', setting_key).execute()
+        return True
+    except Exception as e:
+        logger.error(f"Error updating setting {setting_key}: {e}")
+        return False
+
+
+# =================================================================================
+# القسم: دوال الاشتراكات المتقدمة (Subscriptions)
+# =================================================================================
+
+def create_subscription(user_id, plan_id, duration_days, price, payment_method=None):
+    """إنشاء اشتراك جديد للمستخدم"""
+    try:
+        start_date = date.today()
+        end_date = start_date + timedelta(days=duration_days)
+        
+        # جلب اسم الخطة
+        plan_response = supabase.table('subscription_plans_social').select('name').eq('id', plan_id).execute()
+        plan_name = plan_response.data[0]['name'] if plan_response.data else 'unknown'
+        
+        # إنشاء الاشتراك
+        subscription = {
+            'user_id': user_id,
+            'plan_id': plan_id,
+            'status': 'active',
+            'start_date': start_date.isoformat(),
+            'end_date': end_date.isoformat(),
+            'payment_amount': price,
+            'payment_method': payment_method,
+            'created_at': datetime.now().isoformat()
+        }
+        
+        response = supabase.table('user_subscriptions_social').insert(subscription).execute()
+        
+        if response.data:
+            subscription_id = response.data[0]['id']
+            
+            # تحديث حالة المستخدم
+            supabase.table('users').update({
+                'status': 'premium',
+                'premium_until': end_date.isoformat(),
+                'updated_at': datetime.now().isoformat()
+            }).eq('user_id', user_id).execute()
+            
+            logger.info(f"✅ Subscription created for user {user_id}: {plan_name} until {end_date}")
+            return True, end_date, plan_name
+        return False, None, None
+    except Exception as e:
+        logger.error(f"Error creating subscription: {e}")
+        return False, None, None
+
+
+def get_user_active_subscription(user_id):
+    """الحصول على الاشتراك النشط للمستخدم"""
+    try:
+        today = date.today().isoformat()
+        response = supabase.table('user_subscriptions_social').select('*, subscription_plans_social(*)').eq('user_id', user_id).eq('status', 'active').gte('end_date', today).execute()
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.error(f"Error getting user subscription: {e}")
+        return None
+
+
+def get_subscription_stats():
+    """إحصائيات خطط الاشتراك"""
+    try:
+        response = supabase.table('user_subscriptions_social').select('*, subscription_plans_social(name)').eq('status', 'active').execute()
+        
+        stats = {
+            'half_yearly': 0,
+            'yearly': 0,
+            'lifetime': 0,
+            'monthly': 0,
+            'total': 0
+        }
+        
+        for sub in (response.data or []):
+            plan_name = sub.get('subscription_plans_social', {}).get('name', '')
+            if plan_name == 'half_yearly':
+                stats['half_yearly'] += 1
+            elif plan_name == 'yearly':
+                stats['yearly'] += 1
+            elif plan_name == 'lifetime':
+                stats['lifetime'] += 1
+            elif plan_name == 'monthly':
+                stats['monthly'] += 1
+            stats['total'] += 1
+        
+        return stats
+    except Exception as e:
+        logger.error(f"Error getting subscription stats: {e}")
+        return {'half_yearly': 0, 'yearly': 0, 'lifetime': 0, 'monthly': 0, 'total': 0}
+
+
+# =================================================================================
+# القسم: دوال الإشعارات (Notifications)
+# =================================================================================
+
+def log_notification(notification_type, target_audience, target_user_id, message):
+    """تسجيل إشعار في جدول notification_log_social"""
+    try:
+        log_data = {
+            'notification_type': notification_type,
+            'target_audience': target_audience,
+            'target_user_id': target_user_id,
+            'message': message,
+            'sent_at': datetime.now().isoformat(),
+            'created_at': datetime.now().isoformat()
+        }
+        response = supabase.table('notification_log_social').insert(log_data).execute()
+        return response.data[0]['id'] if response.data else None
+    except Exception as e:
+        logger.error(f"Error logging notification: {e}")
+        return None
+
+
+def log_notification_delivery(notification_id, user_id, status='sent'):
+    """تسجيل إرسال إشعار لكل مستخدم"""
+    try:
+        delivery_data = {
+            'notification_id': notification_id,
+            'user_id': user_id,
+            'status': status,
+            'delivered_at': datetime.now().isoformat()
+        }
+        supabase.table('notification_delivery_social').insert(delivery_data).execute()
+        return True
+    except Exception as e:
+        logger.error(f"Error logging notification delivery: {e}")
+        return False
+
+
+def get_notifications_history(limit=100):
+    """جلب سجل الإشعارات"""
+    try:
+        response = supabase.table('notification_log_social').select('*').order('sent_at', desc=True).limit(limit).execute()
+        return response.data if response.data else []
+    except Exception as e:
+        logger.error(f"Error getting notifications history: {e}")
+        return []
 # ========== دوال صفحة البايو (كتابة - supabase_admin) ==========
 # دوال صفحة البايو تبدأ من هنا
 # ========== دوال صفحة البايو (كتابة - supabase_admin) ==========
