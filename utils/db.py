@@ -389,7 +389,204 @@ def increment_gemini_usage(user_id):
         logger.error(f"Error incrementing gemini usage: {e}")
         return False
 
+# ========== دوال تحليلات الذكاء الاصطناعي (AI Analytics) ==========
 
+def save_first_analysis(user_id, platform, account_identifier, account_name, analysis_data):
+    """
+    حفظ أول تحليل للحساب (يتم مرة واحدة فقط)
+    
+    المعاملات:
+    - user_id: معرف المستخدم في البوت
+    - platform: اسم المنصة (youtube, tiktok, instagram, facebook)
+    - account_identifier: معرف الحساب على المنصة (@username أو channel_id)
+    - account_name: اسم الحساب المعروض
+    - analysis_data: قاموس يحتوي على بيانات التحليل
+    """
+    try:
+        # التحقق من وجود تحليل أول مسبقاً
+        existing = supabase.table('analysis_history').select('id').eq('user_id', user_id)\
+            .eq('analyzed_user_id', account_identifier).eq('platform', platform)\
+            .eq('analysis_type', 'first').execute()
+        
+        if existing.data:
+            logger.info(f"First analysis already exists for user {user_id}, account {account_identifier}")
+            return False
+        
+        # حفظ التحليل الأول
+        data = {
+            'user_id': user_id,
+            'analyzed_user_id': account_identifier,
+            'analyzed_username': account_identifier.replace('@', ''),
+            'platform': platform,
+            'analysis_type': 'first',
+            'account_name': account_name,
+            'subscribers': analysis_data.get('subscribers', 0),
+            'followers': analysis_data.get('followers', 0),
+            'following': analysis_data.get('following', 0),
+            'total_views': analysis_data.get('total_views', 0),
+            'total_posts': analysis_data.get('total_posts', 0),
+            'total_videos': analysis_data.get('total_videos', 0),
+            'total_likes': analysis_data.get('total_likes', 0),
+            'total_comments': analysis_data.get('total_comments', 0),
+            'avg_views_per_post': analysis_data.get('avg_views_per_post', 0),
+            'avg_video_duration': analysis_data.get('avg_video_duration', 0),
+            'engagement_rate': analysis_data.get('engagement_rate', 0),
+            'top_posts': analysis_data.get('top_posts', []),
+            'analysis_date': datetime.now().isoformat()
+        }
+        
+        result = supabase.table('analysis_history').insert(data).execute()
+        logger.info(f"✅ First analysis saved for user {user_id}, account {account_identifier}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error saving first analysis: {e}")
+        return False
+
+
+def update_latest_analysis(user_id, platform, account_identifier, account_name, analysis_data):
+    """
+    تحديث آخر تحليل للحساب (يتم تحديثه في كل مرة)
+    
+    المعاملات:
+    - user_id: معرف المستخدم في البوت
+    - platform: اسم المنصة (youtube, tiktok, instagram, facebook)
+    - account_identifier: معرف الحساب على المنصة (@username أو channel_id)
+    - account_name: اسم الحساب المعروض
+    - analysis_data: قاموس يحتوي على بيانات التحليل
+    """
+    try:
+        # التحقق من وجود تحليل latest مسبقاً
+        existing = supabase.table('analysis_history').select('id').eq('user_id', user_id)\
+            .eq('analyzed_user_id', account_identifier).eq('platform', platform)\
+            .eq('analysis_type', 'latest').execute()
+        
+        data = {
+            'user_id': user_id,
+            'analyzed_user_id': account_identifier,
+            'analyzed_username': account_identifier.replace('@', ''),
+            'platform': platform,
+            'analysis_type': 'latest',
+            'account_name': account_name,
+            'subscribers': analysis_data.get('subscribers', 0),
+            'followers': analysis_data.get('followers', 0),
+            'following': analysis_data.get('following', 0),
+            'total_views': analysis_data.get('total_views', 0),
+            'total_posts': analysis_data.get('total_posts', 0),
+            'total_videos': analysis_data.get('total_videos', 0),
+            'total_likes': analysis_data.get('total_likes', 0),
+            'total_comments': analysis_data.get('total_comments', 0),
+            'avg_views_per_post': analysis_data.get('avg_views_per_post', 0),
+            'avg_video_duration': analysis_data.get('avg_video_duration', 0),
+            'engagement_rate': analysis_data.get('engagement_rate', 0),
+            'top_posts': analysis_data.get('top_posts', []),
+            'analysis_date': datetime.now().isoformat()
+        }
+        
+        if existing.data:
+            # تحديث التحليل الموجود
+            result = supabase.table('analysis_history').update(data)\
+                .eq('user_id', user_id).eq('analyzed_user_id', account_identifier)\
+                .eq('platform', platform).eq('analysis_type', 'latest').execute()
+            logger.info(f"✅ Latest analysis updated for user {user_id}, account {account_identifier}")
+        else:
+            # إنشاء تحليل جديد
+            result = supabase.table('analysis_history').insert(data).execute()
+            logger.info(f"✅ Latest analysis created for user {user_id}, account {account_identifier}")
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error updating latest analysis: {e}")
+        return False
+
+
+def get_analyses_for_ai(user_id, platform, account_identifier):
+    """
+    جلب التحليلات للذكاء الاصطناعي (الأول وآخر 3 تحليلات)
+    
+    المعاملات:
+    - user_id: معرف المستخدم في البوت
+    - platform: اسم المنصة
+    - account_identifier: معرف الحساب على المنصة
+    
+    الإرجاع:
+    - dict: يحتوي على 'first' (التحليل الأول) و 'latest_analyses' (آخر 3 تحليلات)
+    """
+    try:
+        # جلب التحليل الأول
+        first_response = supabase.table('analysis_history').select('*')\
+            .eq('user_id', user_id).eq('analyzed_user_id', account_identifier)\
+            .eq('platform', platform).eq('analysis_type', 'first').execute()
+        
+        # جلب آخر 3 تحليلات (بما فيها latest)
+        latest_response = supabase.table('analysis_history').select('*')\
+            .eq('user_id', user_id).eq('analyzed_user_id', account_identifier)\
+            .eq('platform', platform).order('analysis_date', desc=True).limit(3).execute()
+        
+        return {
+            'first': first_response.data[0] if first_response.data else None,
+            'latest_analyses': latest_response.data if latest_response.data else []
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting analyses for AI: {e}")
+        return {'first': None, 'latest_analyses': []}
+
+
+def calculate_growth_metrics(first_analysis, latest_analysis):
+    """
+    حساب مقاييس النمو بين أول تحليل وآخر تحليل
+    
+    المعاملات:
+    - first_analysis: قاموس التحليل الأول
+    - latest_analysis: قاموس آخر تحليل
+    
+    الإرجاع:
+    - dict: يحتوي على مقاييس النمو (subscribers_growth, views_growth, percentages, etc.)
+    """
+    if not first_analysis or not latest_analysis:
+        return {}
+    
+    # استخراج القيم
+    subscribers_first = first_analysis.get('subscribers', 0) or 0
+    subscribers_latest = latest_analysis.get('subscribers', 0) or 0
+    views_first = first_analysis.get('total_views', 0) or 0
+    views_latest = latest_analysis.get('total_views', 0) or 0
+    posts_first = first_analysis.get('total_posts', 0) or 0
+    posts_latest = latest_analysis.get('total_posts', 0) or 0
+    
+    # حساب النمو
+    growth = {
+        'subscribers_growth': subscribers_latest - subscribers_first,
+        'subscribers_percent': 0,
+        'views_growth': views_latest - views_first,
+        'views_percent': 0,
+        'posts_growth': posts_latest - posts_first,
+        'posts_percent': 0,
+        'latest_engagement_rate': latest_analysis.get('engagement_rate', 0),
+        'analysis_period_days': 0
+    }
+    
+    # حساب النسب المئوية
+    if subscribers_first > 0:
+        growth['subscribers_percent'] = round((subscribers_latest - subscribers_first) / subscribers_first * 100, 2)
+    
+    if views_first > 0:
+        growth['views_percent'] = round((views_latest - views_first) / views_first * 100, 2)
+    
+    if posts_first > 0:
+        growth['posts_percent'] = round((posts_latest - posts_first) / posts_first * 100, 2)
+    
+    # حساب الفترة الزمنية بين التحليلات (بالأيام)
+    try:
+        date_first = datetime.fromisoformat(first_analysis.get('analysis_date', '').replace('Z', '+00:00'))
+        date_latest = datetime.fromisoformat(latest_analysis.get('analysis_date', '').replace('Z', '+00:00'))
+        growth['analysis_period_days'] = (date_latest - date_first).days
+    except:
+        pass
+    
+    return growth
 # ========== دوال صفحة البايو (كتابة - supabase_admin) ==========
 
 def generate_bio_url(user_id):
