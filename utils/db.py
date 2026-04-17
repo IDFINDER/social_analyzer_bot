@@ -392,16 +392,7 @@ def increment_gemini_usage(user_id):
 # ========== دوال تحليلات الذكاء الاصطناعي (AI Analytics) ==========
 
 def save_first_analysis(user_id, platform, account_identifier, account_name, analysis_data):
-    """
-    حفظ أول تحليل للحساب (يتم مرة واحدة فقط)
-    
-    المعاملات:
-    - user_id: معرف المستخدم في البوت
-    - platform: اسم المنصة (youtube, tiktok, instagram, facebook)
-    - account_identifier: معرف الحساب على المنصة (@username أو channel_id)
-    - account_name: اسم الحساب المعروض
-    - analysis_data: قاموس يحتوي على بيانات التحليل
-    """
+    """حفظ أول تحليل للحساب (يتم مرة واحدة فقط)"""
     try:
         # التحقق من وجود تحليل أول مسبقاً
         existing = supabase.table('analysis_history').select('id').eq('user_id', user_id)\
@@ -412,14 +403,15 @@ def save_first_analysis(user_id, platform, account_identifier, account_name, ana
             logger.info(f"First analysis already exists for user {user_id}, account {account_identifier}")
             return False
         
-        # حفظ التحليل الأول
+        # حفظ التحليل الأول مع جميع الأعمدة
         data = {
             'user_id': user_id,
             'analyzed_user_id': account_identifier,
             'analyzed_username': account_identifier.replace('@', ''),
             'platform': platform,
             'analysis_type': 'first',
-            'account_name': account_name,
+            'account_name': analysis_data.get('account_name', ''),
+            # إحصائيات عامة
             'subscribers': analysis_data.get('subscribers', 0),
             'followers': analysis_data.get('followers', 0),
             'following': analysis_data.get('following', 0),
@@ -428,10 +420,29 @@ def save_first_analysis(user_id, platform, account_identifier, account_name, ana
             'total_videos': analysis_data.get('total_videos', 0),
             'total_likes': analysis_data.get('total_likes', 0),
             'total_comments': analysis_data.get('total_comments', 0),
+            'total_shares': analysis_data.get('total_shares', 0),
+            # نسب ومتوسطات
             'avg_views_per_post': analysis_data.get('avg_views_per_post', 0),
-            'avg_video_duration': analysis_data.get('avg_video_duration', 0),
+            'avg_likes_per_post': analysis_data.get('avg_likes_per_post', 0),
+            'avg_comments_per_post': analysis_data.get('avg_comments_per_post', 0),
             'engagement_rate': analysis_data.get('engagement_rate', 0),
+            # تحليل الفيديوهات
+            'avg_video_duration': analysis_data.get('avg_video_duration', 0),
+            'best_video_length': analysis_data.get('best_video_length', 0),
+            'best_video_category': analysis_data.get('best_video_category'),
+            # تحليل التوقيت
+            'best_posting_day': analysis_data.get('best_posting_day'),
+            'best_posting_hour': analysis_data.get('best_posting_hour'),
+            'avg_posts_per_week': analysis_data.get('avg_posts_per_week'),
+            # تحليل الجمهور
+            'audience_growth_rate': analysis_data.get('audience_growth_rate'),
+            'retention_rate': analysis_data.get('retention_rate'),
+            'peak_activity_hour': analysis_data.get('peak_activity_hour'),
+            # بيانات JSON
             'top_posts': analysis_data.get('top_posts', []),
+            'top_categories': analysis_data.get('top_categories'),
+            'hashtags_used': analysis_data.get('hashtags_used'),
+            'content_types': analysis_data.get('content_types'),
             'analysis_date': datetime.now().isoformat()
         }
         
@@ -445,16 +456,7 @@ def save_first_analysis(user_id, platform, account_identifier, account_name, ana
 
 
 def update_latest_analysis(user_id, platform, account_identifier, account_name, analysis_data):
-    """
-    تحديث آخر تحليل للحساب (يتم تحديثه في كل مرة)
-    
-    المعاملات:
-    - user_id: معرف المستخدم في البوت
-    - platform: اسم المنصة (youtube, tiktok, instagram, facebook)
-    - account_identifier: معرف الحساب على المنصة (@username أو channel_id)
-    - account_name: اسم الحساب المعروض
-    - analysis_data: قاموس يحتوي على بيانات التحليل
-    """
+    """تحديث آخر تحليل للحساب (يتم تحديثه في كل مرة)"""
     try:
         # التحقق من وجود تحليل latest مسبقاً
         existing = supabase.table('analysis_history').select('id').eq('user_id', user_id)\
@@ -467,7 +469,8 @@ def update_latest_analysis(user_id, platform, account_identifier, account_name, 
             'analyzed_username': account_identifier.replace('@', ''),
             'platform': platform,
             'analysis_type': 'latest',
-            'account_name': account_name,
+            'account_name': analysis_data.get('account_name', ''),
+            # إحصائيات عامة
             'subscribers': analysis_data.get('subscribers', 0),
             'followers': analysis_data.get('followers', 0),
             'following': analysis_data.get('following', 0),
@@ -476,10 +479,29 @@ def update_latest_analysis(user_id, platform, account_identifier, account_name, 
             'total_videos': analysis_data.get('total_videos', 0),
             'total_likes': analysis_data.get('total_likes', 0),
             'total_comments': analysis_data.get('total_comments', 0),
+            'total_shares': analysis_data.get('total_shares', 0),
+            # نسب ومتوسطات
             'avg_views_per_post': analysis_data.get('avg_views_per_post', 0),
-            'avg_video_duration': analysis_data.get('avg_video_duration', 0),
+            'avg_likes_per_post': analysis_data.get('avg_likes_per_post', 0),
+            'avg_comments_per_post': analysis_data.get('avg_comments_per_post', 0),
             'engagement_rate': analysis_data.get('engagement_rate', 0),
+            # تحليل الفيديوهات
+            'avg_video_duration': analysis_data.get('avg_video_duration', 0),
+            'best_video_length': analysis_data.get('best_video_length', 0),
+            'best_video_category': analysis_data.get('best_video_category'),
+            # تحليل التوقيت
+            'best_posting_day': analysis_data.get('best_posting_day'),
+            'best_posting_hour': analysis_data.get('best_posting_hour'),
+            'avg_posts_per_week': analysis_data.get('avg_posts_per_week'),
+            # تحليل الجمهور
+            'audience_growth_rate': analysis_data.get('audience_growth_rate'),
+            'retention_rate': analysis_data.get('retention_rate'),
+            'peak_activity_hour': analysis_data.get('peak_activity_hour'),
+            # بيانات JSON
             'top_posts': analysis_data.get('top_posts', []),
+            'top_categories': analysis_data.get('top_categories'),
+            'hashtags_used': analysis_data.get('hashtags_used'),
+            'content_types': analysis_data.get('content_types'),
             'analysis_date': datetime.now().isoformat()
         }
         
