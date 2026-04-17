@@ -512,7 +512,60 @@ async def premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode='HTML', 
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
-
+        
+async def subscription_callback(update: Update, context: ContextTypes.DEFAULT_TYPE, plan_type):
+    """معالجة اختيار خطة الاشتراك"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    user_info = get_user_info(user_id)
+    
+    # التحقق من أن المستخدم ليس مشتركاً بالفعل
+    if user_info.get('status') == 'premium':
+        await query.edit_message_text(
+            "✅ أنت مشترك بالفعل في الخطة المميزة!\n\n"
+            "لمعرفة تفاصيل اشتراكك، استخدم الأمر /mystats",
+            parse_mode='HTML'
+        )
+        return
+    
+    # جلب الأسعار
+    from utils.db import get_all_prices, get_bot_setting
+    prices = get_all_prices()
+    
+    # تحديد الخطة
+    plan_details = {
+        'monthly': {'name': 'شهري', 'name_en': 'monthly', 'days': 30, 'price': prices.get('price_monthly', 10)},
+        'half_yearly': {'name': 'نصف سنوي', 'name_en': 'half_yearly', 'days': 180, 'price': prices.get('price_half_yearly', 30)},
+        'yearly': {'name': 'سنوي', 'name_en': 'yearly', 'days': 365, 'price': prices.get('price_yearly', 48)},
+        'lifetime': {'name': 'مدى الحياة', 'name_en': 'lifetime', 'days': 36500, 'price': prices.get('price_lifetime', 100)},
+        'promo': {'name': 'نصف سنوي (عرض)', 'name_en': 'half_yearly', 'days': 180, 'price': prices.get('promo_half_yearly', 25)}
+    }
+    
+    plan = plan_details.get(plan_type, plan_details['half_yearly'])
+    
+    # رابط الدفع
+    payment_url = f"https://{RENDER_URL}/payment?plan={plan_type}&amount={plan['price']}"
+    
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton("💳 إتمام الدفع", web_app=WebAppInfo(url=payment_url))
+    ]])
+    
+    await query.edit_message_text(
+        f"💎 <b>تفاصيل اشتراكك</b>\n\n"
+        f"📅 <b>الخطة:</b> {plan['name']}\n"
+        f"💰 <b>السعر:</b> {plan['price']}$\n"
+        f"⏰ <b>المدة:</b> {plan['days']} يوماً\n\n"
+        f"✅ <b>مميزات الخطة:</b>\n"
+        f"• تحليل غير محدود لجميع المنصات\n"
+        f"• توصيات الذكاء الاصطناعي\n"
+        f"• صفحة بايو شخصية\n\n"
+        f"🔽 <b>لإتمام الاشتراك، اضغط على زر الدفع أدناه:</b>\n\n"
+        f"⚠️ بعد الدفع، تواصل مع المطور @E_Alshabany لإرسال إيصال الدفع وتفعيل اشتراكك.",
+        parse_mode='HTML',
+        reply_markup=keyboard
+    )
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """تعليمات المساعدة"""
     user_id = update.effective_user.id
