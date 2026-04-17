@@ -131,6 +131,14 @@ def sitemap():
         logger.error(f"Error serving sitemap: {e}")
         return "Sitemap not available", 404
         
+ @app.route('/terms')
+def terms_of_service():
+    """صفحة شروط الخدمة"""
+    try:
+        return render_template('terms.html')
+    except Exception as e:
+        logger.error(f"Error in terms page: {e}")
+        return "Terms of Service page", 200             
 # =================================================================================
 # القسم 5: نقاط نهاية فحص الصحة (Health Checks)
 # =================================================================================
