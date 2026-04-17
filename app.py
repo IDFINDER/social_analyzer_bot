@@ -130,8 +130,8 @@ def sitemap():
     except Exception as e:
         logger.error(f"Error serving sitemap: {e}")
         return "Sitemap not available", 404
-        
- @app.route('/terms')
+
+@app.route('/terms')
 def terms_of_service():
     """صفحة شروط الخدمة"""
     try:
