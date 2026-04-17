@@ -780,6 +780,117 @@ def security_info():
         'dashboard_url': '/admin/dashboard',
         'protection_level': 'عالية'
     })
+
+# =================================================================================
+# مسارات إضافية للوحة التحكم
+# =================================================================================
+
+@app.route('/admin-prices')
+@login_required
+def admin_prices():
+    """صفحة تعديل الأسعار"""
+    from utils.db import get_all_prices, get_bot_setting, update_bot_setting
+    
+    if request.method == 'POST':
+        update_bot_setting('price_half_yearly', request.form.get('price_half_yearly', '30'))
+        update_bot_setting('price_yearly', request.form.get('price_yearly', '48'))
+        update_bot_setting('price_lifetime', request.form.get('price_lifetime', '100'))
+        update_bot_setting('price_monthly', request.form.get('price_monthly', '10'))
+        update_bot_setting('free_limit', request.form.get('free_limit', '2'))
+        update_bot_setting('promo_active', request.form.get('promo_active', 'false'))
+        update_bot_setting('promo_half_yearly', request.form.get('promo_half_yearly', '25'))
+        update_bot_setting('promo_yearly', request.form.get('promo_yearly', '40'))
+        update_bot_setting('promo_end_date', request.form.get('promo_end_date', ''))
+        return redirect(url_for('admin_prices'))
+    
+    prices = get_all_prices()
+    return render_template('admin_prices.html', prices=prices)
+
+
+@app.route('/notifications-history')
+@login_required
+def notifications_history():
+    """سجل الإشعارات"""
+    from utils.db import get_notifications_history
+    notifications = get_notifications_history(100)
+    return render_template('notifications_history.html', notifications=notifications)
+
+
+@app.route('/send-notification', methods=['POST'])
+@login_required
+def send_notification():
+    """إرسال إشعارات للمستخدمين"""
+    import requests
+    from utils.db import log_notification, log_notification_delivery
+    
+    data = request.get_json()
+    target = data.get('target')
+    user_id = data.get('user_id')
+    message = data.get('message')
+    
+    if not message:
+        return jsonify({'success': False, 'message': 'الرسالة مطلوبة'})
+    
+    TOKEN = os.environ.get('TELEGRAM_TOKEN')
+    users_to_notify = []
+    
+    if target == 'user' and user_id:
+        users_to_notify = [int(user_id)]
+        notification_type = 'individual'
+        target_audience = f'user_{user_id}'
+    
+    elif target == 'all_premium':
+        response = supabase.table('users').select('user_id').eq('status', 'premium').execute()
+        users_to_notify = [u['user_id'] for u in (response.data or [])]
+        notification_type = 'broadcast'
+        target_audience = 'all_premium'
+    
+    elif target == 'free_users':
+        response = supabase.table('users').select('user_id').eq('status', 'free').execute()
+        users_to_notify = [u['user_id'] for u in (response.data or [])]
+        notification_type = 'broadcast'
+        target_audience = 'free_users'
+    
+    elif target in ['half_yearly', 'yearly', 'lifetime', 'monthly']:
+        # جلب مستخدمي خطة معينة
+        response = supabase.table('user_subscriptions_social').select('user_id, plan_id').eq('status', 'active').execute()
+        plan_names = {'half_yearly': 'half_yearly', 'yearly': 'yearly', 'lifetime': 'lifetime', 'monthly': 'monthly'}
+        for sub in (response.data or []):
+            plan_response = supabase.table('subscription_plans_social').select('name').eq('id', sub['plan_id']).execute()
+            if plan_response.data and plan_response.data[0]['name'] == plan_names.get(target):
+                users_to_notify.append(sub['user_id'])
+        notification_type = 'broadcast'
+        target_audience = target
+    
+    else:
+        return jsonify({'success': False, 'message': 'هدف غير صحيح'}), 400
+    
+    if not users_to_notify:
+        return jsonify({'success': False, 'message': 'لا يوجد مستخدمين مستهدفين'}), 404
+    
+    notification_id = log_notification(notification_type, target_audience, int(user_id) if user_id and target == 'user' else None, message)
+    
+    sent_count = 0
+    for uid in users_to_notify:
+        try:
+            api_url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+            response = requests.post(api_url, data={'chat_id': uid, 'text': message, 'parse_mode': 'HTML'}, timeout=5)
+            if response.status_code == 200:
+                sent_count += 1
+                if notification_id:
+                    log_notification_delivery(notification_id, uid, 'sent')
+            else:
+                if notification_id:
+                    log_notification_delivery(notification_id, uid, 'failed')
+        except Exception as e:
+            logger.error(f"Error sending to {uid}: {e}")
+            if notification_id:
+                log_notification_delivery(notification_id, uid, 'failed')
+    
+    if notification_id:
+        supabase.table('notification_log_social').update({'sent_count': sent_count}).eq('id', notification_id).execute()
+    
+    return jsonify({'success': True, 'message': f'تم إرسال الإشعار إلى {sent_count} من {len(users_to_notify)} مستخدم'})
 # =================================================================================
 # القسم: صفحات التحقق (Verification Pages)
 # =================================================================================
