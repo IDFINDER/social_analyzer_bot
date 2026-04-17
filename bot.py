@@ -929,7 +929,7 @@ async def ai_recommendations(update: Update, context: ContextTypes.DEFAULT_TYPE)
 • متوسط المشاهدات لكل فيديو: {channel_details.get('avg_views', '0')}
 
 📈 **رسم بياني بسيط للمشاهدات:**
-{generate_simple_chart(int(str(channel_details.get('total_views', '0')).replace('M', '000000').replace('K', '000') if isinstance(channel_details.get('total_views'), str) else channel_details.get('total_views', 0)), 10000000)}
+{generate_simple_chart(channel_details.get('total_views', '0'), 10000000)}
 
 {previous_rec_text}
 
