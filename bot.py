@@ -533,7 +533,7 @@ async def subscription_callback(update: Update, context: ContextTypes.DEFAULT_TY
     # جلب الأسعار
     from utils.db import get_all_prices, get_bot_setting
     prices = get_all_prices()
-    
+    print(f"DEBUG: prices from DB = {prices}")
     # تحديد الخطة
     plan_details = {
         'monthly': {'name': 'شهري', 'name_en': 'monthly', 'days': 30, 'price': prices.get('price_monthly', 10)},
