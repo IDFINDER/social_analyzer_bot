@@ -605,6 +605,36 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
+async def test_prices_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """أمر اختبار الأسعار - /test_prices (للمطور فقط)"""
+    user_id = update.effective_user.id
+    ADMIN_CHAT_ID = int(os.environ.get('ADMIN_CHAT_ID', '7850462368'))
+    
+    # التحقق من أن المستخدم هو المدير
+    if user_id != ADMIN_CHAT_ID:
+        await update.message.reply_text("⛔ هذا الأمر للمطور فقط")
+        return
+    
+    from utils.db import get_all_prices
+    prices = get_all_prices()
+    
+    text = f"""
+📊 **الأسعار من قاعدة البيانات:**
+
+🌙 شهري: {prices.get('price_monthly')}$
+📅 نصف سنوي: {prices.get('price_half_yearly')}$
+🎉 سنوي: {prices.get('price_yearly')}$
+💎 مدى الحياة: {prices.get('price_lifetime')}$
+
+🎁 العروض:
+• مفعل: {prices.get('promo_active')}
+• نصف سنوي (عرض): {prices.get('promo_half_yearly')}$
+• سنوي (عرض): {prices.get('promo_yearly')}$
+
+📊 الحد المجاني: {prices.get('free_limit')}
+"""
+    await update.message.reply_text(text, parse_mode='Markdown')
+
 # =================================================================================
 # القسم 9: أوامر البوت - التحليل (Analysis Commands)
 # =================================================================================
@@ -2391,6 +2421,7 @@ def main():
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("mystats", my_stats_command))
     application.add_handler(CommandHandler("premium", premium_command))
+    application.add_handler(CommandHandler("test_prices", test_prices_command))  # 👈 أضف هذا السطر
     application.add_handler(CommandHandler("mydata", my_data_command))
     application.add_handler(CommandHandler("edit", edit_data_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
