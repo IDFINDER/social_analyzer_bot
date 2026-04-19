@@ -158,7 +158,29 @@ def health():
 def payment_page():
     """صفحة الدفع الموحدة للاشتراك المميز"""
     try:
-        return render_template('payment.html', free_limit=FREE_LIMIT)
+        from utils.db import get_all_prices
+        prices = get_all_prices()
+        
+        # الحصول على الخطة المختارة من المعاملات (GET)
+        plan = request.args.get('plan', 'half_yearly')
+        amount = request.args.get('amount', prices.get('price_half_yearly', 30))
+        
+        # تحديد تفاصيل الخطة
+        plan_details = {
+            'monthly': {'name': 'شهري', 'price': prices.get('price_monthly', 10)},
+            'half_yearly': {'name': 'نصف سنوي', 'price': prices.get('price_half_yearly', 30)},
+            'yearly': {'name': 'سنوي', 'price': prices.get('price_yearly', 48)},
+            'lifetime': {'name': 'مدى الحياة', 'price': prices.get('price_lifetime', 100)}
+        }
+        
+        current_plan = plan_details.get(plan, plan_details['half_yearly'])
+        
+        return render_template('payment.html', 
+                              free_limit=FREE_LIMIT,
+                              prices=prices,
+                              plan=current_plan,
+                              selected_plan=plan,
+                              amount=amount)
     except Exception as e:
         logger.error(f"Payment page error: {e}")
         return f"Error loading payment page: {e}", 500
