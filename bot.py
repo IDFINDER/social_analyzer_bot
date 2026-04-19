@@ -433,7 +433,7 @@ async def premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # جلب الأسعار من قاعدة البيانات
     from utils.db import get_all_prices
     prices = get_all_prices()
-    
+    print(f"DEBUG: الأسعار المقروءة = {prices}")
     # التحقق من وجود عروض ترويجية
     promo_text = ""
     if prices.get('promo_active', False):
