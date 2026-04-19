@@ -424,10 +424,50 @@ async def my_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # القسم 8: أوامر البوت - الاشتراك المميز والمساعدة
 # =================================================================================
 
+async def premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معلومات الاشتراك المميز - خطط متعددة"""
+    user_id = update.effective_user.id
+    user_info = get_user_info(user_id)
+    is_premium = user_info['status'] == 'premium' if user_info else False
+    
+    # جلب الأسعار من قاعدة البيانات
+    from utils.db import get_all_prices
+    prices = get_all_prices()
+    
+    # التحقق من وجود عروض ترويجية
+    promo_text = ""
+    if prices.get('promo_active', False):
+        promo_text = f"\n🎉 <b>عرض خاص!</b>\n• نصف سنوي: {prices['promo_half_yearly']}$ فقط\n• سنوي: {prices['promo_yearly']}$ فقط\n"
+    
+    if is_premium:
+        # جلب الاشتراك النشط
+        from utils.db import get_user_active_subscription
+        subscription = get_user_active_subscription(user_id)
+        
+        sub_text = ""
+        if subscription:
+            plan_name = subscription.get('subscription_plans_social', {}).get('name_ar', 'مميز')
+            end_date = subscription.get('end_date', '')
+            sub_text = f"\n📅 <b>خطتك:</b> {plan_name}\n⏰ <b>تنتهي في:</b> {end_date}\n"
+        
+        text = f"""
+👑 <b>أنت مشترك في الخطة المميزة!</b>
+{sub_text}
+✅ <b>مميزات الاشتراك المميز:</b>
+• تحليل غير محدود لجميع الحسابات
+• توصيات الذكاء الاصطناعي (5 يومياً)
+• صفحة بايو شخصية
+• فحص توافر اليوزرنيم
+• دعم أولوية في المعالجة
+
+📅 <b>الاشتراك نشط حالياً</b>
+
+شكراً لدعمك! 🙏
+"""
+        await update.message.reply_text(text, parse_mode='HTML', reply_markup=get_main_keyboard(True))
     else:
         remaining = get_remaining_analyses(user_id)
         
-        # ========== الرسالة النصية فقط ==========
         text = f"""
 💎 <b>الاشتراك المميز</b>
 
@@ -455,10 +495,7 @@ async def my_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 🔽 <b>للاشتراك، اختر خطتك المفضلة:</b>
 """
         
-        # إرسال الرسالة النصية أولاً
-        await update.message.reply_text(text, parse_mode='HTML')
-        
-        # ========== الأزرار في رسالة منفصلة ==========
+        # إنشاء أزرار الخطط (ديناميكية من قاعدة البيانات)
         keyboard = [
             [InlineKeyboardButton(f"🌙 شهري - {prices.get('price_monthly', 10)}$", callback_data="subscribe_monthly")],
             [InlineKeyboardButton(f"📅 نصف سنوي - {prices.get('price_half_yearly', 30)}$", callback_data="subscribe_half_yearly")],
@@ -472,8 +509,8 @@ async def my_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             keyboard.insert(0, [InlineKeyboardButton(f"🎁 عرض نصف سنوي - {prices.get('promo_half_yearly', 25)}$", callback_data="subscribe_promo")])
         
         await update.message.reply_text(
-            "👇 اختر خطتك المفضلة:",
-            parse_mode='HTML',
+            text, 
+            parse_mode='HTML', 
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         
