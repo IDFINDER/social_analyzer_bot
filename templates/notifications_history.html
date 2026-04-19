@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سجل الإشعارات - لوحة التحكم</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            background: #f5f7fa;
+            color: #1a2c3e;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .header h1 { font-size: 1.5rem; }
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 10px;
+            text-decoration: none;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.3); }
+        .refresh-btn {
+            background: #48bb78;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .refresh-btn:hover { background: #38a169; }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px 10px;
+            text-align: center;
+            border-bottom: 1px solid #e9ecef;
+        }
+        th {
+            background: #f8f9fa;
+            color: #495057;
+            font-weight: 600;
+        }
+        tr:hover { background: #f8f9fa; }
+        
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            display: inline-block;
+        }
+        .badge-individual { background: #17a2b8; color: white; }
+        .badge-broadcast { background: #28a745; color: white; }
+        .badge-all_premium { background: #667eea; color: white; }
+        .badge-free_users { background: #ffc107; color: #333; }
+        .badge-half_yearly { background: #ffc107; color: #333; }
+        .badge-yearly { background: #28a745; color: white; }
+        .badge-lifetime { background: #e94560; color: white; }
+        
+        .message-preview {
+            max-width: 300px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .pagination button {
+            padding: 8px 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .pagination button:hover { background: #5a67d8; }
+        
+        @media (max-width: 768px) {
+            th, td { font-size: 0.7rem; padding: 8px 5px; }
+            .message-preview { max-width: 150px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📋 سجل الإشعارات</h1>
+                <p style="font-size: 0.8rem; margin-top: 5px;">جميع الإشعارات المرسلة للمستخدمين</p>
+            </div>
+            <div>
+                <button class="refresh-btn" onclick="location.reload()">🔄 تحديث</button>
+                <a href="/admin/dashboard" class="back-btn">🔙 العودة للوحة التحكم</a>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>📨 الإشعارات المرسلة</h2>
+            
+            <div style="overflow-x: auto;">
+                <table id="notificationsTable">
+                    <thead>
+                        <tr>
+                            <th>المعرف</th>
+                            <th>النوع</th>
+                            <th>الجمهور المستهدف</th>
+                            <th>الرسالة</th>
+                            <th>عدد المستلمين</th>
+                            <th>تاريخ الإرسال</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for notification in notifications %}
+                        <tr>
+                            <td>{{ notification.id }}</td>
+                            <td>
+                                {% if notification.notification_type == 'individual' %}
+                                    <span class="badge badge-individual">📨 فردي</span>
+                                {% else %}
+                                    <span class="badge badge-broadcast">📢 جماعي</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if notification.target_audience == 'all_premium' %}
+                                    <span class="badge badge-all_premium">👑 جميع المميزين</span>
+                                {% elif notification.target_audience == 'free_users' %}
+                                    <span class="badge badge-free_users">🎁 المجانيين</span>
+                                {% elif notification.target_audience == 'half_yearly' %}
+                                    <span class="badge badge-half_yearly">📅 نصف سنوي</span>
+                                {% elif notification.target_audience == 'yearly' %}
+                                    <span class="badge badge-yearly">🎉 سنوي</span>
+                                {% elif notification.target_audience == 'lifetime' %}
+                                    <span class="badge badge-lifetime">💎 مدى الحياة</span>
+                                {% elif notification.target_audience.startswith('user_') %}
+                                    <span class="badge badge-individual">👤 مستخدم {{ notification.target_audience.split('_')[1] }}</span>
+                                {% else %}
+                                    <span class="badge">{{ notification.target_audience }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="message-preview" title="{{ notification.message }}">{{ notification.message[:80] }}{% if notification.message|length > 80 %}...{% endif %}</td>
+                            <td>{{ notification.sent_count or 0 }}</td>
+                            <td>{{ notification.sent_at[:19] if notification.sent_at else '-' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="no-data">📭 لا توجد إشعارات مرسلة حتى الآن</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>📊 إحصائيات سريعة</h2>
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div style="flex: 1; text-align: center; padding: 15px; background: #f8f9fa; border-radius: 15px;">
+                    <div style="font-size: 2rem; color: #667eea;">{{ notifications|length }}</div>
+                    <div style="font-size: 0.8rem; color: #6c757d;">إجمالي الإشعارات</div>
+                </div>
+                <div style="flex: 1; text-align: center; padding: 15px; background: #f8f9fa; border-radius: 15px;">
+                    <div style="font-size: 2rem; color: #28a745;">{{ notifications|sum(attribute='sent_count') }}</div>
+                    <div style="font-size: 0.8rem; color: #6c757d;">إجمالي المستلمين</div>
+                </div>
+                <div style="flex: 1; text-align: center; padding: 15px; background: #f8f9fa; border-radius: 15px;">
+                    <div style="font-size: 2rem; color: #ffc107;">{{ notifications|selectattr('notification_type', 'equalto', 'broadcast')|list|length }}</div>
+                    <div style="font-size: 0.8rem; color: #6c757d;">إشعارات جماعية</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>📖 تعليمات الإشعارات</h2>
+            <ul style="margin-right: 20px; line-height: 1.8;">
+                <li>📌 يمكنك إرسال إشعارات من لوحة التحكم عبر أزرار "📢 إشعار..."</li>
+                <li>📌 الإشعارات تصل للمستخدمين فوراً عبر البوت</li>
+                <li>📌 يتم تسجيل كل إشعار مع عدد المستلمين وتاريخ الإرسال</li>
+                <li>📌 يمكنك استهداف: جميع المميزين، المجانيين، أو مشتركي خطة معينة</li>
+                <li>📌 الإشعارات الفردية تُرسل من زر "📨 رسالة" بجانب كل مستخدم</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        // تحديث تلقائي كل 30 ثانية (اختياري)
+        setTimeout(function() {
+            location.reload();
+        }, 30000);
+    </script>
+</body>
+</html>
