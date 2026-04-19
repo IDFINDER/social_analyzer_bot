@@ -494,18 +494,18 @@ async def premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 🔽 <b>للاشتراك، اختر خطتك المفضلة:</b>
 """
-        # إنشاء أزرار الخطط
+                # إنشاء أزرار الخطط (ديناميكية من قاعدة البيانات)
         keyboard = [
-            [InlineKeyboardButton("🌙 شهري - 10$", callback_data="subscribe_monthly")],
-            [InlineKeyboardButton("📅 نصف سنوي - 30$", callback_data="subscribe_half_yearly")],
-            [InlineKeyboardButton("🎉 سنوي - 48$", callback_data="subscribe_yearly")],
-            [InlineKeyboardButton("💎 مدى الحياة - 100$", callback_data="subscribe_lifetime")],
+            [InlineKeyboardButton(f"🌙 شهري - {prices.get('price_monthly', 10)}$", callback_data="subscribe_monthly")],
+            [InlineKeyboardButton(f"📅 نصف سنوي - {prices.get('price_half_yearly', 30)}$", callback_data="subscribe_half_yearly")],
+            [InlineKeyboardButton(f"🎉 سنوي - {prices.get('price_yearly', 48)}$", callback_data="subscribe_yearly")],
+            [InlineKeyboardButton(f"💎 مدى الحياة - {prices.get('price_lifetime', 100)}$", callback_data="subscribe_lifetime")],
             [InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")]
         ]
         
         # إضافة زر العرض إذا كان مفعلاً
         if prices.get('promo_active', False):
-            keyboard.insert(0, [InlineKeyboardButton("🎁 عرض العيد - خصم 20%", callback_data="subscribe_promo")])
+            keyboard.insert(0, [InlineKeyboardButton(f"🎁 عرض نصف سنوي - {prices.get('promo_half_yearly', 25)}$", callback_data="subscribe_promo")])
         
         await update.message.reply_text(
             text, 
