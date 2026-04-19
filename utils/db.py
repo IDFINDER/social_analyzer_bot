@@ -690,10 +690,10 @@ def get_bot_setting(setting_key, default_value=None):
 def get_all_prices():
     """جلب جميع الأسعار الحالية من قاعدة البيانات"""
     return {
-        'half_yearly': int(get_bot_setting('price_half_yearly', '30')),
-        'yearly': int(get_bot_setting('price_yearly', '48')),
-        'lifetime': int(get_bot_setting('price_lifetime', '100')),
-        'monthly': int(get_bot_setting('price_monthly', '10')),
+        'price_half_yearly': int(get_bot_setting('price_half_yearly', '30')),
+        'price_yearly': int(get_bot_setting('price_yearly', '48')),
+        'price_lifetime': int(get_bot_setting('price_lifetime', '100')),
+        'price_monthly': int(get_bot_setting('price_monthly', '10')),
         'free_limit': int(get_bot_setting('free_limit', str(FREE_LIMIT))),
         'promo_active': get_bot_setting('promo_active', 'false') == 'true',
         'promo_half_yearly': int(get_bot_setting('promo_half_yearly', '25')),
