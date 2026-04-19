@@ -635,6 +635,37 @@ async def test_prices_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 """
     await update.message.reply_text(text, parse_mode='Markdown')
 
+async def test_setting_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """اختبار دالة get_bot_setting مباشرة - /test_setting"""
+    user_id = update.effective_user.id
+    ADMIN_CHAT_ID = int(os.environ.get('ADMIN_CHAT_ID', '7850462368'))
+    
+    if user_id != ADMIN_CHAT_ID:
+        await update.message.reply_text("⛔ هذا الأمر للمطور فقط")
+        return
+    
+    from utils.db import get_bot_setting
+    
+    # اختبار قراءة مباشرة من قاعدة البيانات
+    price_monthly = get_bot_setting('price_monthly', 'غير موجود')
+    price_half_yearly = get_bot_setting('price_half_yearly', 'غير موجود')
+    price_yearly = get_bot_setting('price_yearly', 'غير موجود')
+    price_lifetime = get_bot_setting('price_lifetime', 'غير موجود')
+    free_limit = get_bot_setting('free_limit', 'غير موجود')
+    
+    text = f"""
+🔍 **نتيجة اختبار get_bot_setting:**
+
+📊 price_monthly: {price_monthly}
+📊 price_half_yearly: {price_half_yearly}
+📊 price_yearly: {price_yearly}
+📊 price_lifetime: {price_lifetime}
+📊 free_limit: {free_limit}
+
+💡 إذا ظهرت "غير موجود" فهذا يعني أن المفاتيح غير موجودة في جدول bot_settings_social
+"""
+    await update.message.reply_text(text, parse_mode='Markdown')
+
 # =================================================================================
 # القسم 9: أوامر البوت - التحليل (Analysis Commands)
 # =================================================================================
@@ -2421,7 +2452,8 @@ def main():
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("mystats", my_stats_command))
     application.add_handler(CommandHandler("premium", premium_command))
-    application.add_handler(CommandHandler("test_prices", test_prices_command))  # 👈 أضف هذا السطر
+    application.add_handler(CommandHandler("test_prices", test_prices_command))
+    application.add_handler(CommandHandler("test_setting", test_setting_command))
     application.add_handler(CommandHandler("mydata", my_data_command))
     application.add_handler(CommandHandler("edit", edit_data_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
