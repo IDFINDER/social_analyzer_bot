@@ -785,7 +785,7 @@ def security_info():
 # مسارات إضافية للوحة التحكم
 # =================================================================================
 
-@app.route('/admin-prices')
+@app.route('/admin-prices', methods=['GET', 'POST'])
 @login_required
 def admin_prices():
     """صفحة تعديل الأسعار"""
