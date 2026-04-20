@@ -679,6 +679,108 @@ def admin_dashboard():
     except Exception as e:
         logger.error(f"Error in admin_dashboard: {e}")
         return f"حدث خطأ: {e}", 500
+
+# =================================================================================
+# مسار ترقية المستخدم مع اختيار الخطة
+# =================================================================================
+
+@app.route('/upgrade-user', methods=['POST'])
+@login_required
+def upgrade_user():
+    """ترقية مستخدم مع اختيار الخطة"""
+    user_id = request.form.get('user_id')
+    plan_type = request.form.get('plan_type')
+    
+    if not user_id or not plan_type:
+        return redirect(url_for('admin_dashboard'))
+    
+    from utils.db import create_subscription, get_bot_setting
+    from utils.db import supabase
+    import requests
+    
+    # تحديد الخطة
+    plan_details = {
+        'monthly': {'name': 'monthly', 'days': 30},
+        'half_yearly': {'name': 'half_yearly', 'days': 180},
+        'yearly': {'name': 'yearly', 'days': 365},
+        'lifetime': {'name': 'lifetime', 'days': 36500}
+    }
+    
+    plan = plan_details.get(plan_type, plan_details['half_yearly'])
+    
+    # جلب السعر من قاعدة البيانات
+    price = int(get_bot_setting(f'price_{plan_type}', '30'))
+    
+    # جلب معرف الخطة من جدول الخطط
+    plan_response = supabase.table('subscription_plans_social').select('id').eq('name', plan['name']).execute()
+    plan_id = plan_response.data[0]['id'] if plan_response.data else 2
+    
+    success, end_date, plan_name = create_subscription(int(user_id), plan_id, plan['days'], price)
+    
+    if success:
+        # إرسال رسالة تأكيد للمستخدم
+        TOKEN = os.environ.get('TELEGRAM_TOKEN')
+        message = f"""🎉 <b>تم ترقية حسابك بنجاح!</b>
+
+📅 <b>خطتك:</b> {plan_name}
+💰 <b>المبلغ:</b> {price}$
+⏰ <b>تنتهي في:</b> {end_date}
+
+✅ يمكنك الآن الاستمتاع بالمميزات:
+• تحليل غير محدود
+• توصيات الذكاء الاصطناعي
+• صفحة بايو شخصية
+
+شكراً لثقتك! 🙏
+"""
+        try:
+            requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
+                         data={'chat_id': user_id, 'text': message, 'parse_mode': 'HTML'}, timeout=5)
+        except Exception as e:
+            logger.error(f"Error sending upgrade message: {e}")
+    
+    return redirect(url_for('admin_dashboard'))
+
+
+# =================================================================================
+# مسار خفض المستخدم
+# =================================================================================
+
+@app.route('/downgrade-user', methods=['POST'])
+@login_required
+def downgrade_user():
+    """خفض مستخدم إلى خطة مجانية"""
+    user_id = request.form.get('user_id')
+    
+    if not user_id:
+        return redirect(url_for('admin_dashboard'))
+    
+    from utils.db import downgrade_user_to_free
+    from utils.db import supabase
+    import requests
+    
+    success = downgrade_user_to_free(int(user_id))
+    
+    if success:
+        # تحديث حالة الاشتراك في جدول user_subscriptions_social
+        supabase.table('user_subscriptions_social').update({'status': 'cancelled'}).eq('user_id', int(user_id)).eq('status', 'active').execute()
+        
+        # إرسال رسالة للمستخدم
+        TOKEN = os.environ.get('TELEGRAM_TOKEN')
+        message = f"""📉 <b>تم خفض اشتراكك إلى الخطة المجانية</b>
+
+✅ لا يزال بإمكانك استخدام:
+• {FREE_LIMIT} تحليل يومياً
+
+💎 للعودة إلى الخطة المميزة، استخدم الأمر /premium
+"""
+        try:
+            requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
+                         data={'chat_id': user_id, 'text': message, 'parse_mode': 'HTML'}, timeout=5)
+        except Exception as e:
+            logger.error(f"Error sending downgrade message: {e}")
+    
+    return redirect(url_for('admin_dashboard'))
 # =================================================================================
 # القسم 13: APIs مساعدة (Helper APIs)
 # =================================================================================
