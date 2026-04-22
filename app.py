@@ -1258,28 +1258,26 @@ def set_gemini_limit():
 def gemini_limits_page():
     """صفحة لعرض وتعديل حدود التوصيات لجميع المستخدمين"""
     try:
-        from utils.db import get_all_gemini_limits, get_all_users_with_stats
+        from utils.db import supabase
+        from datetime import datetime
         
-        gemini_limits = get_all_gemini_limits()
-        users = get_all_users_with_stats()
-        
-        # الحصول على الحد الافتراضي من متغير البيئة
         default_limit = int(os.environ.get('GEMINI_MONTHLY_LIMIT', '20'))
         
-        # دمج البيانات
-        user_limits = {}
-        for limit in gemini_limits:
-            user_limits[limit['user_id']] = limit['monthly_limit']
+        # جلب جميع المستخدمين المميزين
+        users_response = supabase.table('users').select('user_id, first_name, username, status').eq('status', 'premium').execute()
+        
+        # جلب الحدود المخصصة
+        limits_response = supabase.table('user_gemini_limits').select('user_id, monthly_limit').execute()
+        user_limits = {l['user_id']: l['monthly_limit'] for l in (limits_response.data or [])}
         
         user_list = []
-        for user in users:
+        for user in (users_response.data or []):
             user_list.append({
                 'user_id': user['user_id'],
-                'first_name': user['first_name'],
-                'username': user['username'],
-                'status': user['status'],
-                'current_limit': user_limits.get(user['user_id'], default_limit),
-                'subscription_plan': user.get('subscription_plan', '-')
+                'first_name': user.get('first_name', ''),
+                'username': user.get('username', ''),
+                'status': user.get('status', 'free'),
+                'current_limit': user_limits.get(user['user_id'], default_limit)
             })
         
         return render_template('gemini_limits.html', users=user_list, default_limit=default_limit)
