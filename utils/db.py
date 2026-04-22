@@ -1063,36 +1063,63 @@ def remove_custom_link(user_id, link_index):
 # ========== دوال لوحة تحكم المدير (قراءة - supabase) ==========
 
 def get_all_users_with_stats(bot_name=None):
-    """جلب جميع المستخدمين مع إحصائياتهم الكاملة"""
+    """جلب جميع المستخدمين مع إحصائياتهم الكاملة - مع إضافة gemini_limit"""
     try:
         if bot_name is None:
             bot_name = os.environ.get('BOT_NAME', 'social_analyzer')
         
-        usage_response = supabase.table('bot_usage').select('user_id').eq('bot_name', bot_name).execute()
-        user_ids = [u['user_id'] for u in usage_response.data] if usage_response.data else []
+        # جلب المستخدمين الذين لديهم استخدامات لهذا البوت
+        usage_response = supabase.table('bot_usage').select('*').eq('bot_name', bot_name).execute()
         
-        if not user_ids:
+        if not usage_response.data:
             return []
         
+        user_ids = [u['user_id'] for u in usage_response.data]
+        
+        # جلب تفاصيل المستخدمين
         users_response = supabase.table('users').select('*').in_('user_id', user_ids).order('user_id', desc=False).execute()
-        users = users_response.data if users_response.data else []
+        users = {u['user_id']: u for u in (users_response.data or [])}
         
-        all_usage = {}
-        for user_id in user_ids:
-            usage_resp = supabase.table('bot_usage').select('*').eq('user_id', user_id).eq('bot_name', bot_name).execute()
-            if usage_resp.data:
-                all_usage[user_id] = usage_resp.data[0]
+        # جلب إحصائيات الاستخدام
+        all_usage = {u['user_id']: u for u in usage_response.data}
         
+        # جلب صفحات البايو
         bio_response = supabase.table('bio_pages').select('user_id, page_url, views_count').in_('user_id', user_ids).execute()
-        bio_pages = {b['user_id']: b for b in bio_response.data} if bio_response.data else {}
+        bio_pages = {b['user_id']: b for b in (bio_response.data or [])}
+        
+        # 🆕 جلب حدود Gemini المخصصة
+        gemini_response = supabase.table('user_gemini_limits').select('user_id, monthly_limit').in_('user_id', user_ids).execute()
+        gemini_limits = {g['user_id']: g['monthly_limit'] for g in (gemini_response.data or [])}
+        
+        # الحصول على الحد الافتراضي من متغير البيئة
+        default_gemini_limit = int(os.environ.get('GEMINI_MONTHLY_LIMIT', '20'))
+        
+        # جلب الاشتراكات النشطة
+        subscriptions_response = supabase.table('user_subscriptions_social').select('user_id, plan_id, status, start_date, end_date').eq('status', 'active').execute()
+        active_subs = {s['user_id']: s for s in (subscriptions_response.data or [])}
+        
+        # جلب أسماء الخطط
+        plans_response = supabase.table('subscription_plans_social').select('id, name, name_ar').execute()
+        plans = {p['id']: p for p in (plans_response.data or [])}
         
         result = []
-        for user in users:
-            usage = all_usage.get(user['user_id'], {})
-            bio = bio_pages.get(user['user_id'], {})
+        for user_id in user_ids:
+            user = users.get(user_id, {})
+            usage = all_usage.get(user_id, {})
+            bio = bio_pages.get(user_id, {})
+            sub = active_subs.get(user_id, {})
+            plan = plans.get(sub.get('plan_id'), {}) if sub else {}
+            
+            # الحصول على gemini_limit (مخصص أو افتراضي)
+            gemini_limit = gemini_limits.get(user_id, default_gemini_limit)
+            
+            # جلب عدد التوصيات المستخدمة هذا الشهر
+            current_month = date.today().strftime('%Y-%m')
+            gemini_usage_response = supabase.table('gemini_usage').select('monthly_recommendations').eq('user_id', user_id).execute()
+            gemini_used = gemini_usage_response.data[0]['monthly_recommendations'] if gemini_usage_response.data else 0
             
             result.append({
-                'user_id': user['user_id'],
+                'user_id': user_id,
                 'first_name': user.get('first_name', ''),
                 'username': user.get('username', ''),
                 'status': user.get('status', 'free'),
@@ -1107,7 +1134,12 @@ def get_all_users_with_stats(bot_name=None):
                     'instagram': usage.get('instagram_uses', 0),
                     'tiktok': usage.get('tiktok_uses', 0),
                     'facebook': usage.get('facebook_uses', 0)
-                }
+                },
+                'subscription_plan': plan.get('name_ar') or plan.get('name', '-'),
+                'subscription_start_date': sub.get('start_date', '-'),
+                'subscription_end_date': sub.get('end_date', '-'),
+                'gemini_limit': gemini_limit,      # 🆕 الحد الشهري للتوصيات
+                'gemini_used': gemini_used         # 🆕 عدد التوصيات المستخدمة هذا الشهر
             })
         
         return result
