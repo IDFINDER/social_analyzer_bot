@@ -181,7 +181,7 @@
             flex-wrap: wrap;
             gap: 15px;
         }
-        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
         th, td { padding: 10px 6px; text-align: center; border-bottom: 1px solid #e9ecef; }
         th { background: #f8f9fa; color: #495057; font-weight: 600; position: sticky; top: 0; }
         tr:hover { background: #f8f9fa; }
@@ -267,6 +267,26 @@
             font-family: inherit;
         }
         
+        /* حقل تعديل حصة التوصيات */
+        .gemini-limit-input {
+            width: 50px;
+            padding: 4px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            text-align: center;
+            font-size: 0.7rem;
+        }
+        .gemini-update-btn {
+            background: #6f42c1;
+            color: white;
+            border: none;
+            padding: 4px 6px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.65rem;
+        }
+        .gemini-update-btn:hover { background: #5a32a3; }
+        
         .footer {
             text-align: center;
             margin-top: 25px;
@@ -312,10 +332,11 @@
         
         @media (max-width: 768px) {
             .charts-section { grid-template-columns: 1fr; }
-            th, td { font-size: 0.65rem; padding: 5px; }
+            th, td { font-size: 0.6rem; padding: 5px 3px; }
             .search-box { flex-direction: column; }
             .search-btn, .clear-btn { width: 100%; }
             .upgrade-form { flex-direction: column; gap: 3px; }
+            .gemini-limit-input { width: 40px; }
         }
     </style>
 </head>
@@ -329,6 +350,7 @@
             <div class="header-buttons">
                 <a href="/admin-prices" class="header-btn">💰 تعديل الأسعار</a>
                 <a href="/notifications-history" class="header-btn">📋 سجل الإشعارات</a>
+                <a href="/admin/gemini-limits" class="header-btn">🤖 حدود التوصيات</a>
                 <a href="/secure/x7K9mP2/logout" class="logout-btn">🚪 خروج</a>
             </div>
         </div>
@@ -342,6 +364,7 @@
             <div class="stat-card"><div class="stat-number">{{ stats.subscription_stats.yearly|default(0) }}</div><div class="stat-label">🎉 سنوي</div></div>
             <div class="stat-card"><div class="stat-number">{{ stats.subscription_stats.lifetime|default(0) }}</div><div class="stat-label">💎 مدى الحياة</div></div>
             <div class="stat-card"><div class="stat-number">{{ stats.total_uses|default(0) }}</div><div class="stat-label">🔍 إجمالي التحليلات</div></div>
+            <div class="stat-card"><div class="stat-number">{{ stats.total_gemini_uses|default(0) }}</div><div class="stat-label">🤖 توصيات AI</div></div>
         </div>
         
         <!-- الرسوم البيانية -->
@@ -401,8 +424,7 @@
                             <th>اليوزرنيم</th>
                             <th>الحالة</th>
                             <th>الخطة</th>
-                            <th>تاريخ البداية</th>
-                            <th>تاريخ الانتهاء</th>
+                            <th>توصيات AI</th>
                             <th>📊 اليوم</th>
                             <th>📈 الإجمالي</th>
                             <th>الإجراءات</th>
@@ -416,8 +438,20 @@
                             <td>@{{ user.username|default('-') }}</td>
                             <td>{% if user.status == 'premium' %}<span class="premium-badge">👑 مميز</span>{% else %}<span class="free-badge">🎁 مجاني</span>{% endif %}</td>
                             <td>{% if user.subscription_plan and user.subscription_plan != '-' %}<span class="plan-badge">{{ user.subscription_plan }}</span>{% else %}-{% endif %}</td>
-                            <td>{{ user.subscription_start_date|default('-') }}</td>
-                            <td>{{ user.subscription_end_date|default('-') }}</td>
+                            <td>
+                                {% if user.status == 'premium' %}
+                                <div style="display: flex; gap: 3px; justify-content: center; align-items: center;">
+                                    <span class="usage-badge" style="background: #6f42c1;">{{ user.gemini_used|default(0) }}/{{ user.gemini_limit|default(20) }}</span>
+                                    <form method="POST" action="/admin/set-gemini-limit" style="display: inline-flex; gap: 2px;">
+                                        <input type="hidden" name="user_id" value="{{ user.user_id }}">
+                                        <input type="number" name="gemini_limit" value="{{ user.gemini_limit|default(20) }}" class="gemini-limit-input" min="1" max="500" step="1">
+                                        <button type="submit" class="gemini-update-btn" onclick="return confirm('هل أنت متأكد من تعديل حصة التوصيات لهذا المستخدم؟')">💾</button>
+                                    </form>
+                                </div>
+                                {% else %}
+                                <span class="usage-badge" style="background: #6c757d;">غير متاح</span>
+                                {% endif %}
+                             </td>
                             <td><span class="usage-badge">{{ user.daily_uses }}/{{ free_limit }}</span></td>
                             <td><span class="usage-badge">📊 {{ user.total_usage.youtube|default(0) + user.total_usage.instagram|default(0) + user.total_usage.tiktok|default(0) + user.total_usage.facebook|default(0) }}</span></td>
                             <td>
@@ -440,8 +474,8 @@
                                 </form>
                                 {% endif %}
                                 <button class="action-btn" onclick="openNotifyModal('user', '{{ user.user_id }}', '{{ user.first_name }}')">📨 رسالة</button>
-                            </td>
-                        </tr>
+                             </td>
+                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
