@@ -388,7 +388,7 @@ async def my_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = Messages.STATS_PREMIUM.format(
             user_name=user_info.get('first_name', '-'),
             total=total,
-            gemini_remaining=gemini_remaining
+            gemini_remaining=gemini_remaining,
             gemini_limit=gemini_limit  # 🔴 أضف هذا السطر
         )
     else:
