@@ -26,7 +26,9 @@ from utils.db import (
     get_user_social_accounts, get_user_account, save_user_account, delete_user_account,
     can_use_gemini, increment_gemini_usage,
     get_bio_page, create_or_update_bio_page, disable_bio_page, get_bio_page_by_page_url, increment_bio_views,
-    update_bio_theme, update_bio_text, update_bio_avatar, add_custom_link, remove_custom_link
+    update_bio_theme, update_bio_text, update_bio_avatar, add_custom_link, remove_custom_link,
+    get_user_gemini_limit,  # دالة جلب الحد الشهري للتوصيات
+    set_user_gemini_limit   # دالة تعيين الحد الشهري للتوصيات (اختياري)
 )
 from utils.youtube_analyzer import get_channel_details, format_channel_report
 from utils.gemini_ai import get_channel_recommendations, get_username_recommendations
