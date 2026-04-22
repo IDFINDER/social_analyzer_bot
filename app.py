@@ -600,8 +600,10 @@ def admin_dashboard():
     try:
         from utils.db import get_all_users_with_stats, get_global_stats, upgrade_user_to_premium, downgrade_user_to_free
         from utils.db import supabase, BOT_NAME, get_subscription_stats
+        from datetime import datetime
         
         bot_name = os.environ.get('BOT_NAME', 'social_analyzer')
+        default_gemini_limit = int(os.environ.get('GEMINI_MONTHLY_LIMIT', '20'))
         
         # جلب جميع المستخدمين
         usage_response = supabase.table('bot_usage').select('*').eq('bot_name', bot_name).execute()
@@ -621,27 +623,39 @@ def admin_dashboard():
                 if sub_response.data:
                     subscription = sub_response.data[0]
             
+            # 🆕 جلب gemini_limit من جدول user_gemini_limits
+            gemini_limit_response = supabase.table('user_gemini_limits').select('monthly_limit').eq('user_id', usage['user_id']).execute()
+            if gemini_limit_response.data:
+                gemini_limit = gemini_limit_response.data[0]['monthly_limit']
+            else:
+                gemini_limit = default_gemini_limit
+            
+            # 🆕 جلب gemini_used (عدد التوصيات المستخدمة هذا الشهر)
+            current_month = datetime.now().strftime('%Y-%m')
+            gemini_used_response = supabase.table('gemini_usage').select('monthly_recommendations').eq('user_id', usage['user_id']).eq('last_use_month', current_month).execute()
+            gemini_used = gemini_used_response.data[0]['monthly_recommendations'] if gemini_used_response.data else 0
+            
             users_list.append({
-    'user_id': usage['user_id'],
-    'first_name': user.get('first_name', ''),
-    'username': user.get('username', ''),
-    'status': user.get('status', 'free'),
-    'created_at': user.get('created_at', ''),
-    'bio_page_url': bio.get('page_url'),
-    'bio_views': bio.get('views_count', 0),
-    'total_usage': {
-        'youtube': usage.get('youtube_uses', 0),
-        'instagram': usage.get('instagram_uses', 0),
-        'tiktok': usage.get('tiktok_uses', 0),
-        'facebook': usage.get('facebook_uses', 0)
-    },
-    'daily_uses': usage.get('daily_uses', 0),
-    'subscription_plan': subscription.get('subscription_plans_social', {}).get('name_ar', '-') if subscription else '-',
-    'subscription_end_date': subscription.get('end_date', '-') if subscription else '-',
-    'subscription_start_date': subscription.get('start_date', '-') if subscription else '-',
-    'gemini_limit': usage.get('gemini_limit', 20),      # 🆕 أضف هذا
-    'gemini_used': usage.get('gemini_used', 0)          # 🆕 أضف هذا
-})
+                'user_id': usage['user_id'],
+                'first_name': user.get('first_name', ''),
+                'username': user.get('username', ''),
+                'status': user.get('status', 'free'),
+                'created_at': user.get('created_at', ''),
+                'bio_page_url': bio.get('page_url'),
+                'bio_views': bio.get('views_count', 0),
+                'total_usage': {
+                    'youtube': usage.get('youtube_uses', 0),
+                    'instagram': usage.get('instagram_uses', 0),
+                    'tiktok': usage.get('tiktok_uses', 0),
+                    'facebook': usage.get('facebook_uses', 0)
+                },
+                'daily_uses': usage.get('daily_uses', 0),
+                'subscription_plan': subscription.get('subscription_plans_social', {}).get('name_ar', '-') if subscription else '-',
+                'subscription_end_date': subscription.get('end_date', '-') if subscription else '-',
+                'subscription_start_date': subscription.get('start_date', '-') if subscription else '-',
+                'gemini_limit': gemini_limit,
+                'gemini_used': gemini_used
+            })
         
         # إحصائيات عامة
         total_users = len(users_list)
@@ -660,6 +674,9 @@ def admin_dashboard():
         # إحصائيات الاشتراكات
         subscription_stats = get_subscription_stats()
         
+        # إجمالي استخدامات Gemini
+        total_gemini_uses = sum([u.get('gemini_used', 0) for u in users_list])
+        
         stats = {
             'total_users': total_users,
             'premium_users': premium_users,
@@ -669,6 +686,7 @@ def admin_dashboard():
             'total_bio_views': sum([u.get('bio_views', 0) for u in users_list]),
             'platform_stats': platform_stats,
             'subscription_stats': subscription_stats,
+            'total_gemini_uses': total_gemini_uses,
             'last_update': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         
