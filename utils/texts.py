@@ -129,8 +129,8 @@ class Messages:
 👨‍💻 <b>المطور:</b> {developer_link}
 """
     
-    # رسالة الإحصائيات
-   STATS_PREMIUM = """
+    # رسالة الإحصائيات للمستخدم المميز
+    STATS_PREMIUM = """
 📊 <b>إحصائياتي الشخصية</b>
 
 👤 <b>المستخدم:</b> {user_name}
