@@ -1233,8 +1233,16 @@ def set_gemini_limit():
         user_id = int(request.form.get('user_id'))
         gemini_limit = int(request.form.get('gemini_limit'))
         
-        from utils.db import set_user_gemini_limit
-        if set_user_gemini_limit(user_id, gemini_limit):
+        from utils.db import supabase_admin
+        from datetime import datetime
+        
+        result = supabase_admin.table('user_gemini_limits').upsert({
+            'user_id': user_id,
+            'monthly_limit': gemini_limit,
+            'updated_at': datetime.now().isoformat()
+        }, on_conflict='user_id').execute()
+        
+        if result.data:
             logger.info(f"✅ Gemini limit updated for user {user_id} to {gemini_limit}")
         else:
             logger.error(f"Failed to update Gemini limit for user {user_id}")
