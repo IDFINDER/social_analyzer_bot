@@ -622,24 +622,26 @@ def admin_dashboard():
                     subscription = sub_response.data[0]
             
             users_list.append({
-                'user_id': usage['user_id'],
-                'first_name': user.get('first_name', ''),
-                'username': user.get('username', ''),
-                'status': user.get('status', 'free'),
-                'created_at': user.get('created_at', ''),
-                'bio_page_url': bio.get('page_url'),
-                'bio_views': bio.get('views_count', 0),
-                'total_usage': {
-                    'youtube': usage.get('youtube_uses', 0),
-                    'instagram': usage.get('instagram_uses', 0),
-                    'tiktok': usage.get('tiktok_uses', 0),
-                    'facebook': usage.get('facebook_uses', 0)
-                },
-                'daily_uses': usage.get('daily_uses', 0),
-                'subscription_plan': subscription.get('subscription_plans_social', {}).get('name_ar', '-') if subscription else '-',
-                'subscription_end_date': subscription.get('end_date', '-') if subscription else '-',
-                'subscription_start_date': subscription.get('start_date', '-') if subscription else '-'
-            })
+    'user_id': usage['user_id'],
+    'first_name': user.get('first_name', ''),
+    'username': user.get('username', ''),
+    'status': user.get('status', 'free'),
+    'created_at': user.get('created_at', ''),
+    'bio_page_url': bio.get('page_url'),
+    'bio_views': bio.get('views_count', 0),
+    'total_usage': {
+        'youtube': usage.get('youtube_uses', 0),
+        'instagram': usage.get('instagram_uses', 0),
+        'tiktok': usage.get('tiktok_uses', 0),
+        'facebook': usage.get('facebook_uses', 0)
+    },
+    'daily_uses': usage.get('daily_uses', 0),
+    'subscription_plan': subscription.get('subscription_plans_social', {}).get('name_ar', '-') if subscription else '-',
+    'subscription_end_date': subscription.get('end_date', '-') if subscription else '-',
+    'subscription_start_date': subscription.get('start_date', '-') if subscription else '-',
+    'gemini_limit': usage.get('gemini_limit', 20),      # 🆕 أضف هذا
+    'gemini_used': usage.get('gemini_used', 0)          # 🆕 أضف هذا
+})
         
         # إحصائيات عامة
         total_users = len(users_list)
