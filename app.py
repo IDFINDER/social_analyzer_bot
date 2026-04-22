@@ -1235,6 +1235,9 @@ def gemini_limits_page():
         gemini_limits = get_all_gemini_limits()
         users = get_all_users_with_stats()
         
+        # الحصول على الحد الافتراضي من متغير البيئة
+        default_limit = int(os.environ.get('GEMINI_MONTHLY_LIMIT', '20'))
+        
         # دمج البيانات
         user_limits = {}
         for limit in gemini_limits:
@@ -1247,11 +1250,11 @@ def gemini_limits_page():
                 'first_name': user['first_name'],
                 'username': user['username'],
                 'status': user['status'],
-                'current_limit': user_limits.get(user['user_id'], 20),
+                'current_limit': user_limits.get(user['user_id'], default_limit),
                 'subscription_plan': user.get('subscription_plan', '-')
             })
         
-        return render_template('gemini_limits.html', users=user_list, default_limit=20)
+        return render_template('gemini_limits.html', users=user_list, default_limit=default_limit)
     except Exception as e:
         logger.error(f"Error in gemini_limits_page: {e}")
         return f"حدث خطأ: {e}", 500
