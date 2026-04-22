@@ -1200,6 +1200,61 @@ def tiktok_flow_debug():
     </body>
     </html>
     '''
+
+# =================================================================================
+# القسم: إدارة حدود توصيات Gemini
+# =================================================================================
+
+@app.route('/admin/set-gemini-limit', methods=['POST'])
+@login_required
+def set_gemini_limit():
+    """تعديل حصة التوصيات الشهرية لمستخدم معين"""
+    try:
+        user_id = int(request.form.get('user_id'))
+        gemini_limit = int(request.form.get('gemini_limit'))
+        
+        from utils.db import set_user_gemini_limit
+        if set_user_gemini_limit(user_id, gemini_limit):
+            logger.info(f"✅ Gemini limit updated for user {user_id} to {gemini_limit}")
+        else:
+            logger.error(f"Failed to update Gemini limit for user {user_id}")
+            
+        return redirect(url_for('admin_dashboard'))
+    except Exception as e:
+        logger.error(f"Error setting gemini limit: {e}")
+        return redirect(url_for('admin_dashboard'))
+
+
+@app.route('/admin/gemini-limits')
+@login_required
+def gemini_limits_page():
+    """صفحة لعرض وتعديل حدود التوصيات لجميع المستخدمين"""
+    try:
+        from utils.db import get_all_gemini_limits, get_all_users_with_stats
+        
+        gemini_limits = get_all_gemini_limits()
+        users = get_all_users_with_stats()
+        
+        # دمج البيانات
+        user_limits = {}
+        for limit in gemini_limits:
+            user_limits[limit['user_id']] = limit['monthly_limit']
+        
+        user_list = []
+        for user in users:
+            user_list.append({
+                'user_id': user['user_id'],
+                'first_name': user['first_name'],
+                'username': user['username'],
+                'status': user['status'],
+                'current_limit': user_limits.get(user['user_id'], 20),
+                'subscription_plan': user.get('subscription_plan', '-')
+            })
+        
+        return render_template('gemini_limits.html', users=user_list, default_limit=20)
+    except Exception as e:
+        logger.error(f"Error in gemini_limits_page: {e}")
+        return f"حدث خطأ: {e}", 500
 # =================================================================================
 # القسم 15: تشغيل التطبيق
 # =================================================================================
