@@ -384,12 +384,12 @@ async def my_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if is_premium:
         gemini_usage = can_use_gemini(user_id)
         gemini_remaining = gemini_usage[1] if isinstance(gemini_usage, tuple) and len(gemini_usage) > 1 else 0
-        gemini_limit = get_user_gemini_limit(user_id)  # 🔴 أضف هذا السطر
+        gemini_limit = get_user_gemini_limit(user_id)
         text = Messages.STATS_PREMIUM.format(
             user_name=user_info.get('first_name', '-'),
             total=total,
             gemini_remaining=gemini_remaining,
-            gemini_limit=gemini_limit  # 🔴 أضف هذا السطر
+            gemini_limit=gemini_limit  # ✅ الآن صحيح
         )
     else:
         text = Messages.STATS_FREE.format(
