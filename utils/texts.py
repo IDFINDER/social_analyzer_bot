@@ -130,13 +130,13 @@ class Messages:
 """
     
     # رسالة الإحصائيات
-    STATS_PREMIUM = """
+   STATS_PREMIUM = """
 📊 <b>إحصائياتي الشخصية</b>
 
 👤 <b>المستخدم:</b> {user_name}
 💎 <b>نوع الخطة:</b> 👑 مميز
 📈 <b>إجمالي التحليلات:</b> {total}
-🤖 <b>توصيات AI المتبقية اليوم:</b> {gemini_remaining}/5
+🤖 <b>توصيات AI المتبقية هذا الشهر:</b> {gemini_remaining}/{gemini_limit}
 📄 <b>صفحة البايو:</b> ✅ مفعلة
 🔍 <b>فحص اليوزرنيم:</b> ✅ متاح
 """
