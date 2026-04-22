@@ -316,9 +316,8 @@ def get_gemini_usage(user_id):
         logger.error(f"Error getting gemini usage: {e}")
         return None
 
-
 def can_use_gemini(user_id):
-    """التحقق مما إذا كان المستخدم يمكنه استخدام توصيات Gemini"""
+    """التحقق مما إذا كان المستخدم يمكنه استخدام توصيات Gemini (شهرياً)"""
     try:
         user = get_user_info(user_id)
         
@@ -326,29 +325,34 @@ def can_use_gemini(user_id):
             return False, 0, "💎 هذه الميزة متاحة فقط للمستخدمين المميزين!"
         
         usage = get_gemini_usage(user_id)
-        today = date.today().isoformat()
+        today = date.today()
+        current_month = today.strftime('%Y-%m')  # تنسيق: 2026-04
         
-        if usage and usage.get('last_use_date') != today:
+        if usage and usage.get('last_use_month') != current_month:
+            # إعادة تعيين الاستخدامات الشهرية
             supabase.table('gemini_usage').update({
-                'daily_recommendations': 0,
-                'last_use_date': today
+                'monthly_recommendations': 0,
+                'last_use_month': current_month
             }).eq('user_id', user_id).execute()
-            daily_uses = 0
+            monthly_uses = 0
         elif usage:
-            daily_uses = usage.get('daily_recommendations', 0)
+            monthly_uses = usage.get('monthly_recommendations', 0)
         else:
             supabase.table('gemini_usage').insert({
                 'user_id': user_id,
-                'daily_recommendations': 0,
+                'monthly_recommendations': 0,
                 'total_recommendations': 0,
-                'last_use_date': today
+                'last_use_month': current_month
             }).execute()
-            daily_uses = 0
+            monthly_uses = 0
         
-        if daily_uses >= GEMINI_DAILY_LIMIT:
-            return False, GEMINI_DAILY_LIMIT, f"⚠️ لقد وصلت للحد اليومي لاستخدام التوصيات!\n\n📊 الحد المسموح: {GEMINI_DAILY_LIMIT} توصية يومياً"
+        # الحصول على الحد الشهري من قاعدة البيانات (قابل للتعديل لكل مستخدم)
+        user_monthly_limit = get_user_gemini_limit(user_id)
         
-        remaining = GEMINI_DAILY_LIMIT - daily_uses
+        if monthly_uses >= user_monthly_limit:
+            return False, user_monthly_limit, f"⚠️ لقد وصلت للحد الشهري لاستخدام التوصيات!\n\n📊 الحد المسموح: {user_monthly_limit} توصية شهرياً\n📅 سيتم تجديده في الشهر القادم"
+        
+        remaining = user_monthly_limit - monthly_uses
         return True, remaining, None
         
     except Exception as e:
@@ -357,31 +361,32 @@ def can_use_gemini(user_id):
 
 
 def increment_gemini_usage(user_id):
-    """زيادة عدد استخدامات Gemini للمستخدم"""
+    """زيادة عدد استخدامات Gemini للمستخدم (شهرياً)"""
     try:
         usage = get_gemini_usage(user_id)
-        today = date.today().isoformat()
+        today = date.today()
+        current_month = today.strftime('%Y-%m')
         
         if usage:
-            if usage.get('last_use_date') != today:
+            if usage.get('last_use_month') != current_month:
                 supabase.table('gemini_usage').update({
-                    'daily_recommendations': 1,
+                    'monthly_recommendations': 1,
                     'total_recommendations': usage.get('total_recommendations', 0) + 1,
-                    'last_use_date': today,
+                    'last_use_month': current_month,
                     'updated_at': datetime.now().isoformat()
                 }).eq('user_id', user_id).execute()
             else:
                 supabase.table('gemini_usage').update({
-                    'daily_recommendations': usage.get('daily_recommendations', 0) + 1,
+                    'monthly_recommendations': usage.get('monthly_recommendations', 0) + 1,
                     'total_recommendations': usage.get('total_recommendations', 0) + 1,
                     'updated_at': datetime.now().isoformat()
                 }).eq('user_id', user_id).execute()
         else:
             supabase.table('gemini_usage').insert({
                 'user_id': user_id,
-                'daily_recommendations': 1,
+                'monthly_recommendations': 1,
                 'total_recommendations': 1,
-                'last_use_date': today
+                'last_use_month': current_month
             }).execute()
         
         return True
@@ -1214,3 +1219,49 @@ def downgrade_user_to_free(user_id):
     except Exception as e:
         logger.error(f"Error downgrading user {user_id}: {e}")
         return False
+# =================================================================================
+# القسم: دوال الحدود الشهرية للتوصيات (Gemini Monthly Limits)
+# =================================================================================
+
+def get_user_gemini_limit(user_id):
+    """الحصول على الحد الشهري للتوصيات لمستخدم معين"""
+    try:
+        # جلب الحد المخصص للمستخدم
+        response = supabase.table('user_gemini_limits').select('monthly_limit').eq('user_id', user_id).execute()
+        
+        if response.data:
+            return response.data[0]['monthly_limit']
+        
+        # إذا لم يوجد حد مخصص، استخدم الحد العام من متغير البيئة
+        default_limit = int(os.environ.get('GEMINI_MONTHLY_LIMIT', '20'))
+        return default_limit
+        
+    except Exception as e:
+        logger.error(f"Error getting user gemini limit: {e}")
+        return int(os.environ.get('GEMINI_MONTHLY_LIMIT', '20'))
+
+
+def set_user_gemini_limit(user_id, monthly_limit):
+    """تعيين حد شهري مخصص للتوصيات لمستخدم معين"""
+    try:
+        result = supabase.table('user_gemini_limits').upsert({
+            'user_id': user_id,
+            'monthly_limit': monthly_limit,
+            'updated_at': datetime.now().isoformat()
+        }, on_conflict='user_id').execute()
+        
+        logger.info(f"✅ User {user_id} gemini limit set to {monthly_limit}")
+        return True
+    except Exception as e:
+        logger.error(f"Error setting user gemini limit: {e}")
+        return False
+
+
+def get_all_gemini_limits():
+    """جلب جميع الحدود المخصصة للمستخدمين (للوحة التحكم)"""
+    try:
+        response = supabase.table('user_gemini_limits').select('*').order('user_id').execute()
+        return response.data if response.data else []
+    except Exception as e:
+        logger.error(f"Error getting all gemini limits: {e}")
+        return []
