@@ -231,10 +231,41 @@
             margin: 2px;
         }
         .action-btn:hover { background: #138496; }
-        .upgrade-btn { background: #28a745; color: white; border: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; }
+        .upgrade-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
         .upgrade-btn:hover { background: #218838; }
-        .downgrade-btn { background: #dc3545; color: white; border: none; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; }
+        .downgrade-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
         .downgrade-btn:hover { background: #c82333; }
+        
+        /* قائمة منسدلة للترقية */
+        .upgrade-form {
+            display: inline-flex;
+            gap: 5px;
+            align-items: center;
+        }
+        .plan-select {
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            background: white;
+            font-size: 0.7rem;
+            font-family: inherit;
+        }
         
         .footer {
             text-align: center;
@@ -284,6 +315,7 @@
             th, td { font-size: 0.65rem; padding: 5px; }
             .search-box { flex-direction: column; }
             .search-btn, .clear-btn { width: 100%; }
+            .upgrade-form { flex-direction: column; gap: 3px; }
         }
     </style>
 </head>
@@ -390,9 +422,22 @@
                             <td><span class="usage-badge">📊 {{ user.total_usage.youtube|default(0) + user.total_usage.instagram|default(0) + user.total_usage.tiktok|default(0) + user.total_usage.facebook|default(0) }}</span></td>
                             <td>
                                 {% if user.status == 'free' %}
-                                    <a href="/admin/dashboard?upgrade={{ user.user_id }}&plan=half_yearly" class="upgrade-btn" onclick="return confirm('اختر الخطة:\n📅 نصف سنوي - 30$\n🎉 سنوي - 48$\n💎 مدى الحياة - 100$')">⭐ ترقية</a>
+                                <form method="POST" action="/upgrade-user" class="upgrade-form" style="display: inline-flex;">
+                                    <input type="hidden" name="user_id" value="{{ user.user_id }}">
+                                    <select name="plan_type" class="plan-select" required>
+                                        <option value="">اختر الخطة</option>
+                                        <option value="monthly">🌙 شهري</option>
+                                        <option value="half_yearly">📅 نصف سنوي</option>
+                                        <option value="yearly">🎉 سنوي</option>
+                                        <option value="lifetime">💎 مدى الحياة</option>
+                                    </select>
+                                    <button type="submit" class="upgrade-btn" onclick="return confirm('هل أنت متأكد من ترقية هذا المستخدم؟')">⭐ ترقية</button>
+                                </form>
                                 {% else %}
-                                    <a href="/admin/dashboard?downgrade={{ user.user_id }}" class="downgrade-btn" onclick="return confirm('هل أنت متأكد من خفض هذا المستخدم؟')">📉 خفض</a>
+                                <form method="POST" action="/downgrade-user" style="display: inline;">
+                                    <input type="hidden" name="user_id" value="{{ user.user_id }}">
+                                    <button type="submit" class="downgrade-btn" onclick="return confirm('هل أنت متأكد من خفض هذا المستخدم؟')">📉 خفض</button>
+                                </form>
                                 {% endif %}
                                 <button class="action-btn" onclick="openNotifyModal('user', '{{ user.user_id }}', '{{ user.first_name }}')">📨 رسالة</button>
                             </td>
