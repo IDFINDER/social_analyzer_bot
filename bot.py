@@ -1066,10 +1066,10 @@ async def add_account_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     keyboard = [[InlineKeyboardButton(Buttons.CONFIRM_BUTTONS["main_menu"], callback_data="main_menu")]]
     
     await query.edit_message_text(
-        AccountMessages.ADD_ACCOUNT.format(platform=platform.capitalize(), platform=platform),
-        parse_mode='HTML',
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    AccountMessages.ADD_ACCOUNT.format(platform=platform.capitalize()),
+    parse_mode='HTML',
+    reply_markup=InlineKeyboardMarkup(keyboard)
+)
 
 async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """معالجة إضافة حساب جديد"""
