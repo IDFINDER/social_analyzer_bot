@@ -99,7 +99,7 @@ async def get_channel_details(channel_identifier):
         # حساب المتوسطات
         total_views = int(statistics.get('viewCount', 0))
         total_videos = int(statistics.get('videoCount', 1))
-        avg_views = total_views / total_videos if total_videos > 0 else 0
+        avg_views_raw = total_views / total_videos if total_videos > 0 else 0
         
         channel_details = {
             'title': snippet['title'],
@@ -112,7 +112,8 @@ async def get_channel_details(channel_identifier):
             'total_videos': format_number(total_videos),
             'hidden_subscribers': statistics.get('hiddenSubscriberCount', False),
             'privacy_status': status.get('privacyStatus', 'غير معروف'),
-            'avg_views': format_number(avg_views),
+            'avg_views_raw': int(avg_views_raw),           # القيمة الخام (رقم)
+            'avg_views': format_number(avg_views_raw),     # القيمة المنسقة (مثل 6.3K)
             'latest_videos': latest_videos,
             'channel_id': channel_id
         }
@@ -164,7 +165,7 @@ def format_channel_report(channel_details, user_id=None, is_premium=False, remai
     # بناء الملف النصي
     file_content = build_text_file(channel_details, is_premium)
     
-    # اسم الملف (نفس الاسم القديم مع الحفاظ على التنسيق)
+    # اسم الملف
     filename = f"تحليل_يوتيوب_{datetime.now().strftime('%Y_%m_%d')}.txt"
     
     return message, (file_content, filename)
@@ -181,7 +182,12 @@ def build_text_file(channel_details, is_premium):
     if custom_url.startswith('@'):
         custom_url = custom_url[1:]
     
-    # خط فاصل أقصر (40 علامة بدلاً من 60)
+    # الحصول على المتوسط المنسق
+    avg_display = channel_details.get('avg_views', 'N/A')
+    if avg_display == 'N/A':
+        avg_display = format_number(channel_details.get('avg_views_raw', 0))
+    
+    # خط فاصل (40 علامة)
     separator = "━" * 40
     
     content = separator + "\n"
@@ -201,7 +207,7 @@ def build_text_file(channel_details, is_premium):
     content += f"👥 المشتركين: {subs_text}\n"
     content += f"📹 عدد الفيديوهات: {channel_details['total_videos']}\n"
     content += f"👁️ المشاهدات: {channel_details['total_views']}\n"
-    content += f"📊 متوسط المشاهدات/فيديو: {channel_details['avg_views']}\n\n"
+    content += f"📊 متوسط المشاهدات/فيديو: {avg_display}\n\n"
     
     content += "🔥 أحدث 5 فيديوهات:\n"
     for i, v in enumerate(channel_details['latest_videos'][:5], 1):
