@@ -27,8 +27,8 @@ from utils.db import (
     can_use_gemini, increment_gemini_usage,
     get_bio_page, create_or_update_bio_page, disable_bio_page, get_bio_page_by_page_url, increment_bio_views,
     update_bio_theme, update_bio_text, update_bio_avatar, add_custom_link, remove_custom_link,
-    get_user_gemini_limit,  # دالة جلب الحد الشهري للتوصيات
-    set_user_gemini_limit   # دالة تعيين الحد الشهري للتوصيات (اختياري)
+    get_user_gemini_limit, set_user_gemini_limit,
+    get_user_active_subscription  # 🔴 أضف هذا السطر
 )
 from utils.youtube_analyzer import get_channel_details, format_channel_report
 from utils.gemini_ai import get_channel_recommendations, get_username_recommendations
@@ -385,31 +385,38 @@ async def my_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if is_premium:
         # جلب تفاصيل الاشتراك النشط
-        subscription = get_user_active_subscription(user_id)
-        
-        if subscription:
-            # جلب اسم الخطة من جدول الخطط
-            plan_response = supabase.table('subscription_plans_social').select('name_ar, name').eq('id', subscription['plan_id']).execute()
-            plan_name = plan_response.data[0]['name_ar'] if plan_response.data else 'مميز'
+        try:
+            from utils.db import supabase
+            subscription = None
             
-            # تنسيق تاريخ الانتهاء
-            end_date = subscription.get('end_date', '')
-            if end_date:
-                try:
-                    end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
-                    end_date_str = end_date_obj.strftime('%Y-%m-%d')
-                except:
-                    end_date_str = end_date
+            # جلب الاشتراك النشط من جدول user_subscriptions_social
+            sub_response = supabase.table('user_subscriptions_social').select('*, subscription_plans_social(name, name_ar)').eq('user_id', user_id).eq('status', 'active').execute()
+            if sub_response.data:
+                subscription = sub_response.data[0]
+            
+            if subscription:
+                plan_name = subscription.get('subscription_plans_social', {}).get('name_ar', 'مميز')
+                end_date = subscription.get('end_date', '')
+                if end_date:
+                    try:
+                        end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
+                        end_date_str = end_date_obj.strftime('%Y-%m-%d')
+                    except:
+                        end_date_str = end_date
+                else:
+                    end_date_str = 'غير محدد'
+                
+                plan_text = f"{plan_name} (تنتهي في: {end_date_str})"
             else:
-                end_date_str = 'غير محدد'
-            
-            plan_text = f"{plan_name} (تنتهي في: {end_date_str})"
-        else:
-            # إذا لم يكن هناك اشتراك مسجل ولكن المستخدم مميز
+                # إذا لم يكن هناك اشتراك مسجل ولكن المستخدم مميز
+                premium_until = user_info.get('premium_until', '')
+                if premium_until:
+                    plan_text = f"مميز (تنتهي في: {premium_until})"
+                else:
+                    plan_text = "مميز"
+        except Exception as e:
+            logger.error(f"Error fetching subscription details: {e}")
             plan_text = "مميز"
-            end_date_str = user_info.get('premium_until', 'غير محدد')
-            if end_date_str and end_date_str != 'غير محدد':
-                plan_text = f"مميز (تنتهي في: {end_date_str})"
         
         gemini_usage = can_use_gemini(user_id)
         gemini_remaining = gemini_usage[1] if isinstance(gemini_usage, tuple) and len(gemini_usage) > 1 else 0
@@ -436,7 +443,6 @@ async def my_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 💎 <b>للترقية إلى خطة مميزة:</b> /premium
 """
     await update.message.reply_text(text, parse_mode='HTML', reply_markup=get_main_keyboard(is_premium))
-
 # =================================================================================
 # القسم 8: أوامر البوت - الاشتراك المميز والمساعدة
 # =================================================================================
