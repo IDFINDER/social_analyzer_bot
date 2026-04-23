@@ -2038,7 +2038,7 @@ async def username_check_command(update: Update, context: ContextTypes.DEFAULT_T
 
 
 async def handle_username_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة اليوزرنيم المرسل للفحص وفحصه على جميع المنصات"""
+    """معالجة اليوزرنيم المرسل للفحص وعرض النتيجة مع أزرار"""
     if not context.user_data.get('awaiting_username'):
         return
     
@@ -2051,20 +2051,26 @@ async def handle_username_check(update: Update, context: ContextTypes.DEFAULT_TY
     
     # رسالة انتظار
     status_msg = await update.message.reply_text(
-        f"⏳ جاري فحص اليوزرنيم @{escape_html(username)} على جميع المنصات...\n\n"
-        f"🎬 يوتيوب: 🔍 جاري\n"
-        f"📸 انستقرام: 🔍 جاري\n"
-        f"🎵 تيك توك: 🔍 جاري\n"
-        f"📘 فيسبوك: 🔍 جاري",
+        f"⏳ جاري فحص اليوزرنيم @{escape_html(username)}...",
         parse_mode='HTML'
     )
     
     try:
-        # فحص اليوزرنيم باستخدام الدالة الجديدة
+        # فحص اليوزرنيم
         results = await check_username_availability(username)
         result_text = format_check_result(results, username)
         
-        await status_msg.edit_text(result_text, parse_mode='HTML')
+        # إضافة أزرار التحكم
+        keyboard = [
+            [InlineKeyboardButton("🔄 فحص مرة أخرى", callback_data="username_check_again")],
+            [InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="main_menu")]
+        ]
+        
+        await status_msg.edit_text(
+            result_text,
+            parse_mode='HTML',
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
         
     except Exception as e:
         logger.error(f"Error checking username: {e}")
