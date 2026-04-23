@@ -155,52 +155,59 @@ def get_premium_keyboard():
 # القسم 6: أوامر البوت - التسجيل (Registration Commands)
 # =================================================================================
 
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """بدء البوت وتسجيل المستخدم"""
-    user = update.effective_user
+else:
+    # مستخدم جديد - بدء التسجيل
     
-    user_data = get_or_create_user(
-        user.id,
-        user.first_name,
-        user.username or "",
-        user.language_code or ""
-    )
+    # جلب الإعدادات الديناميكية من قاعدة البيانات
+    from utils.db import get_all_prices
     
-    if not user_data:
-        await update.message.reply_text(Errors.GENERIC_ERROR)
-        return ConversationHandler.END
+    prices = get_all_prices()
     
-    accounts = get_user_social_accounts(user.id)
+    free_limit = prices.get('free_limit', FREE_LIMIT)
+    monthly_price = prices.get('price_monthly', 10)
+    half_yearly_price = prices.get('price_half_yearly', 30)
+    yearly_price = prices.get('price_yearly', 48)
+    lifetime_price = prices.get('price_lifetime', 100)
+    gemini_limit = prices.get('gemini_monthly_limit', 20)
     
-    if accounts:
-        is_premium = user_data['status'] == 'premium'
-        remaining = get_remaining_analyses(user.id)
-        total = get_total_analyses(user.id)
-        
-        status_text = "👑 مميز" if is_premium else "🎁 مجاني"
-        limit_text = "غير محدود" if is_premium else f"{remaining}/{FREE_LIMIT}"
-        
-        accounts_text = ""
-        for platform, acc in accounts.items():
-            accounts_text += f"• {get_platform_icon(platform)} {platform.capitalize()}: @{acc['account_identifier']}\n"
-        
-        welcome_text = Messages.WELCOME_BACK.format(
-            user_name=user.first_name,
-            status_text=status_text,
-            limit_text=limit_text,
-            total=total,
-            accounts=accounts_text
-        )
-        await update.message.reply_text(welcome_text, parse_mode='HTML', reply_markup=get_main_keyboard(is_premium))
-        return ConversationHandler.END
-    else:
-        welcome_text = Messages.WELCOME_NEW.format(
-            user_name=user.first_name,
-            free_limit=FREE_LIMIT,
-            ask_name=Messages.ASK_NAME
-        )
-        await update.message.reply_text(welcome_text, parse_mode='HTML')
-        return ASK_NAME
+    welcome_text = f"""
+🌐 <b>مرحباً بك {user.first_name} في بوت تحليل الحسابات الاجتماعية!</b>
+
+📊 <b>ماذا يمكنني أن أفعل؟</b>
+• 📺 تحليل قنوات يوتيوب
+• 📸 تحليل حسابات انستقرام (قريباً)
+• 🎵 تحليل حسابات تيك توك (قريباً)
+• 📘 تحليل حسابات فيسبوك (قريباً)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💰 <b>خطط الاشتراك:</b>
+
+🎁 <b>الخطة المجانية:</b>
+• {free_limit} تحليل يومياً
+• صفحة بايو غير متاحة
+• توصيات الذكاء الاصطناعي غير متاحة
+
+👑 <b>الخطة المميزة:</b>
+• تحليل غير محدود لجميع الحسابات
+• {gemini_limit} توصية شهرياً من الذكاء الاصطناعي
+• صفحة بايو شخصية احترافية
+• فحص توافر اليوزرنيم
+• دعم أولوية في المعالجة
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💎 <b>أسعار الاشتراك المميز:</b>
+• 🌙 شهري: {monthly_price}$ / شهر
+• 📅 نصف سنوي: {half_yearly_price}$ (يوفر 50%)
+• 🎉 سنوي: {yearly_price}$ (يوفر 60%)
+• 💎 مدى الحياة: {lifetime_price}$ (مرة واحدة)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📝 <b>لنبدأ بتسجيل بياناتك...</b>
+
+{ASK_NAME}
+"""
+    await update.message.reply_text(welcome_text, parse_mode='HTML')
+    return ASK_NAME
 
 async def cancel_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """إلغاء التسجيل"""
