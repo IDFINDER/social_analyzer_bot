@@ -618,7 +618,7 @@ def admin_dashboard():
             subscription = None
             if user.get('status') == 'premium':
                 try:
-                    sub_response = supabase.table('user_subscriptions_social').select('*, user_subscriptions_poets(name, name_ar)').eq('user_id', user_id).eq('status', 'active').execute()
+                    sub_response = supabase.table('user_subscriptions_social').select('*, subscription_plans_social(name, name_ar)').eq('user_id', user_id).eq('status', 'active').execute()
                     if sub_response.data:
                         subscription = sub_response.data[0]
                 except Exception as e:
@@ -649,7 +649,7 @@ def admin_dashboard():
                     'facebook': user.get('facebook_uses', 0)
                 },
                 'daily_uses': user.get('daily_uses', 0),
-                'subscription_plan': subscription.get('user_subscriptions_poets', {}).get('name_ar', '-') if subscription else '-',
+                'subscription_plan': subscription.get('subscription_plans_social', {}).get('name_ar', '-') if subscription else '-',
                 'subscription_end_date': subscription.get('end_date', '-') if subscription else '-',
                 'subscription_start_date': subscription.get('start_date', '-') if subscription else '-',
                 'gemini_limit': gemini_limit,
@@ -677,7 +677,7 @@ def admin_dashboard():
             subs_response = supabase.table('user_subscriptions_social').select('plan_id').eq('status', 'active').execute()
             if subs_response.data:
                 for sub in subs_response.data:
-                    plan_response = supabase.table('user_subscriptions_poets').select('name').eq('id', sub['plan_id']).execute()
+                    plan_response = supabase.table('subscription_plans_social').select('name').eq('id', sub['plan_id']).execute()
                     if plan_response.data:
                         plan_name = plan_response.data[0]['name']
                         if plan_name == 'monthly':
@@ -930,23 +930,90 @@ def security_info():
 @app.route('/admin-prices', methods=['GET', 'POST'])
 @login_required
 def admin_prices():
-    """صفحة تعديل الأسعار"""
-    from utils.db import get_all_prices, get_bot_setting, update_bot_setting
+    """صفحة تعديل الأسعار - تعدل جدول subscription_plans_social مباشرة"""
+    from utils.db import supabase
+    from datetime import datetime
     
     if request.method == 'POST':
-        update_bot_setting('price_half_yearly', request.form.get('price_half_yearly', '30'))
-        update_bot_setting('price_yearly', request.form.get('price_yearly', '48'))
-        update_bot_setting('price_lifetime', request.form.get('price_lifetime', '100'))
-        update_bot_setting('price_monthly', request.form.get('price_monthly', '10'))
-        update_bot_setting('free_limit', request.form.get('free_limit', '2'))
-        update_bot_setting('promo_active', request.form.get('promo_active', 'false'))
-        update_bot_setting('promo_half_yearly', request.form.get('promo_half_yearly', '25'))
-        update_bot_setting('promo_yearly', request.form.get('promo_yearly', '40'))
-        update_bot_setting('promo_end_date', request.form.get('promo_end_date', ''))
-        return redirect(url_for('admin_prices'))
+        try:
+            # تحديث أسعار الخطط في جدول subscription_plans_social
+            price_monthly = int(request.form.get('price_monthly', 10))
+            price_half_yearly = int(request.form.get('price_half_yearly', 30))
+            price_yearly = int(request.form.get('price_yearly', 48))
+            price_lifetime = int(request.form.get('price_lifetime', 100))
+            
+            # تحديث كل خطة على حدة
+            supabase.table('subscription_plans_social').update({
+                'price': price_monthly,
+                'updated_at': datetime.now().isoformat()
+            }).eq('name', 'monthly').execute()
+            
+            supabase.table('subscription_plans_social').update({
+                'price': price_half_yearly,
+                'updated_at': datetime.now().isoformat()
+            }).eq('name', 'half_yearly').execute()
+            
+            supabase.table('subscription_plans_social').update({
+                'price': price_yearly,
+                'updated_at': datetime.now().isoformat()
+            }).eq('name', 'yearly').execute()
+            
+            supabase.table('subscription_plans_social').update({
+                'price': price_lifetime,
+                'updated_at': datetime.now().isoformat()
+            }).eq('name', 'lifetime').execute()
+            
+            # تحديث free_limit في جدول bot_settings_social (إذا كان موجوداً)
+            free_limit = int(request.form.get('free_limit', 2))
+            try:
+                supabase.table('bot_settings_social').upsert({
+                    'setting_key': 'free_limit',
+                    'setting_value': str(free_limit),
+                    'updated_at': datetime.now().isoformat()
+                }, on_conflict='setting_key').execute()
+            except Exception as e:
+                logger.warning(f"Could not update free_limit: {e}")
+            
+            logger.info("✅ Prices updated successfully in subscription_plans_social")
+            return redirect(url_for('admin_prices'))
+            
+        except Exception as e:
+            logger.error(f"Error updating prices: {e}")
+            return f"حدث خطأ في حفظ الأسعار: {e}", 500
     
-    prices = get_all_prices()
-    return render_template('admin_prices.html', prices=prices)
+    # عرض الأسعار الحالية
+    try:
+        plans_response = supabase.table('subscription_plans_social').select('*').order('sort_order').execute()
+        prices = {}
+        for plan in (plans_response.data or []):
+            name = plan.get('name')
+            if name == 'monthly':
+                prices['price_monthly'] = plan.get('price', 10)
+            elif name == 'half_yearly':
+                prices['price_half_yearly'] = plan.get('price', 30)
+            elif name == 'yearly':
+                prices['price_yearly'] = plan.get('price', 48)
+            elif name == 'lifetime':
+                prices['price_lifetime'] = plan.get('price', 100)
+        
+        # جلب free_limit من bot_settings_social (إذا كان موجوداً)
+        try:
+            limit_response = supabase.table('bot_settings_social').select('setting_value').eq('setting_key', 'free_limit').execute()
+            prices['free_limit'] = int(limit_response.data[0]['setting_value']) if limit_response.data else 2
+        except:
+            prices['free_limit'] = 2
+        
+        # إعدادات العروض الترويجية (إذا كانت موجودة)
+        prices['promo_active'] = False
+        prices['promo_half_yearly'] = 25
+        prices['promo_yearly'] = 40
+        prices['promo_end_date'] = ''
+        
+        return render_template('admin_prices.html', prices=prices)
+        
+    except Exception as e:
+        logger.error(f"Error loading prices: {e}")
+        return f"حدث خطأ: {e}", 500
 
 
 @app.route('/notifications-history')
