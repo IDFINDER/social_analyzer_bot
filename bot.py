@@ -1681,24 +1681,25 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer("🎵 هذه الميزة قيد التطوير حالياً", show_alert=True)
     elif data == "analyze_facebook":
         await query.answer("📘 هذه الميزة قيد التطوير حالياً", show_alert=True)
-
+    
+    # ========== 🆕 معالج زر فحص اليوزرنيم مرة أخرى ==========
     elif data == "username_check_again":
-    # إعادة فحص اليوزرنيم
-    user_id = query.from_user.id
-    user_info = get_user_info(user_id)
-    is_premium = user_info['status'] == 'premium' if user_info else False
+        # إعادة فحص اليوزرنيم
+        user_info = get_user_info(user_id)
+        is_premium = user_info['status'] == 'premium' if user_info else False
+        
+        if not is_premium:
+            await query.answer("💎 هذه الميزة متاحة فقط للمستخدمين المميزين!", show_alert=True)
+            return
+        
+        await query.message.reply_text(
+            "🔍 <b>فحص توافر اليوزرنيم</b>\n\n"
+            "أرسل اليوزرنيم الذي تريد التحقق منه (بدون @):",
+            parse_mode='HTML'
+        )
+        context.user_data['awaiting_username'] = True
+        await query.delete_message()
     
-    if not is_premium:
-        await query.answer("💎 هذه الميزة متاحة فقط للمستخدمين المميزين!", show_alert=True)
-        return
-    
-    await query.message.reply_text(
-        "🔍 <b>فحص توافر اليوزرنيم</b>\n\n"
-        "أرسل اليوزرنيم الذي تريد التحقق منه (بدون @):",
-        parse_mode='HTML'
-    )
-    context.user_data['awaiting_username'] = True
-    await query.delete_message()
     # ========== أزرار الاشتراك ==========
     elif data == "subscribe_monthly":
         await subscription_callback(update, context, 'monthly')
