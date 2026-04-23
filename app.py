@@ -705,37 +705,71 @@ def upgrade_user():
     if not user_id or not plan_type:
         return redirect(url_for('admin_dashboard'))
     
-    from utils.db import create_subscription, get_bot_setting
+    from utils.db import get_bot_setting
     from utils.db import supabase
+    from datetime import datetime, timedelta
     import requests
     
     # تحديد الخطة
     plan_details = {
-        'monthly': {'name': 'monthly', 'days': 30},
-        'half_yearly': {'name': 'half_yearly', 'days': 180},
-        'yearly': {'name': 'yearly', 'days': 365},
-        'lifetime': {'name': 'lifetime', 'days': 36500}
+        'monthly': {'name': 'شهري', 'name_en': 'monthly', 'days': 30, 'price_key': 'price_monthly'},
+        'half_yearly': {'name': 'نصف سنوي', 'name_en': 'half_yearly', 'days': 180, 'price_key': 'price_half_yearly'},
+        'yearly': {'name': 'سنوي', 'name_en': 'yearly', 'days': 365, 'price_key': 'price_yearly'},
+        'lifetime': {'name': 'مدى الحياة', 'name_en': 'lifetime', 'days': 36500, 'price_key': 'price_lifetime'}
     }
     
     plan = plan_details.get(plan_type, plan_details['half_yearly'])
     
     # جلب السعر من قاعدة البيانات
-    price = int(get_bot_setting(f'price_{plan_type}', '30'))
+    price = int(get_bot_setting(plan['price_key'], '30'))
     
-    # جلب معرف الخطة من جدول الخطط
-    plan_response = supabase.table('subscription_plans_social').select('id').eq('name', plan['name']).execute()
-    plan_id = plan_response.data[0]['id'] if plan_response.data else 2
+    # حساب تاريخ الانتهاء
+    start_date = datetime.now().date()
+    end_date = start_date + timedelta(days=plan['days'])
+    end_date_str = end_date.strftime('%Y-%m-%d')
     
-    success, end_date, plan_name = create_subscription(int(user_id), plan_id, plan['days'], price)
-    
-    if success:
-        # إرسال رسالة تأكيد للمستخدم
+    try:
+        # ========== 1. تحديث جدول users مباشرة ==========
+        result = supabase.table('users').update({
+            'status': 'premium',
+            'premium_until': end_date_str,
+            'updated_at': datetime.now().isoformat()
+        }).eq('user_id', int(user_id)).execute()
+        
+        if not result.data:
+            logger.error(f"User {user_id} not found in users table")
+            return redirect(url_for('admin_dashboard'))
+        
+        # ========== 2. تسجيل الاشتراك في جدول user_subscriptions_social ==========
+        try:
+            # جلب معرف الخطة من جدول الخطط
+            plan_response = supabase.table('subscription_plans_social').select('id').eq('name', plan['name_en']).execute()
+            plan_id = plan_response.data[0]['id'] if plan_response.data else None
+            
+            if plan_id:
+                supabase.table('user_subscriptions_social').insert({
+                    'user_id': int(user_id),
+                    'plan_id': plan_id,
+                    'status': 'active',
+                    'start_date': start_date.isoformat(),
+                    'end_date': end_date.isoformat(),
+                    'payment_amount': price,
+                    'created_at': datetime.now().isoformat()
+                }).execute()
+                logger.info(f"✅ Subscription record created for user {user_id}")
+            else:
+                logger.warning(f"Plan {plan['name_en']} not found in subscription_plans_social")
+        except Exception as e:
+            logger.error(f"Error creating subscription record: {e}")
+            # لا نوقف العملية إذا فشل تسجيل الاشتراك
+        
+        # ========== 3. إرسال رسالة تأكيد للمستخدم ==========
         TOKEN = os.environ.get('TELEGRAM_TOKEN')
         message = f"""🎉 <b>تم ترقية حسابك بنجاح!</b>
 
-📅 <b>خطتك:</b> {plan_name}
+📅 <b>خطتك:</b> {plan['name']}
 💰 <b>المبلغ:</b> {price}$
-⏰ <b>تنتهي في:</b> {end_date}
+⏰ <b>تنتهي في:</b> {end_date_str}
 
 ✅ يمكنك الآن الاستمتاع بالمميزات:
 • تحليل غير محدود
@@ -747,10 +781,15 @@ def upgrade_user():
         try:
             requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
                          data={'chat_id': user_id, 'text': message, 'parse_mode': 'HTML'}, timeout=5)
+            logger.info(f"✅ Upgrade message sent to user {user_id}")
         except Exception as e:
             logger.error(f"Error sending upgrade message: {e}")
-    
-    return redirect(url_for('admin_dashboard'))
+        
+        return redirect(url_for('admin_dashboard'))
+        
+    except Exception as e:
+        logger.error(f"Error upgrading user {user_id}: {e}")
+        return f"حدث خطأ: {e}", 500
 
 
 # =================================================================================
@@ -766,17 +805,37 @@ def downgrade_user():
     if not user_id:
         return redirect(url_for('admin_dashboard'))
     
-    from utils.db import downgrade_user_to_free
     from utils.db import supabase
+    from datetime import datetime
     import requests
     
-    success = downgrade_user_to_free(int(user_id))
-    
-    if success:
-        # تحديث حالة الاشتراك في جدول user_subscriptions_social
-        supabase.table('user_subscriptions_social').update({'status': 'cancelled'}).eq('user_id', int(user_id)).eq('status', 'active').execute()
+    try:
+        # ========== 1. تحديث جدول users مباشرة ==========
+        result = supabase.table('users').update({
+            'status': 'free',
+            'premium_until': None,
+            'updated_at': datetime.now().isoformat()
+        }).eq('user_id', int(user_id)).execute()
         
-        # إرسال رسالة للمستخدم
+        if not result.data:
+            logger.error(f"User {user_id} not found in users table")
+            return redirect(url_for('admin_dashboard'))
+        
+        logger.info(f"✅ User {user_id} downgraded to free in users table")
+        
+        # ========== 2. تحديث حالة الاشتراك في جدول user_subscriptions_social ==========
+        try:
+            supabase.table('user_subscriptions_social').update({
+                'status': 'cancelled',
+                'updated_at': datetime.now().isoformat()
+            }).eq('user_id', int(user_id)).eq('status', 'active').execute()
+            logger.info(f"✅ Subscription record updated for user {user_id}")
+        except Exception as e:
+            logger.error(f"Error updating subscription status: {e}")
+            # لا نوقف العملية إذا فشل تحديث الاشتراك
+        
+        # ========== 3. إرسال رسالة للمستخدم ==========
+        FREE_LIMIT = int(os.environ.get('FREE_LIMIT', '2'))
         TOKEN = os.environ.get('TELEGRAM_TOKEN')
         message = f"""📉 <b>تم خفض اشتراكك إلى الخطة المجانية</b>
 
@@ -788,10 +847,15 @@ def downgrade_user():
         try:
             requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
                          data={'chat_id': user_id, 'text': message, 'parse_mode': 'HTML'}, timeout=5)
+            logger.info(f"✅ Downgrade message sent to user {user_id}")
         except Exception as e:
             logger.error(f"Error sending downgrade message: {e}")
-    
-    return redirect(url_for('admin_dashboard'))
+        
+        return redirect(url_for('admin_dashboard'))
+        
+    except Exception as e:
+        logger.error(f"Error downgrading user {user_id}: {e}")
+        return f"حدث خطأ: {e}", 500
 # =================================================================================
 # القسم 13: APIs مساعدة (Helper APIs)
 # =================================================================================
