@@ -605,38 +605,41 @@ def admin_dashboard():
         bot_name = os.environ.get('BOT_NAME', 'social_analyzer')
         default_gemini_limit = int(os.environ.get('GEMINI_MONTHLY_LIMIT', '20'))
         
-        # جلب جميع المستخدمين
-        usage_response = supabase.table('bot_usage').select('*').eq('bot_name', bot_name).execute()
+        # 🔴 تغيير مهم: جلب جميع المستخدمين من users مباشرة
+        users_response = supabase.table('users').select('*').order('user_id', desc=False).execute()
         
         users_list = []
-        for usage in usage_response.data:
-            user_info = supabase.table('users').select('*').eq('user_id', usage['user_id']).execute()
-            user = user_info.data[0] if user_info.data else {}
+        for user in (users_response.data or []):
+            user_id = user['user_id']
             
-            bio_response = supabase.table('bio_pages').select('page_url, views_count').eq('user_id', usage['user_id']).execute()
+            # جلب إحصائيات الاستخدام من bot_usage (إذا وجدت)
+            usage_response = supabase.table('bot_usage').select('*').eq('user_id', user_id).execute()
+            usage = usage_response.data[0] if usage_response.data else {}
+            
+            bio_response = supabase.table('bio_pages').select('page_url, views_count').eq('user_id', user_id).execute()
             bio = bio_response.data[0] if bio_response.data else {}
             
             # جلب الاشتراك النشط للمستخدم
             subscription = None
             if user.get('status') == 'premium':
-                sub_response = supabase.table('user_subscriptions_social').select('*, subscription_plans_social(name, name_ar)').eq('user_id', usage['user_id']).eq('status', 'active').execute()
+                sub_response = supabase.table('user_subscriptions_social').select('*, subscription_plans_social(name, name_ar)').eq('user_id', user_id).eq('status', 'active').execute()
                 if sub_response.data:
                     subscription = sub_response.data[0]
             
-            # 🆕 جلب gemini_limit من جدول user_gemini_limits
-            gemini_limit_response = supabase.table('user_gemini_limits').select('monthly_limit').eq('user_id', usage['user_id']).execute()
+            # جلب gemini_limit من جدول user_gemini_limits
+            gemini_limit_response = supabase.table('user_gemini_limits').select('monthly_limit').eq('user_id', user_id).execute()
             if gemini_limit_response.data:
                 gemini_limit = gemini_limit_response.data[0]['monthly_limit']
             else:
                 gemini_limit = default_gemini_limit
             
-            # 🆕 جلب gemini_used (عدد التوصيات المستخدمة هذا الشهر)
+            # جلب gemini_used (عدد التوصيات المستخدمة هذا الشهر)
             current_month = datetime.now().strftime('%Y-%m')
-            gemini_used_response = supabase.table('gemini_usage').select('monthly_recommendations').eq('user_id', usage['user_id']).eq('last_use_month', current_month).execute()
+            gemini_used_response = supabase.table('gemini_usage').select('monthly_recommendations').eq('user_id', user_id).eq('last_use_month', current_month).execute()
             gemini_used = gemini_used_response.data[0]['monthly_recommendations'] if gemini_used_response.data else 0
             
             users_list.append({
-                'user_id': usage['user_id'],
+                'user_id': user_id,
                 'first_name': user.get('first_name', ''),
                 'username': user.get('username', ''),
                 'status': user.get('status', 'free'),
@@ -661,14 +664,14 @@ def admin_dashboard():
         total_users = len(users_list)
         premium_users = len([u for u in users_list if u['status'] == 'premium'])
         free_users = total_users - premium_users
-        total_uses = sum([u.get('total_uses', 0) for u in usage_response.data])
+        total_uses = sum([u.get('total_uses', 0) for u in users_list])
         
         # إحصائيات المنصات
         platform_stats = {
-            'youtube': sum([u.get('youtube_uses', 0) for u in usage_response.data]),
-            'instagram': sum([u.get('instagram_uses', 0) for u in usage_response.data]),
-            'tiktok': sum([u.get('tiktok_uses', 0) for u in usage_response.data]),
-            'facebook': sum([u.get('facebook_uses', 0) for u in usage_response.data])
+            'youtube': sum([u['total_usage']['youtube'] for u in users_list]),
+            'instagram': sum([u['total_usage']['instagram'] for u in users_list]),
+            'tiktok': sum([u['total_usage']['tiktok'] for u in users_list]),
+            'facebook': sum([u['total_usage']['facebook'] for u in users_list])
         }
         
         # إحصائيات الاشتراكات
@@ -699,7 +702,6 @@ def admin_dashboard():
     except Exception as e:
         logger.error(f"Error in admin_dashboard: {e}")
         return f"حدث خطأ: {e}", 500
-
 # =================================================================================
 # مسار ترقية المستخدم مع اختيار الخطة
 # =================================================================================
