@@ -82,9 +82,11 @@ def get_user_info(user_id):
 
 
 def get_user_usage(user_id):
-    """الحصول على استخدامات المستخدم للبوت الحالي"""
+    """الحصول على استخدامات المستخدم من جدول users"""
     try:
-        response = supabase.table('bot_usage').select('*').eq('user_id', user_id).eq('bot_name', BOT_NAME).execute()
+        response = supabase.table('users').select(
+            'daily_uses, total_uses, youtube_uses, instagram_uses, tiktok_uses, facebook_uses, last_use_date'
+        ).eq('user_id', user_id).execute()
         if response.data:
             return response.data[0]
         return None
@@ -94,7 +96,7 @@ def get_user_usage(user_id):
 
 
 def increment_usage(user_id, platform, analysis_results=None):
-    """زيادة عدد استخدامات المستخدم حسب المنصة"""
+    """زيادة عدد استخدامات المستخدم حسب المنصة (مع حفظ سجل التحليل)"""
     try:
         user = get_user_info(user_id)
         if not user:
@@ -102,8 +104,13 @@ def increment_usage(user_id, platform, analysis_results=None):
         
         username = user.get('username', '')
         first_name = user.get('first_name', '')
-        usage = get_user_usage(user_id)
         today = date.today().isoformat()
+        
+        # جلب الاستخدامات الحالية من جدول users
+        usage_response = supabase.table('users').select(
+            'daily_uses, total_uses, youtube_uses, instagram_uses, tiktok_uses, facebook_uses, last_use_date'
+        ).eq('user_id', user_id).execute()
+        usage = usage_response.data[0] if usage_response.data else None
         
         platform_column_map = {
             'youtube': 'youtube_uses',
@@ -113,29 +120,33 @@ def increment_usage(user_id, platform, analysis_results=None):
         }
         platform_column = platform_column_map.get(platform, 'youtube_uses')
         
+        # إعادة تعيين daily_uses إذا كان اليوم مختلفاً (للمجانيين فقط)
         if usage and usage.get('last_use_date') != today:
             if user['status'] == 'free':
-                supabase.table('bot_usage').update({
+                supabase.table('users').update({
                     'daily_uses': 0,
-                    'last_use_date': today,
-                    'username': username,
-                    'first_name': first_name
-                }).eq('user_id', user_id).eq('bot_name', BOT_NAME).execute()
-                usage = get_user_usage(user_id)
+                    'last_use_date': today
+                }).eq('user_id', user_id).execute()
+                # إعادة جلب البيانات بعد التحديث
+                usage_response = supabase.table('users').select(
+                    'daily_uses, total_uses, youtube_uses, instagram_uses, tiktok_uses, facebook_uses, last_use_date'
+                ).eq('user_id', user_id).execute()
+                usage = usage_response.data[0] if usage_response.data else None
         
+        # الحصول على القيم الحالية
         current_platform_uses = usage.get(platform_column, 0) if usage else 0
         current_daily_uses = usage.get('daily_uses', 0) if usage else 0
         current_total_uses = usage.get('total_uses', 0) if usage else 0
         
+        # حساب القيم الجديدة
         new_platform_uses = current_platform_uses + 1
         new_daily_uses = current_daily_uses + 1 if user['status'] == 'free' else current_daily_uses
         new_total_uses = current_total_uses + 1
         
+        # تحديث جدول users
         update_data = {
             'total_uses': new_total_uses,
             'updated_at': datetime.now().isoformat(),
-            'username': username,
-            'first_name': first_name,
             platform_column: new_platform_uses
         }
         
@@ -143,15 +154,10 @@ def increment_usage(user_id, platform, analysis_results=None):
             update_data['daily_uses'] = new_daily_uses
             update_data['last_use_date'] = today
         
-        supabase.table('bot_usage').upsert({
-            'user_id': user_id,
-            'bot_name': BOT_NAME,
-            **update_data
-        }, on_conflict='user_id,bot_name').execute()
+        supabase.table('users').update(update_data).eq('user_id', user_id).execute()
         
         # ========== حفظ سجل التحليل مع تحويل الأرقام ==========
         if analysis_results:
-            # دالة مساعدة لتحويل الأرقام المنسقة (مثل "2.5M", "1.2K") إلى أرقام صحيحة
             def parse_number(value):
                 if value is None:
                     return None
@@ -162,19 +168,14 @@ def increment_usage(user_id, platform, analysis_results=None):
                 try:
                     value = value.upper().strip()
                     if 'M' in value:
-                        # تحويل الملايين (مثال: 2.5M -> 2500000)
                         return int(float(value.replace('M', '')) * 1_000_000)
                     elif 'K' in value:
-                        # تحويل الآلاف (مثال: 1.2K -> 1200)
                         return int(float(value.replace('K', '')) * 1_000)
                     else:
-                        # محاولة تحويل النص إلى رقم مباشرة
                         return int(float(value))
                 except (ValueError, TypeError):
-                    # في حالة فشل التحويل، نرجع None
                     return None
             
-            # تحويل القيم قبل الإدراج
             subscribers_raw = analysis_results.get('subscribers')
             subscribers_clean = parse_number(subscribers_raw)
             
@@ -188,8 +189,8 @@ def increment_usage(user_id, platform, analysis_results=None):
                 'platform': platform,
                 'analysis_date': datetime.now().isoformat(),
                 'account_name': analysis_results.get('account_name'),
-                'subscribers': subscribers_clean,      # قيمة رقمية صحيحة
-                'total_posts': total_posts_clean,      # قيمة رقمية صحيحة
+                'subscribers': subscribers_clean,
+                'total_posts': total_posts_clean,
                 'top_posts': analysis_results.get('top_posts'),
                 'top_comments': analysis_results.get('top_comments'),
                 'ai_recommendations': analysis_results.get('ai_recommendations'),
@@ -211,6 +212,7 @@ def can_analyze(user_id):
     if not user:
         return True, 0
     
+    # التحقق من انتهاء الاشتراك المميز
     if user['status'] == 'premium' and user.get('premium_until'):
         if datetime.strptime(user['premium_until'], '%Y-%m-%d').date() < date.today():
             supabase.table('users').update({'status': 'free', 'premium_until': None}).eq('user_id', user_id).execute()
@@ -219,8 +221,9 @@ def can_analyze(user_id):
     if user['status'] == 'premium':
         return True, 0
     
+    # للمستخدمين المجانيين - جلب daily_uses من جدول users مباشرة
     try:
-        response = supabase.table('bot_usage').select('daily_uses').eq('user_id', user_id).eq('bot_name', BOT_NAME).execute()
+        response = supabase.table('users').select('daily_uses').eq('user_id', user_id).execute()
         daily_uses = response.data[0]['daily_uses'] if response.data else 0
         
         if daily_uses >= FREE_LIMIT:
@@ -233,21 +236,31 @@ def can_analyze(user_id):
 
 def get_remaining_analyses(user_id):
     """الحصول على عدد التحليلات المتبقية للمستخدم"""
-    can_dl, current_uses = can_analyze(user_id)
-    if not can_dl:
+    user = get_user_info(user_id)
+    if not user:
         return 0
     
-    user = get_user_info(user_id)
-    if user and user['status'] == 'premium':
+    if user['status'] == 'premium':
         return -1
     
-    return FREE_LIMIT - current_uses
+    try:
+        response = supabase.table('users').select('daily_uses').eq('user_id', user_id).execute()
+        current_uses = response.data[0]['daily_uses'] if response.data else 0
+        remaining = FREE_LIMIT - current_uses
+        return max(0, remaining)
+    except Exception as e:
+        logger.error(f"Error in get_remaining_analyses: {e}")
+        return FREE_LIMIT
 
 
 def get_total_analyses(user_id):
     """الحصول على إجمالي تحليلات المستخدم"""
-    usage = get_user_usage(user_id)
-    return usage.get('total_uses', 0) if usage else 0
+    try:
+        response = supabase.table('users').select('total_uses').eq('user_id', user_id).execute()
+        return response.data[0]['total_uses'] if response.data else 0
+    except Exception as e:
+        logger.error(f"Error in get_total_analyses: {e}")
+        return 0
 
 
 # ========== دوال حسابات المستخدمين (قراءة/كتابة - supabase) ==========
