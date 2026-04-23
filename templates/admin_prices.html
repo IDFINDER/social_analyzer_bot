@@ -79,6 +79,29 @@
         .row { display: flex; gap: 15px; flex-wrap: wrap; }
         .col { flex: 1; min-width: 200px; }
         hr { margin: 20px 0; border: none; border-top: 1px solid #eee; }
+        
+        /* رسائل التأكيد */
+        .alert {
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
     </style>
 </head>
 <body>
@@ -88,29 +111,23 @@
             <p>تعديل الأسعار والحدود والإعدادات العامة</p>
         </div>
         
+        {% if msg %}
+        <div class="alert alert-{{ msg_type }}">
+            {{ msg }}
+        </div>
+        {% endif %}
+        
         <form method="POST">
             <div class="card">
                 <h2>💰 الأسعار (دولار)</h2>
                 <div class="row">
                     <div class="col">
-                        <div class="form-group">
-                            <label>شهري:</label>
-                            <input type="number" name="price_monthly" value="{{ prices.price_monthly }}" step="1" required>
-                        </div>
-                        <div class="form-group">
-                            <label>نصف سنوي:</label>
-                            <input type="number" name="price_half_yearly" value="{{ prices.price_half_yearly }}" step="1" required>
-                        </div>
+                        <div class="form-group"><label>شهري:</label><input type="number" name="price_monthly" value="{{ prices.price_monthly }}" step="1" required></div>
+                        <div class="form-group"><label>نصف سنوي:</label><input type="number" name="price_half_yearly" value="{{ prices.price_half_yearly }}" step="1" required></div>
                     </div>
                     <div class="col">
-                        <div class="form-group">
-                            <label>سنوي:</label>
-                            <input type="number" name="price_yearly" value="{{ prices.price_yearly }}" step="1" required>
-                        </div>
-                        <div class="form-group">
-                            <label>مدى الحياة:</label>
-                            <input type="number" name="price_lifetime" value="{{ prices.price_lifetime }}" step="1" required>
-                        </div>
+                        <div class="form-group"><label>سنوي:</label><input type="number" name="price_yearly" value="{{ prices.price_yearly }}" step="1" required></div>
+                        <div class="form-group"><label>مدى الحياة:</label><input type="number" name="price_lifetime" value="{{ prices.price_lifetime }}" step="1" required></div>
                     </div>
                 </div>
             </div>
@@ -131,15 +148,18 @@
             
             <div class="card">
                 <h2>📊 حدود الاستخدام</h2>
-                <div class="form-group"><label>الحد اليومي للمجاني:</label><input type="number" name="free_limit" value="{{ prices.free_limit }}" step="1" required><small>عدد التحليلات اليومية للمستخدم المجاني</small></div>
-                <div class="form-group"><label>الحد الشهري للتوصيات (مميز):</label><input type="number" name="gemini_monthly_limit" value="{{ prices.gemini_monthly_limit }}" step="1" required><small>عدد توصيات الذكاء الاصطناعي للمستخدم المميز شهرياً</small></div>
-                <div class="form-group"><label>الحد الشهري للتوصيات (مجاني):</label><input type="number" name="gemini_free_limit" value="{{ prices.gemini_free_limit }}" step="1" required><small>0 = غير متاح</small></div>
+                <div class="form-group"><label>الحد اليومي للمجاني:</label><input type="number" name="free_limit" value="{{ prices.free_limit }}" step="1" required></div>
+                <div class="form-group"><label>الحد الشهري للتوصيات (مميز):</label><input type="number" name="gemini_monthly_limit" value="{{ prices.gemini_monthly_limit }}" step="1" required></div>
+                <div class="form-group"><label>الحد الشهري للتوصيات (مجاني):</label><input type="number" name="gemini_free_limit" value="{{ prices.gemini_free_limit }}" step="1" required></div>
             </div>
             
             <div class="card">
                 <h2>🎁 العروض الترويجية</h2>
                 <div class="form-group"><label>تفعيل العروض:</label>
-                    <select name="promo_active"><option value="true" {% if prices.promo_active %}selected{% endif %}>مفعل</option><option value="false" {% if not prices.promo_active %}selected{% endif %}>غير مفعل</option></select>
+                    <select name="promo_active">
+                        <option value="true" {% if prices.promo_active %}selected{% endif %}>مفعل</option>
+                        <option value="false" {% if not prices.promo_active %}selected{% endif %}>غير مفعل</option>
+                    </select>
                 </div>
                 <div class="row">
                     <div class="col"><div class="form-group"><label>سعر نصف سنوي (عرض):</label><input type="number" name="promo_half_yearly" value="{{ prices.promo_half_yearly }}"></div></div>
@@ -150,7 +170,7 @@
             
             <div class="card">
                 <h2>📞 معلومات التواصل</h2>
-                <div class="form-group"><label>رقم التحويل:</label><input type="text" name="payment_number" value="{{ prices.payment_number }}" required></div>
+                <div class="form-group"><label>رقم التحويل:</label><input type="text" name="payment_number" value="{{ prices.payment_number }}"></div>
                 <div class="form-group"><label>رابط المطور:</label><input type="url" name="developer_link" value="{{ prices.developer_link }}"></div>
                 <div class="form-group"><label>رابط البوت:</label><input type="url" name="bot_link" value="{{ prices.bot_link }}"></div>
             </div>
