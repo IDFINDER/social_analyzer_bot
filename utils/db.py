@@ -334,15 +334,19 @@ def can_use_gemini(user_id):
     try:
         user = get_user_info(user_id)
         
+        # جلب الحد المسموح حسب نوع المستخدم
         if user['status'] == 'free':
-            return False, 0, "💎 هذه الميزة متاحة فقط للمستخدمين المميزين!"
+            monthly_limit = int(get_bot_setting('gemini_free_limit', '0'))
+            if monthly_limit == 0:
+                return False, 0, "💎 هذه الميزة متاحة فقط للمستخدمين المميزين!"
+        else:
+            monthly_limit = get_user_gemini_limit(user_id)
         
         usage = get_gemini_usage(user_id)
         today = date.today()
-        current_month = today.strftime('%Y-%m')  # تنسيق: 2026-04
+        current_month = today.strftime('%Y-%m')
         
         if usage and usage.get('last_use_month') != current_month:
-            # إعادة تعيين الاستخدامات الشهرية
             supabase.table('gemini_usage').update({
                 'monthly_recommendations': 0,
                 'last_use_month': current_month
@@ -359,13 +363,10 @@ def can_use_gemini(user_id):
             }).execute()
             monthly_uses = 0
         
-        # الحصول على الحد الشهري من قاعدة البيانات (قابل للتعديل لكل مستخدم)
-        user_monthly_limit = get_user_gemini_limit(user_id)
+        if monthly_uses >= monthly_limit:
+            return False, monthly_limit, f"⚠️ لقد وصلت للحد الشهري لاستخدام التوصيات!\n\n📊 الحد المسموح: {monthly_limit} توصية شهرياً\n📅 سيتم تجديده في الشهر القادم"
         
-        if monthly_uses >= user_monthly_limit:
-            return False, user_monthly_limit, f"⚠️ لقد وصلت للحد الشهري لاستخدام التوصيات!\n\n📊 الحد المسموح: {user_monthly_limit} توصية شهرياً\n📅 سيتم تجديده في الشهر القادم"
-        
-        remaining = user_monthly_limit - monthly_uses
+        remaining = monthly_limit - monthly_uses
         return True, remaining, None
         
     except Exception as e:
@@ -694,7 +695,7 @@ def update_recommendation_feedback(user_id, recommendation_id, implemented, feed
 # =================================================================================
 
 def get_bot_setting(setting_key, default_value=None):
-    """الحصول على قيمة إعداد من قاعدة البيانات"""
+    """الحصول على قيمة إعداد معين من جدول bot_settings_social"""
     try:
         response = supabase.table('bot_settings_social').select('setting_value').eq('setting_key', setting_key).execute()
         if response.data:
@@ -705,32 +706,54 @@ def get_bot_setting(setting_key, default_value=None):
         return default_value
 
 
-def get_all_prices():
-    """جلب جميع الأسعار الحالية من قاعدة البيانات"""
-    return {
-        'price_half_yearly': int(get_bot_setting('price_half_yearly', '30')),
-        'price_yearly': int(get_bot_setting('price_yearly', '48')),
-        'price_lifetime': int(get_bot_setting('price_lifetime', '100')),
-        'price_monthly': int(get_bot_setting('price_monthly', '10')),
-        'free_limit': int(get_bot_setting('free_limit', str(FREE_LIMIT))),
-        'promo_active': get_bot_setting('promo_active', 'false') == 'true',
-        'promo_half_yearly': int(get_bot_setting('promo_half_yearly', '25')),
-        'promo_yearly': int(get_bot_setting('promo_yearly', '40')),
-        'promo_end_date': get_bot_setting('promo_end_date', '')
-    }
-
-
 def update_bot_setting(setting_key, setting_value):
-    """تحديث قيمة إعداد في قاعدة البيانات"""
+    """تحديث قيمة إعداد في جدول bot_settings_social"""
     try:
-        supabase.table('bot_settings_social').update({
+        supabase.table('bot_settings_social').upsert({
+            'setting_key': setting_key,
             'setting_value': setting_value,
             'updated_at': datetime.now().isoformat()
-        }).eq('setting_key', setting_key).execute()
+        }, on_conflict='setting_key').execute()
         return True
     except Exception as e:
         logger.error(f"Error updating setting {setting_key}: {e}")
         return False
+
+def get_all_prices():
+    """جلب جميع الأسعار والإعدادات من جدول bot_settings_social"""
+    try:
+        response = supabase.table('bot_settings_social').select('setting_key, setting_value').execute()
+        
+        # تحويل النتيجة إلى قاموس
+        settings = {row['setting_key']: row['setting_value'] for row in (response.data or [])}
+        
+        # القيم الافتراضية إذا لم تكن موجودة
+        return {
+            'price_monthly': int(settings.get('price_monthly', 10)),
+            'price_half_yearly': int(settings.get('price_half_yearly', 30)),
+            'price_yearly': int(settings.get('price_yearly', 48)),
+            'price_lifetime': int(settings.get('price_lifetime', 100)),
+            'duration_monthly': int(settings.get('duration_monthly', 30)),
+            'duration_half_yearly': int(settings.get('duration_half_yearly', 180)),
+            'duration_yearly': int(settings.get('duration_yearly', 365)),
+            'duration_lifetime': int(settings.get('duration_lifetime', 36500)),
+            'free_limit': int(settings.get('free_limit', 2)),
+            'premium_limit': int(settings.get('premium_limit', -1)),
+            'gemini_monthly_limit': int(settings.get('gemini_monthly_limit', 20)),
+            'gemini_free_limit': int(settings.get('gemini_free_limit', 0)),
+            'promo_active': settings.get('promo_active', 'false') == 'true',
+            'promo_half_yearly': int(settings.get('promo_half_yearly', 25)),
+            'promo_yearly': int(settings.get('promo_yearly', 40)),
+            'promo_end_date': settings.get('promo_end_date', ''),
+            'payment_number': settings.get('payment_number', '772130931'),
+            'developer_link': settings.get('developer_link', 'https://t.me/E_Alshabany'),
+            'bot_link': settings.get('bot_link', 'https://t.me/Social_Media_tools_bot')
+        }
+    except Exception as e:
+        logger.error(f"Error getting all settings: {e}")
+        return {}
+
+
 
 
 # =================================================================================
@@ -1271,19 +1294,19 @@ def downgrade_user_to_free(user_id):
 def get_user_gemini_limit(user_id):
     """الحصول على الحد الشهري للتوصيات لمستخدم معين"""
     try:
-        # جلب الحد المخصص للمستخدم
+        # جلب الحد المخصص للمستخدم (إذا وجد)
         response = supabase.table('user_gemini_limits').select('monthly_limit').eq('user_id', user_id).execute()
         
         if response.data:
             return response.data[0]['monthly_limit']
         
-        # إذا لم يوجد حد مخصص، استخدم الحد العام من متغير البيئة
-        default_limit = int(os.environ.get('GEMINI_MONTHLY_LIMIT', '20'))
+        # إذا لم يوجد حد مخصص، استخدم الحد العام من الإعدادات
+        default_limit = int(get_bot_setting('gemini_monthly_limit', '20'))
         return default_limit
         
     except Exception as e:
         logger.error(f"Error getting user gemini limit: {e}")
-        return int(os.environ.get('GEMINI_MONTHLY_LIMIT', '20'))
+        return int(get_bot_setting('gemini_monthly_limit', '20'))
 
 
 def set_user_gemini_limit(user_id, monthly_limit):
