@@ -1,19 +1,19 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 دوال تحليل قنوات يوتيوب
 """
 
 import os
 import logging
-import os
-FREE_LIMIT = int(os.environ.get('FREE_LIMIT', '2'))
 from datetime import datetime
 from googleapiclient.discovery import build
 from .helpers import format_number, format_duration, escape_html
+from utils.texts import BOT_LINK, DEVELOPER_LINK
 
 logger = logging.getLogger(__name__)
 
 YOUTUBE_API_KEY = os.environ.get('YOUTUBE_API_KEY')
+FREE_LIMIT = int(os.environ.get('FREE_LIMIT', '2'))
 youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY) if YOUTUBE_API_KEY else None
 
 
@@ -133,31 +133,38 @@ def format_channel_report(channel_details, user_id=None, is_premium=False, remai
     
     from .helpers import clean_filename, escape_html
     
+    # إزالة @ من البداية إذا وجدت
+    custom_url = channel_details.get('custom_url', 'N/A')
+    if custom_url.startswith('@'):
+        custom_url = custom_url[1:]
+    
     # بناء الرسالة النصية
     message = f"✅ <b>تم تحليل القناة بنجاح!</b>\n\n"
     message += f"📺 <b>القناة:</b> {escape_html(channel_details['title'])}\n"
-    message += f"🆔 **اليوزر:** @{escape_html(channel_details['custom_url'])}\n"
-    message += f"📅 **الإنشاء:** {channel_details['published_at']}\n"
-    message += f"🌍 **البلد:** {channel_details['country']}\n\n"
+    message += f"🆔 <b>المعرف:</b> @{escape_html(custom_url)}\n"
+    message += f"📅 <b>الإنشاء:</b> {channel_details['published_at']}\n"
+    message += f"🌍 <b>البلد:</b> {channel_details['country']}\n\n"
     
-    message += f"📊 **الإحصائيات:**\n"
+    message += f"📊 <b>الإحصائيات:</b>\n"
     subs_text = "🔒 مخفي" if channel_details['hidden_subscribers'] else channel_details['subscribers']
-    message += f"👥 **المشتركين:** {subs_text}\n"
-    message += f"📹 **عدد الفيديوهات:** {channel_details['total_videos']}\n"
-    message += f"👁️ **إجمالي المشاهدات:** {channel_details['total_views']}\n"
-    message += f"📊 **متوسط المشاهدات/فيديو:** {channel_details['avg_views']}\n\n"
+    message += f"👥 <b>المشتركين:</b> {subs_text}\n"
+    message += f"📹 <b>عدد الفيديوهات:</b> {channel_details['total_videos']}\n"
+    message += f"👁️ <b>إجمالي المشاهدات:</b> {channel_details['total_views']}\n"
+    message += f"📊 <b>متوسط المشاهدات/فيديو:</b> {channel_details['avg_views']}\n\n"
     
-    message += f"🆕 **أحدث 5 فيديوهات:**\n"
+    message += f"🔥 <b>أحدث 5 فيديوهات:</b>\n"
     for i, v in enumerate(channel_details['latest_videos'][:5], 1):
-        message += f"{i}. [{escape_html(v['title'][:50])}](https://www.youtube.com/watch?v={v['video_id']})\n"
+        title = escape_html(v['title'][:60])
+        video_id = v.get('video_id', '')
+        message += f"{i}. <a href='https://youtu.be/{video_id}'>{title}</a>\n"
     
     if not is_premium:
-        message += f"\n📊 **المتبقي اليوم:** {remaining_analyses}/{FREE_LIMIT}"
+        message += f"\n📊 <b>المتبقي اليوم:</b> {remaining_analyses}/{FREE_LIMIT}"
     
     # بناء الملف النصي
     file_content = build_text_file(channel_details, is_premium)
     
-    # اسم الملف
+    # اسم الملف (نفس الاسم القديم مع الحفاظ على التنسيق)
     filename = f"تحليل_يوتيوب_{datetime.now().strftime('%Y_%m_%d')}.txt"
     
     return message, (file_content, filename)
@@ -169,15 +176,23 @@ def build_text_file(channel_details, is_premium):
     """
     now = datetime.now()
     
-    content = "=" * 60 + "\n"
-    content += f"          تقرير حساب يوتيوب @{channel_details['custom_url']}\n"
-    content += "=" * 60 + "\n\n"
+    # إزالة @ من البداية إذا وجدت
+    custom_url = channel_details.get('custom_url', 'N/A')
+    if custom_url.startswith('@'):
+        custom_url = custom_url[1:]
+    
+    # خط فاصل أقصر (40 علامة بدلاً من 60)
+    separator = "━" * 40
+    
+    content = separator + "\n"
+    content += f"          📊 تقرير قناة {custom_url}\n"
+    content += separator + "\n\n"
     
     content += f"📅 التاريخ: {now.strftime('%Y-%m-%d')}\n"
     content += f"⏰ الوقت: {now.strftime('%H:%M')}\n\n"
     
     content += f"📺 القناة: {channel_details['title']}\n"
-    content += f"🆔 اليوزر: @{channel_details['custom_url']}\n"
+    content += f"🆔 المعرف: @{custom_url}\n"
     content += f"📅 الإنشاء: {channel_details['published_at']}\n"
     content += f"🌍 البلد: {channel_details['country']}\n\n"
     
@@ -186,20 +201,21 @@ def build_text_file(channel_details, is_premium):
     content += f"👥 المشتركين: {subs_text}\n"
     content += f"📹 عدد الفيديوهات: {channel_details['total_videos']}\n"
     content += f"👁️ المشاهدات: {channel_details['total_views']}\n"
-    content += f"📊 المتوسط: {channel_details['avg_views']}\n\n"
+    content += f"📊 متوسط المشاهدات/فيديو: {channel_details['avg_views']}\n\n"
     
-    content += "🔥 أفضل 5 فيديوهات:\n"
+    content += "🔥 أحدث 5 فيديوهات:\n"
     for i, v in enumerate(channel_details['latest_videos'][:5], 1):
-        content += f"{i}. {v['title']}\n"
-        content += f"   https://www.youtube.com/watch?v={v['video_id']}\n"
+        content += f"{i}. {v['title'][:80]}\n"
+        content += f"   👉 https://youtu.be/{v['video_id']}\n\n"
     
-    content += "\n" + "=" * 60 + "\n"
+    content += separator + "\n"
     
     if not is_premium:
-        content += "⬅️ تم التحليل عبر بوت تحليل حسابات السوشل ميديا\n"
-        content += "تطوير Ebrahim Alshabany\n"
-        content += "@E_Alshabany\n"
+        content += "🤖 تم التحليل بواسطة بوت تحليل حسابات السوشيال ميديا\n"
+        content += f"📌 للاشتراك المميز: /premium\n"
+        content += f"🔗 رابط البوت: {BOT_LINK}\n"
+        content += f"👨‍💻 المطور: {DEVELOPER_LINK}\n"
     
-    content += "=" * 60 + "\n"
+    content += separator + "\n"
     
     return content
