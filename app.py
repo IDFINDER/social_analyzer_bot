@@ -930,90 +930,49 @@ def security_info():
 @app.route('/admin-prices', methods=['GET', 'POST'])
 @login_required
 def admin_prices():
-    """صفحة تعديل الأسعار - تعدل جدول subscription_plans_social مباشرة"""
-    from utils.db import supabase
-    from datetime import datetime
+    """صفحة تعديل الأسعار والإعدادات - تعتمد على bot_settings_social"""
+    from utils.db import update_bot_setting, get_all_prices
     
     if request.method == 'POST':
         try:
-            # تحديث أسعار الخطط في جدول subscription_plans_social
-            price_monthly = int(request.form.get('price_monthly', 10))
-            price_half_yearly = int(request.form.get('price_half_yearly', 30))
-            price_yearly = int(request.form.get('price_yearly', 48))
-            price_lifetime = int(request.form.get('price_lifetime', 100))
+            # حفظ الأسعار
+            update_bot_setting('price_monthly', request.form.get('price_monthly', '10'))
+            update_bot_setting('price_half_yearly', request.form.get('price_half_yearly', '30'))
+            update_bot_setting('price_yearly', request.form.get('price_yearly', '48'))
+            update_bot_setting('price_lifetime', request.form.get('price_lifetime', '100'))
             
-            # تحديث كل خطة على حدة
-            supabase.table('subscription_plans_social').update({
-                'price': price_monthly,
-                'updated_at': datetime.now().isoformat()
-            }).eq('name', 'monthly').execute()
+            # حفظ المدة
+            update_bot_setting('duration_monthly', request.form.get('duration_monthly', '30'))
+            update_bot_setting('duration_half_yearly', request.form.get('duration_half_yearly', '180'))
+            update_bot_setting('duration_yearly', request.form.get('duration_yearly', '365'))
+            update_bot_setting('duration_lifetime', request.form.get('duration_lifetime', '36500'))
             
-            supabase.table('subscription_plans_social').update({
-                'price': price_half_yearly,
-                'updated_at': datetime.now().isoformat()
-            }).eq('name', 'half_yearly').execute()
+            # حفظ الحدود
+            update_bot_setting('free_limit', request.form.get('free_limit', '2'))
+            update_bot_setting('gemini_monthly_limit', request.form.get('gemini_monthly_limit', '20'))
+            update_bot_setting('gemini_free_limit', request.form.get('gemini_free_limit', '0'))
             
-            supabase.table('subscription_plans_social').update({
-                'price': price_yearly,
-                'updated_at': datetime.now().isoformat()
-            }).eq('name', 'yearly').execute()
+            # حفظ العروض
+            update_bot_setting('promo_active', request.form.get('promo_active', 'false'))
+            update_bot_setting('promo_half_yearly', request.form.get('promo_half_yearly', '25'))
+            update_bot_setting('promo_yearly', request.form.get('promo_yearly', '40'))
+            update_bot_setting('promo_end_date', request.form.get('promo_end_date', ''))
             
-            supabase.table('subscription_plans_social').update({
-                'price': price_lifetime,
-                'updated_at': datetime.now().isoformat()
-            }).eq('name', 'lifetime').execute()
+            # حفظ معلومات التواصل
+            update_bot_setting('payment_number', request.form.get('payment_number', '772130931'))
+            update_bot_setting('developer_link', request.form.get('developer_link', 'https://t.me/E_Alshabany'))
+            update_bot_setting('bot_link', request.form.get('bot_link', 'https://t.me/Social_Media_tools_bot'))
             
-            # تحديث free_limit في جدول bot_settings_social (إذا كان موجوداً)
-            free_limit = int(request.form.get('free_limit', 2))
-            try:
-                supabase.table('bot_settings_social').upsert({
-                    'setting_key': 'free_limit',
-                    'setting_value': str(free_limit),
-                    'updated_at': datetime.now().isoformat()
-                }, on_conflict='setting_key').execute()
-            except Exception as e:
-                logger.warning(f"Could not update free_limit: {e}")
-            
-            logger.info("✅ Prices updated successfully in subscription_plans_social")
+            logger.info("✅ All settings updated successfully")
             return redirect(url_for('admin_prices'))
             
         except Exception as e:
-            logger.error(f"Error updating prices: {e}")
-            return f"حدث خطأ في حفظ الأسعار: {e}", 500
+            logger.error(f"Error updating settings: {e}")
+            return f"حدث خطأ في حفظ الإعدادات: {e}", 500
     
-    # عرض الأسعار الحالية
-    try:
-        plans_response = supabase.table('subscription_plans_social').select('*').order('sort_order').execute()
-        prices = {}
-        for plan in (plans_response.data or []):
-            name = plan.get('name')
-            if name == 'monthly':
-                prices['price_monthly'] = plan.get('price', 10)
-            elif name == 'half_yearly':
-                prices['price_half_yearly'] = plan.get('price', 30)
-            elif name == 'yearly':
-                prices['price_yearly'] = plan.get('price', 48)
-            elif name == 'lifetime':
-                prices['price_lifetime'] = plan.get('price', 100)
-        
-        # جلب free_limit من bot_settings_social (إذا كان موجوداً)
-        try:
-            limit_response = supabase.table('bot_settings_social').select('setting_value').eq('setting_key', 'free_limit').execute()
-            prices['free_limit'] = int(limit_response.data[0]['setting_value']) if limit_response.data else 2
-        except:
-            prices['free_limit'] = 2
-        
-        # إعدادات العروض الترويجية (إذا كانت موجودة)
-        prices['promo_active'] = False
-        prices['promo_half_yearly'] = 25
-        prices['promo_yearly'] = 40
-        prices['promo_end_date'] = ''
-        
-        return render_template('admin_prices.html', prices=prices)
-        
-    except Exception as e:
-        logger.error(f"Error loading prices: {e}")
-        return f"حدث خطأ: {e}", 500
+    # عرض الإعدادات الحالية
+    prices = get_all_prices()
+    return render_template('admin_prices.html', prices=prices)
 
 
 @app.route('/notifications-history')
