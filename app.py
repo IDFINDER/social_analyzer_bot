@@ -596,14 +596,14 @@ def admin_logout():
 @app.route('/admin/dashboard')
 @login_required
 def admin_dashboard():
-    """لوحة تحكم المدير - تعتمد على users فقط"""
+    """لوحة تحكم المدير - تعتمد على users مباشرة"""
     try:
-        from utils.db import supabase, get_subscription_stats
+        from utils.db import supabase
         from datetime import datetime
         
         default_gemini_limit = int(os.environ.get('GEMINI_MONTHLY_LIMIT', '20'))
         
-        # 🔴 مصدر واحد: users (يحتوي على كل شيء)
+        # جلب جميع المستخدمين من users
         users_response = supabase.table('users').select('*').order('user_id', desc=False).execute()
         
         users_list = []
@@ -614,12 +614,16 @@ def admin_dashboard():
             bio_response = supabase.table('bio_pages').select('page_url, views_count').eq('user_id', user_id).execute()
             bio = bio_response.data[0] if bio_response.data else {}
             
-            # جلب الاشتراك النشط
+            # جلب الاشتراك النشط (مع حماية من الخطأ)
             subscription = None
             if user.get('status') == 'premium':
-                sub_response = supabase.table('user_subscriptions_social').select('*, subscription_plans_social(name, name_ar)').eq('user_id', user_id).eq('status', 'active').execute()
-                if sub_response.data:
-                    subscription = sub_response.data[0]
+                try:
+                    sub_response = supabase.table('user_subscriptions_social').select('*, subscription_plans_social(name, name_ar)').eq('user_id', user_id).eq('status', 'active').execute()
+                    if sub_response.data:
+                        subscription = sub_response.data[0]
+                except Exception as e:
+                    logger.warning(f"Could not fetch subscription for user {user_id}: {e}")
+                    # لا نوقف العملية، نستمر بدون بيانات الاشتراك
             
             # جلب gemini_limit
             gemini_limit_response = supabase.table('user_gemini_limits').select('monthly_limit').eq('user_id', user_id).execute()
@@ -666,8 +670,26 @@ def admin_dashboard():
             'facebook': sum([u['total_usage']['facebook'] for u in users_list])
         }
         
-        # إحصائيات الاشتراكات
-        subscription_stats = get_subscription_stats()
+        # إحصائيات الاشتراكات (محاولة جلبها بأمان)
+        subscription_stats = {'monthly': 0, 'half_yearly': 0, 'yearly': 0, 'lifetime': 0}
+        try:
+            # إذا كان جدول user_subscriptions_social موجوداً
+            subs_response = supabase.table('user_subscriptions_social').select('plan_id').eq('status', 'active').execute()
+            if subs_response.data:
+                for sub in subs_response.data:
+                    plan_response = supabase.table('subscription_plans_social').select('name').eq('id', sub['plan_id']).execute()
+                    if plan_response.data:
+                        plan_name = plan_response.data[0]['name']
+                        if plan_name == 'monthly':
+                            subscription_stats['monthly'] += 1
+                        elif plan_name == 'half_yearly':
+                            subscription_stats['half_yearly'] += 1
+                        elif plan_name == 'yearly':
+                            subscription_stats['yearly'] += 1
+                        elif plan_name == 'lifetime':
+                            subscription_stats['lifetime'] += 1
+        except Exception as e:
+            logger.warning(f"Could not fetch subscription stats: {e}")
         
         stats = {
             'total_users': total_users,
