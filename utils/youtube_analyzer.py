@@ -17,6 +17,26 @@ FREE_LIMIT = int(os.environ.get('FREE_LIMIT', '2'))
 youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY) if YOUTUBE_API_KEY else None
 
 
+def parse_number(value):
+    """تحويل النص المنسق (مثل 723.5K) إلى رقم صحيح"""
+    if value is None:
+        return 0
+    if isinstance(value, (int, float)):
+        return int(value)
+    if not isinstance(value, str):
+        return 0
+    try:
+        value = value.upper().strip()
+        if 'M' in value:
+            return int(float(value.replace('M', '')) * 1_000_000)
+        elif 'K' in value:
+            return int(float(value.replace('K', '')) * 1_000)
+        else:
+            return int(float(value))
+    except (ValueError, TypeError):
+        return 0
+
+
 def extract_channel_info(channel_input):
     """
     استخراج معلومات القناة من الإدخال
@@ -96,10 +116,17 @@ async def get_channel_details(channel_identifier):
                     'published_at': video_snippet['publishedAt'][:10]
                 })
         
-        # حساب المتوسطات
-        total_views = int(statistics.get('viewCount', 0))
-        total_videos = int(statistics.get('videoCount', 1))
-        avg_views_raw = total_views / total_videos if total_videos > 0 else 0
+        # حساب المتوسطات باستخدام parse_number
+        total_views_raw = statistics.get('viewCount', 0)
+        total_videos_raw = statistics.get('videoCount', 1)
+        
+        total_views = parse_number(total_views_raw)
+        total_videos = parse_number(total_videos_raw)
+        
+        if total_videos > 0:
+            avg_views_raw = total_views / total_videos
+        else:
+            avg_views_raw = 0
         
         channel_details = {
             'title': snippet['title'],
@@ -112,8 +139,8 @@ async def get_channel_details(channel_identifier):
             'total_videos': format_number(total_videos),
             'hidden_subscribers': statistics.get('hiddenSubscriberCount', False),
             'privacy_status': status.get('privacyStatus', 'غير معروف'),
-            'avg_views_raw': int(avg_views_raw),           # القيمة الخام (رقم)
-            'avg_views': format_number(avg_views_raw),     # القيمة المنسقة (مثل 6.3K)
+            'avg_views_raw': int(avg_views_raw) if avg_views_raw > 0 else 0,
+            'avg_views': format_number(avg_views_raw) if avg_views_raw > 0 else '0',
             'latest_videos': latest_videos,
             'channel_id': channel_id
         }
@@ -184,8 +211,12 @@ def build_text_file(channel_details, is_premium):
     
     # الحصول على المتوسط المنسق
     avg_display = channel_details.get('avg_views', 'N/A')
-    if avg_display == 'N/A':
-        avg_display = format_number(channel_details.get('avg_views_raw', 0))
+    if avg_display == 'N/A' or avg_display == '0':
+        avg_raw = channel_details.get('avg_views_raw', 0)
+        if avg_raw > 0:
+            avg_display = format_number(avg_raw)
+        else:
+            avg_display = 'غير متاح'
     
     # خط فاصل (40 علامة)
     separator = "━" * 40
