@@ -618,7 +618,7 @@ def admin_dashboard():
             subscription = None
             if user.get('status') == 'premium':
                 try:
-                    sub_response = supabase.table('user_subscriptions_social').select('*, subscription_plans_social(name, name_ar)').eq('user_id', user_id).eq('status', 'active').execute()
+                    sub_response = supabase.table('user_subscriptions_social').select('*, user_subscriptions_poets(name, name_ar)').eq('user_id', user_id).eq('status', 'active').execute()
                     if sub_response.data:
                         subscription = sub_response.data[0]
                 except Exception as e:
@@ -649,7 +649,7 @@ def admin_dashboard():
                     'facebook': user.get('facebook_uses', 0)
                 },
                 'daily_uses': user.get('daily_uses', 0),
-                'subscription_plan': subscription.get('subscription_plans_social', {}).get('name_ar', '-') if subscription else '-',
+                'subscription_plan': subscription.get('user_subscriptions_poets', {}).get('name_ar', '-') if subscription else '-',
                 'subscription_end_date': subscription.get('end_date', '-') if subscription else '-',
                 'subscription_start_date': subscription.get('start_date', '-') if subscription else '-',
                 'gemini_limit': gemini_limit,
@@ -677,7 +677,7 @@ def admin_dashboard():
             subs_response = supabase.table('user_subscriptions_social').select('plan_id').eq('status', 'active').execute()
             if subs_response.data:
                 for sub in subs_response.data:
-                    plan_response = supabase.table('subscription_plans_social').select('name').eq('id', sub['plan_id']).execute()
+                    plan_response = supabase.table('user_subscriptions_poets').select('name').eq('id', sub['plan_id']).execute()
                     if plan_response.data:
                         plan_name = plan_response.data[0]['name']
                         if plan_name == 'monthly':
