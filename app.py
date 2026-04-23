@@ -930,49 +930,77 @@ def security_info():
 @app.route('/admin-prices', methods=['GET', 'POST'])
 @login_required
 def admin_prices():
-    """صفحة تعديل الأسعار والإعدادات - تعتمد على bot_settings_social"""
-    from utils.db import update_bot_setting, get_all_prices
+    """صفحة تعديل الأسعار والإعدادات - مع رسائل تأكيد"""
+    from utils.db import update_bot_setting, get_all_prices, supabase
+    from datetime import datetime
+    import json
+    
+    message = None
+    message_type = None  # 'success' or 'error'
     
     if request.method == 'POST':
         try:
             # حفظ الأسعار
-            update_bot_setting('price_monthly', request.form.get('price_monthly', '10'))
-            update_bot_setting('price_half_yearly', request.form.get('price_half_yearly', '30'))
-            update_bot_setting('price_yearly', request.form.get('price_yearly', '48'))
-            update_bot_setting('price_lifetime', request.form.get('price_lifetime', '100'))
+            settings_to_save = {
+                'price_monthly': request.form.get('price_monthly', '10'),
+                'price_half_yearly': request.form.get('price_half_yearly', '30'),
+                'price_yearly': request.form.get('price_yearly', '48'),
+                'price_lifetime': request.form.get('price_lifetime', '100'),
+                'duration_monthly': request.form.get('duration_monthly', '30'),
+                'duration_half_yearly': request.form.get('duration_half_yearly', '180'),
+                'duration_yearly': request.form.get('duration_yearly', '365'),
+                'duration_lifetime': request.form.get('duration_lifetime', '36500'),
+                'free_limit': request.form.get('free_limit', '2'),
+                'gemini_monthly_limit': request.form.get('gemini_monthly_limit', '20'),
+                'gemini_free_limit': request.form.get('gemini_free_limit', '0'),
+                'promo_active': request.form.get('promo_active', 'false'),
+                'promo_half_yearly': request.form.get('promo_half_yearly', '25'),
+                'promo_yearly': request.form.get('promo_yearly', '40'),
+                'promo_end_date': request.form.get('promo_end_date', ''),
+                'payment_number': request.form.get('payment_number', '772130931'),
+                'developer_link': request.form.get('developer_link', 'https://t.me/E_Alshabany'),
+                'bot_link': request.form.get('bot_link', 'https://t.me/Social_Media_tools_bot')
+            }
             
-            # حفظ المدة
-            update_bot_setting('duration_monthly', request.form.get('duration_monthly', '30'))
-            update_bot_setting('duration_half_yearly', request.form.get('duration_half_yearly', '180'))
-            update_bot_setting('duration_yearly', request.form.get('duration_yearly', '365'))
-            update_bot_setting('duration_lifetime', request.form.get('duration_lifetime', '36500'))
+            # حفظ كل إعداد على حدة
+            saved_count = 0
+            for key, value in settings_to_save.items():
+                try:
+                    result = supabase.table('bot_settings_social').upsert({
+                        'setting_key': key,
+                        'setting_value': str(value),
+                        'updated_at': datetime.now().isoformat()
+                    }, on_conflict='setting_key').execute()
+                    
+                    if result.data:
+                        saved_count += 1
+                except Exception as e:
+                    logger.error(f"Error saving {key}: {e}")
             
-            # حفظ الحدود
-            update_bot_setting('free_limit', request.form.get('free_limit', '2'))
-            update_bot_setting('gemini_monthly_limit', request.form.get('gemini_monthly_limit', '20'))
-            update_bot_setting('gemini_free_limit', request.form.get('gemini_free_limit', '0'))
+            if saved_count == len(settings_to_save):
+                message = f"✅ تم حفظ {saved_count} إعداد بنجاح!"
+                message_type = 'success'
+                logger.info(f"All {saved_count} settings updated successfully")
+            else:
+                message = f"⚠️ تم حفظ {saved_count} من {len(settings_to_save)} إعداد فقط"
+                message_type = 'warning'
             
-            # حفظ العروض
-            update_bot_setting('promo_active', request.form.get('promo_active', 'false'))
-            update_bot_setting('promo_half_yearly', request.form.get('promo_half_yearly', '25'))
-            update_bot_setting('promo_yearly', request.form.get('promo_yearly', '40'))
-            update_bot_setting('promo_end_date', request.form.get('promo_end_date', ''))
-            
-            # حفظ معلومات التواصل
-            update_bot_setting('payment_number', request.form.get('payment_number', '772130931'))
-            update_bot_setting('developer_link', request.form.get('developer_link', 'https://t.me/E_Alshabany'))
-            update_bot_setting('bot_link', request.form.get('bot_link', 'https://t.me/Social_Media_tools_bot'))
-            
-            logger.info("✅ All settings updated successfully")
-            return redirect(url_for('admin_prices'))
+            return redirect(url_for('admin_prices', msg=message, msg_type=message_type))
             
         except Exception as e:
             logger.error(f"Error updating settings: {e}")
-            return f"حدث خطأ في حفظ الإعدادات: {e}", 500
+            message = f"❌ حدث خطأ في حفظ الإعدادات: {str(e)}"
+            message_type = 'error'
+            return redirect(url_for('admin_prices', msg=message, msg_type=message_type))
     
     # عرض الإعدادات الحالية
     prices = get_all_prices()
-    return render_template('admin_prices.html', prices=prices)
+    
+    # قراءة رسائل من الـ URL
+    msg = request.args.get('msg')
+    msg_type = request.args.get('msg_type', 'info')
+    
+    return render_template('admin_prices.html', prices=prices, msg=msg, msg_type=msg_type)
 
 
 @app.route('/notifications-history')
