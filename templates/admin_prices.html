@@ -3,38 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تعديل الأسعار - لوحة التحكم</title>
+    <title>إدارة الإعدادات - بوت تحليل الحسابات</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
             background: #f5f7fa;
-            color: #1a2c3e;
             padding: 20px;
         }
         .container { max-width: 800px; margin: 0 auto; }
-        
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 25px;
+            padding: 20px;
             border-radius: 20px;
-            margin-bottom: 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
+            margin-bottom: 20px;
         }
-        .header h1 { font-size: 1.5rem; }
-        .back-btn {
-            background: rgba(255,255,255,0.2);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 10px;
-            text-decoration: none;
-        }
-        .back-btn:hover { background: rgba(255,255,255,0.3); }
-        
         .card {
             background: white;
             border-radius: 20px;
@@ -44,9 +28,9 @@
         }
         .card h2 {
             color: #667eea;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
             padding-bottom: 10px;
-            border-bottom: 2px solid #667eea;
         }
         .form-group {
             margin-bottom: 15px;
@@ -56,23 +40,22 @@
             gap: 10px;
         }
         .form-group label {
-            width: 150px;
+            width: 180px;
             font-weight: 500;
             color: #2c3e50;
         }
-        .form-group input {
+        .form-group input, .form-group select {
             flex: 1;
-            padding: 10px;
+            padding: 8px 12px;
             border: 1px solid #ddd;
             border-radius: 10px;
-            font-size: 1rem;
+            font-size: 14px;
         }
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        .price-input {
-            max-width: 150px;
+        .form-group small {
+            width: 100%;
+            color: #888;
+            font-size: 11px;
+            margin-right: 190px;
         }
         .save-btn {
             background: #667eea;
@@ -81,107 +64,100 @@
             padding: 12px 30px;
             border-radius: 10px;
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 16px;
             margin-top: 10px;
         }
         .save-btn:hover { background: #5a67d8; }
-        .row { display: flex; gap: 20px; flex-wrap: wrap; }
-        .col { flex: 1; min-width: 250px; }
-        hr { margin: 20px 0; border: none; border-top: 1px solid #eee; }
-        .note {
-            background: #fff3cd;
-            padding: 10px;
+        .back-btn {
+            background: #6c757d;
+            color: white;
+            padding: 10px 20px;
             border-radius: 10px;
-            color: #856404;
-            margin-top: 15px;
-            font-size: 0.85rem;
+            text-decoration: none;
+            display: inline-block;
         }
+        .row { display: flex; gap: 15px; flex-wrap: wrap; }
+        .col { flex: 1; min-width: 200px; }
+        hr { margin: 20px 0; border: none; border-top: 1px solid #eee; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>💰 تعديل الأسعار والإعدادات</h1>
-            <a href="/admin/dashboard" class="back-btn">🔙 العودة للوحة التحكم</a>
+            <h1>⚙️ إدارة إعدادات البوت</h1>
+            <p>تعديل الأسعار والحدود والإعدادات العامة</p>
         </div>
         
         <form method="POST">
             <div class="card">
-                <h2>📅 خطط الاشتراك</h2>
+                <h2>💰 الأسعار (دولار)</h2>
                 <div class="row">
                     <div class="col">
                         <div class="form-group">
-                            <label>🌙 شهري:</label>
-                            <input type="number" name="price_monthly" class="price-input" value="{{ prices.price_monthly }}" required> $
+                            <label>شهري:</label>
+                            <input type="number" name="price_monthly" value="{{ prices.price_monthly }}" step="1" required>
                         </div>
                         <div class="form-group">
-                            <label>📅 نصف سنوي:</label>
-                            <input type="number" name="price_half_yearly" class="price-input" value="{{ prices.price_half_yearly }}" required> $
+                            <label>نصف سنوي:</label>
+                            <input type="number" name="price_half_yearly" value="{{ prices.price_half_yearly }}" step="1" required>
                         </div>
                     </div>
                     <div class="col">
                         <div class="form-group">
-                            <label>🎉 سنوي:</label>
-                            <input type="number" name="price_yearly" class="price-input" value="{{ prices.price_yearly }}" required> $
+                            <label>سنوي:</label>
+                            <input type="number" name="price_yearly" value="{{ prices.price_yearly }}" step="1" required>
                         </div>
                         <div class="form-group">
-                            <label>💎 مدى الحياة:</label>
-                            <input type="number" name="price_lifetime" class="price-input" value="{{ prices.price_lifetime }}" required> $
+                            <label>مدى الحياة:</label>
+                            <input type="number" name="price_lifetime" value="{{ prices.price_lifetime }}" step="1" required>
                         </div>
                     </div>
-                </div>
-                <hr>
-                <div class="form-group">
-                    <label>📊 الحد اليومي المجاني:</label>
-                    <input type="number" name="free_limit" class="price-input" value="{{ prices.free_limit }}" required>
-                    <span>تحليل/يوم</span>
                 </div>
             </div>
             
             <div class="card">
-                <h2>🎁 العروض الترويجية</h2>
-                <div class="form-group">
-                    <label>تفعيل العروض:</label>
-                    <select name="promo_active">
-                        <option value="true" {% if prices.promo_active %}selected{% endif %}>✅ مفعل</option>
-                        <option value="false" {% if not prices.promo_active %}selected{% endif %}>❌ غير مفعل</option>
-                    </select>
-                </div>
+                <h2>📅 مدة الخطط (أيام)</h2>
                 <div class="row">
                     <div class="col">
-                        <div class="form-group">
-                            <label>سعر نصف سنوي (عرض):</label>
-                            <input type="number" name="promo_half_yearly" class="price-input" value="{{ prices.promo_half_yearly }}"> $
-                        </div>
+                        <div class="form-group"><label>شهري:</label><input type="number" name="duration_monthly" value="{{ prices.duration_monthly }}" step="1" required></div>
+                        <div class="form-group"><label>نصف سنوي:</label><input type="number" name="duration_half_yearly" value="{{ prices.duration_half_yearly }}" step="1" required></div>
                     </div>
                     <div class="col">
-                        <div class="form-group">
-                            <label>سعر سنوي (عرض):</label>
-                            <input type="number" name="promo_yearly" class="price-input" value="{{ prices.promo_yearly }}"> $
-                        </div>
+                        <div class="form-group"><label>سنوي:</label><input type="number" name="duration_yearly" value="{{ prices.duration_yearly }}" step="1" required></div>
+                        <div class="form-group"><label>مدى الحياة:</label><input type="number" name="duration_lifetime" value="{{ prices.duration_lifetime }}" step="1" required></div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>تاريخ انتهاء العرض:</label>
-                    <input type="date" name="promo_end_date" value="{{ prices.promo_end_date }}">
-                </div>
-                <div class="note">
-                    💡 ملاحظة: العروض الترويجية تظهر فقط إذا كان التفعيل "مفعل" وتاريخ الانتهاء مستقبلي
                 </div>
             </div>
             
-            <button type="submit" class="save-btn">💾 حفظ التغييرات</button>
+            <div class="card">
+                <h2>📊 حدود الاستخدام</h2>
+                <div class="form-group"><label>الحد اليومي للمجاني:</label><input type="number" name="free_limit" value="{{ prices.free_limit }}" step="1" required><small>عدد التحليلات اليومية للمستخدم المجاني</small></div>
+                <div class="form-group"><label>الحد الشهري للتوصيات (مميز):</label><input type="number" name="gemini_monthly_limit" value="{{ prices.gemini_monthly_limit }}" step="1" required><small>عدد توصيات الذكاء الاصطناعي للمستخدم المميز شهرياً</small></div>
+                <div class="form-group"><label>الحد الشهري للتوصيات (مجاني):</label><input type="number" name="gemini_free_limit" value="{{ prices.gemini_free_limit }}" step="1" required><small>0 = غير متاح</small></div>
+            </div>
+            
+            <div class="card">
+                <h2>🎁 العروض الترويجية</h2>
+                <div class="form-group"><label>تفعيل العروض:</label>
+                    <select name="promo_active"><option value="true" {% if prices.promo_active %}selected{% endif %}>مفعل</option><option value="false" {% if not prices.promo_active %}selected{% endif %}>غير مفعل</option></select>
+                </div>
+                <div class="row">
+                    <div class="col"><div class="form-group"><label>سعر نصف سنوي (عرض):</label><input type="number" name="promo_half_yearly" value="{{ prices.promo_half_yearly }}"></div></div>
+                    <div class="col"><div class="form-group"><label>سعر سنوي (عرض):</label><input type="number" name="promo_yearly" value="{{ prices.promo_yearly }}"></div></div>
+                </div>
+                <div class="form-group"><label>تاريخ انتهاء العرض:</label><input type="date" name="promo_end_date" value="{{ prices.promo_end_date }}"></div>
+            </div>
+            
+            <div class="card">
+                <h2>📞 معلومات التواصل</h2>
+                <div class="form-group"><label>رقم التحويل:</label><input type="text" name="payment_number" value="{{ prices.payment_number }}" required></div>
+                <div class="form-group"><label>رابط المطور:</label><input type="url" name="developer_link" value="{{ prices.developer_link }}"></div>
+                <div class="form-group"><label>رابط البوت:</label><input type="url" name="bot_link" value="{{ prices.bot_link }}"></div>
+            </div>
+            
+            <button type="submit" class="save-btn">💾 حفظ جميع التغييرات</button>
+            <a href="/admin/dashboard" class="back-btn">🔙 العودة للوحة التحكم</a>
         </form>
-        
-        <div class="card" style="margin-top: 20px;">
-            <h2>📖 تعليمات سريعة</h2>
-            <ul style="margin-right: 20px; line-height: 1.8;">
-                <li>📌 الأسعار الجديدة تظهر للمستخدمين فوراً في أمر /premium</li>
-                <li>📌 العروض الترويجية تظهر فقط عند تفعيلها</li>
-                <li>📌 الحد اليومي المجاني يتحكم بعدد التحليلات للمستخدمين المجانيين</li>
-                <li>📌 يمكنك تعديل الأسعار في أي وقت دون الحاجة لتعديل الكود</li>
-            </ul>
-        </div>
     </div>
 </body>
 </html>
