@@ -2020,7 +2020,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 async def username_check_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """فحص توافر اليوزرنيم"""
+    """فحص توافر اليوزرنيم للمستخدمين المميزين"""
     user_id = update.effective_user.id
     user_info = get_user_info(user_id)
     is_premium = user_info['status'] == 'premium' if user_info else False
@@ -2036,25 +2036,44 @@ async def username_check_command(update: Update, context: ContextTypes.DEFAULT_T
     )
     context.user_data['awaiting_username'] = True
 
+
 async def handle_username_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة اليوزرنيم المرسل للفحص"""
+    """معالجة اليوزرنيم المرسل للفحص وفحصه على جميع المنصات"""
     if not context.user_data.get('awaiting_username'):
         return
     
     username = update.message.text.strip()
     context.user_data['awaiting_username'] = False
     
-    await update.message.reply_text(
-        f"🔍 <b>نتيجة فحص اليوزرنيم @{escape_html(username)}</b>\n\n"
-        f"📊 <b>النتائج:</b>\n"
-        f"• 🎬 يوتيوب: ⏳ قيد التطوير\n"
-        f"• 📸 انستقرام: ⏳ قيد التطوير\n"
-        f"• 🎵 تيك توك: ⏳ قيد التطوير\n"
-        f"• 📘 فيسبوك: ⏳ قيد التطوير\n\n"
-        f"💎 <b>هذه الميزة ستعمل قريباً!</b>\n\n"
-        f"🚀 <b>قريباً في التحديث القادم</b>",
+    # إزالة @ إذا وجدت
+    if username.startswith('@'):
+        username = username[1:]
+    
+    # رسالة انتظار
+    status_msg = await update.message.reply_text(
+        f"⏳ جاري فحص اليوزرنيم @{escape_html(username)} على جميع المنصات...\n\n"
+        f"🎬 يوتيوب: 🔍 جاري\n"
+        f"📸 انستقرام: 🔍 جاري\n"
+        f"🎵 تيك توك: 🔍 جاري\n"
+        f"📘 فيسبوك: 🔍 جاري",
         parse_mode='HTML'
     )
+    
+    try:
+        # فحص اليوزرنيم باستخدام الدالة الجديدة
+        results = await check_username_availability(username)
+        result_text = format_check_result(results, username)
+        
+        await status_msg.edit_text(result_text, parse_mode='HTML')
+        
+    except Exception as e:
+        logger.error(f"Error checking username: {e}")
+        await status_msg.edit_text(
+            f"❌ حدث خطأ أثناء فحص اليوزرنيم @{escape_html(username)}\n\n"
+            f"📌 الخطأ: {str(e)[:100]}\n\n"
+            f"يرجى المحاولة مرة أخرى لاحقاً.",
+            parse_mode='HTML'
+        )
 
 # =================================================================================
 # القسم 22: الدالة الرئيسية (Main Function)
