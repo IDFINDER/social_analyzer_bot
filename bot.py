@@ -2103,6 +2103,19 @@ async def handle_username_check(update: Update, context: ContextTypes.DEFAULT_TY
 # القسم 22: الدالة الرئيسية (Main Function)
 # =================================================================================
 
+async def set_commands(application: Application):
+    """تحديد قائمة الأوامر التي تظهر عند كتابة / في البوت"""
+    commands = [
+        ("start", "بدء الاستخدام والتسجيل"),
+        ("help", "عرض المساعدة"),
+        ("mystats", "عرض إحصائياتي الشخصية"),
+        ("premium", "الاشتراك المميز"),
+        ("mydata", "عرض بياناتي المسجلة"),
+        ("edit", "تعديل بياناتي"),
+    ]
+    await application.bot.set_my_commands(commands)
+
+
 def main():
     """تشغيل البوت"""
     application = Application.builder().token(TOKEN).build()
@@ -2142,6 +2155,14 @@ def main():
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.add_handler(CallbackQueryHandler(button_callback))
     
+    # ========== إعداد قائمة الأوامر (Commands Menu) ==========
+    # إنشاء event loop جديد لتنفيذ الدالة غير المتزامنة
+    import asyncio
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(set_commands(application))
+    # =========================================================
+    
     # طباعة معلومات بدء التشغيل
     print("=" * 60)
     print("📊 Social Media Analyzer Bot - النسخة المميزة")
@@ -2159,7 +2180,6 @@ def main():
         drop_pending_updates=True,
         timeout=60
     )
-
 # =================================================================================
 # نقطة دخول البرنامج (Entry Point)
 # =================================================================================
