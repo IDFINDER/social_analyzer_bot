@@ -138,21 +138,19 @@ def increment_usage(user_id, platform, analysis_results=None):
         current_daily_uses = usage.get('daily_uses', 0) if usage else 0
         current_total_uses = usage.get('total_uses', 0) if usage else 0
         
-        # حساب القيم الجديدة
+        # حساب القيم الجديدة (نزيد daily_uses للجميع)
         new_platform_uses = current_platform_uses + 1
-        new_daily_uses = current_daily_uses + 1 if user['status'] == 'free' else current_daily_uses
+        new_daily_uses = current_daily_uses + 1  # ✅ تغيير: نزيد للجميع
         new_total_uses = current_total_uses + 1
         
-        # تحديث جدول users
+        # تحديث جدول users (نحدث daily_uses و last_use_date للجميع)
         update_data = {
             'total_uses': new_total_uses,
             'updated_at': datetime.now().isoformat(),
-            platform_column: new_platform_uses
+            platform_column: new_platform_uses,
+            'daily_uses': new_daily_uses,
+            'last_use_date': today
         }
-        
-        if user['status'] == 'free':
-            update_data['daily_uses'] = new_daily_uses
-            update_data['last_use_date'] = today
         
         supabase.table('users').update(update_data).eq('user_id', user_id).execute()
         
