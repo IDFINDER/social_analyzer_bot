@@ -376,7 +376,7 @@ async def my_data_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text, parse_mode='HTML', reply_markup=get_main_keyboard(is_premium))
 
 async def my_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """عرض إحصائيات المستخدم"""
+    """عرض إحصائيات المستخدم مع تفاصيل الخطة"""
     user_id = update.effective_user.id
     user_info = get_user_info(user_id)
     remaining = get_remaining_analyses(user_id)
@@ -384,22 +384,57 @@ async def my_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     is_premium = user_info['status'] == 'premium' if user_info else False
     
     if is_premium:
+        # جلب تفاصيل الاشتراك النشط
+        subscription = get_user_active_subscription(user_id)
+        
+        if subscription:
+            # جلب اسم الخطة من جدول الخطط
+            plan_response = supabase.table('subscription_plans_social').select('name_ar, name').eq('id', subscription['plan_id']).execute()
+            plan_name = plan_response.data[0]['name_ar'] if plan_response.data else 'مميز'
+            
+            # تنسيق تاريخ الانتهاء
+            end_date = subscription.get('end_date', '')
+            if end_date:
+                try:
+                    end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
+                    end_date_str = end_date_obj.strftime('%Y-%m-%d')
+                except:
+                    end_date_str = end_date
+            else:
+                end_date_str = 'غير محدد'
+            
+            plan_text = f"{plan_name} (تنتهي في: {end_date_str})"
+        else:
+            # إذا لم يكن هناك اشتراك مسجل ولكن المستخدم مميز
+            plan_text = "مميز"
+            end_date_str = user_info.get('premium_until', 'غير محدد')
+            if end_date_str and end_date_str != 'غير محدد':
+                plan_text = f"مميز (تنتهي في: {end_date_str})"
+        
         gemini_usage = can_use_gemini(user_id)
         gemini_remaining = gemini_usage[1] if isinstance(gemini_usage, tuple) and len(gemini_usage) > 1 else 0
         gemini_limit = get_user_gemini_limit(user_id)
-        text = Messages.STATS_PREMIUM.format(
-            user_name=user_info.get('first_name', '-'),
-            total=total,
-            gemini_remaining=gemini_remaining,
-            gemini_limit=gemini_limit  # ✅ الآن صحيح
-        )
+        
+        text = f"""
+📊 <b>إحصائياتي الشخصية</b>
+
+👤 <b>المستخدم:</b> {user_info.get('first_name', '-')}
+💎 <b>نوع الخطة:</b> 👑 {plan_text}
+📈 <b>إجمالي التحليلات:</b> {total}
+🤖 <b>توصيات AI المتبقية هذا الشهر:</b> {gemini_remaining}/{gemini_limit}
+📄 <b>صفحة البايو:</b> ✅ مفعلة
+🔍 <b>فحص اليوزرنيم:</b> ✅ متاح
+"""
     else:
-        text = Messages.STATS_FREE.format(
-            user_name=user_info.get('first_name', '-'),
-            remaining=remaining,
-            free_limit=FREE_LIMIT,
-            total=total
-        )
+        text = f"""
+📊 <b>إحصائياتي الشخصية</b>
+
+👤 <b>المستخدم:</b> {user_info.get('first_name', '-')}
+💎 <b>نوع الخطة:</b> 🎁 مجاني
+📊 <b>التحليلات المتبقية اليوم:</b> {remaining}/{FREE_LIMIT}
+📈 <b>إجمالي التحليلات:</b> {total}
+💎 <b>للترقية إلى خطة مميزة:</b> /premium
+"""
     await update.message.reply_text(text, parse_mode='HTML', reply_markup=get_main_keyboard(is_premium))
 
 # =================================================================================
