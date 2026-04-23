@@ -30,6 +30,7 @@ from utils.db import (
     get_user_gemini_limit, set_user_gemini_limit,
     get_user_active_subscription  # 🔴 أضف هذا السطر
 )
+from utils.username_checker import check_username_availability, format_check_result
 from utils.youtube_analyzer import get_channel_details, format_channel_report
 from utils.gemini_ai import get_channel_recommendations, get_username_recommendations
 from utils.helpers import escape_html
