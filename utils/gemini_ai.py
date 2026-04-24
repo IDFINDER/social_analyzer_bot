@@ -1,217 +1,99 @@
 # -*- coding: utf-8 -*-
 """
-دوال الذكاء الاصطناعي باستخدام Gemini API
+دوال الذكاء الاصطناعي باستخدام Gemini 3 Flash - الإصدار الاحترافي 2026
+المطور: E_Alshabany & Gemini AI Collaboration
 """
 
 import os
 import logging
-import requests
+import aiohttp
 import json
 
 logger = logging.getLogger(__name__)
 
-# ========== إعدادات Gemini API ==========
+# ========== إعدادات Gemini API المحدثة ==========
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-3-flash')
 
-# الحصول على النموذج من متغيرات البيئة (يمكن تغييره دون تعديل الكود)
-GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-1.5-pro')
-
-# النماذج الاحتياطية (إذا فشل النموذج الرئيسي)
 FALLBACK_MODELS = [
-    "gemini-3-flash-preview",
     "gemini-1.5-flash",
     "gemini-1.5-pro",
     "gemini-2.0-flash-exp",
-    "gemini-flash-latest",
 ]
 
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
+SYSTEM_INSTRUCTION = """
+أنت الآن "الخبير الاستراتيجي الأول لنمو السوشيال ميديا". مهمتك هي استقبال بيانات حساب وتحويلها إلى تقرير تنفيذي عالي المستوى.
+طبق القواعد التالية:
+1. التحليل العشوائي مرفوض: استخدم لغة الأرقام والنسب المئوية التقديرية.
+2. عقلية "مدير الحساب": أعطِ نصائح كأنك تديره فعلياً وتتحمل مسؤولية نموه.
+3. التركيز على الـ Retention: حلل أول 3 ثواني (الـ Hooks) واقترح بدائل تجذب المشاهد فوراً.
+4. استراتيجية الـ SEO: اقترح كلمات مفتاحية وأوسمة (Hashtags) ذكية لخوارزميات 2026.
+5. التنسيق: استخدم الجداول، الرموز التعبيرية، والخطوط العريضة.
+6. القيمة المضافة: قدم دائماً 10 أفكار محتوى و3 سكربتات جاهزة للتنفيذ.
+أجب باللغة العربية بأسلوب: احترافي، محفز، مباشر، وذكي جداً.
+"""
 
-async def call_gemini_api(prompt, max_tokens=800):
-    """
-    استدعاء Gemini API مع إمكانية استخدام نموذج بديل
-    """
+
+async def call_gemini_api(prompt, max_tokens=2000):
+    """استدعاء Gemini API بشكل غير متزامن"""
     if not GEMINI_API_KEY:
         return None, "⚠️ خدمة الذكاء الاصطناعي غير متاحة حالياً."
     
-    if len(GEMINI_API_KEY) < 10:
-        return None, "⚠️ مفتاح API غير صالح."
-    
-    # قائمة النماذج للتجربة (الأساسي + الاحتياطية)
     models_to_try = [GEMINI_MODEL] + FALLBACK_MODELS
     
-    for model in models_to_try:
-        try:
-            api_url = GEMINI_BASE_URL.format(model=model)
-            
-            response = requests.post(
-                f"{api_url}?key={GEMINI_API_KEY}",
-                headers={"Content-Type": "application/json"},
-                json={
+    async with aiohttp.ClientSession() as session:
+        for model in models_to_try:
+            try:
+                api_url = f"{GEMINI_BASE_URL.format(model=model)}?key={GEMINI_API_KEY}"
+                
+                full_content = f"{SYSTEM_INSTRUCTION}\n\nبيانات الحساب والمطلوب:\n{prompt}"
+                
+                payload = {
                     "contents": [{
-                        "parts": [{"text": prompt}]
+                        "parts": [{"text": full_content}]
                     }],
                     "generationConfig": {
-                        "temperature": 0.7,
+                        "temperature": 0.8,
                         "maxOutputTokens": max_tokens,
-                        "topP": 0.9
+                        "topP": 0.95
                     }
-                },
-                timeout=60
-            )
-            
-            if response.status_code == 200:
-                data = response.json()
-                result = data['candidates'][0]['content']['parts'][0]['text']
-                logger.info(f"✅ Gemini API succeeded with model: {model}")
-                return result, None
-            else:
-                logger.warning(f"Model {model} failed: {response.status_code}")
-                continue
+                }
                 
-        except Exception as e:
-            logger.warning(f"Error with model {model}: {e}")
-            continue
+                async with session.post(api_url, json=payload, timeout=60) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        result = data['candidates'][0]['content']['parts'][0]['text']
+                        logger.info(f"✅ Gemini API succeeded with model: {model}")
+                        return result, None
+                    else:
+                        error_text = await response.text()
+                        logger.warning(f"Model {model} failed: {response.status}")
+                        continue
+                        
+            except Exception as e:
+                logger.warning(f"Error with model {model}: {e}")
+                continue
     
     return None, "⚠️ عذراً، جميع نماذج الذكاء الاصطناعي غير متاحة حالياً."
 
 
-async def get_channel_recommendations(channel_details):
-    """
-    الحصول على توصيات لتحسين القناة (نسخة محسنة ومختصرة)
-    """
-    title = channel_details.get('title', 'غير معروف')
-    subscribers = channel_details.get('subscribers', '0')
-    total_views = channel_details.get('total_views', '0')
-    total_videos = channel_details.get('total_videos', '0')
-    avg_views = channel_details.get('avg_views', '0')
-    
+async def get_advanced_recommendations(channel_details, user_context=""):
+    """الدالة الرئيسية للتوصيات الاستراتيجية المتقدمة"""
     prompt = f"""
-قدم توصيات احترافية لتحسين قناة يوتيوب:
-
-📺 القناة: {title}
-👥 المشتركين: {subscribers}
-👁️ المشاهدات: {total_views}
-📹 الفيديوهات: {total_videos}
-📊 متوسط المشاهدات: {avg_views}
-
-المطلوب:
-1. نقاط القوة (ما يميز القناة)
-2. نقاط الضعف (الأخطاء الشائعة)
-3. 5 توصيات محددة لزيادة المشاهدات والمشتركين
-4. نصيحة أخيرة
-
-استخدم لغة عربية بسيطة، ورتب الإجابات بشكل واضح.
-"""
-    result, error = await call_gemini_api(prompt, max_tokens=1000)
-    return result if result else error
-
-
-async def get_advanced_recommendations(channel_details, prompt):
-    """
-    الحصول على توصيات متقدمة من Gemini API (مع تحليل تاريخي وذاكرة)
-    """
-    result, error = await call_gemini_api(prompt, max_tokens=2000)
-    
-    if error:
-        return error
-    return result
-
-
-async def get_username_recommendations(platform, current_username, target_username):
-    """
-    توصيات لتحسين اسم المستخدم (للمنصات المختلفة)
-    """
-    prompt = f"""
-قدم نصائح لتحسين اسم المستخدم:
-
-• المنصة: {platform}
-• الاسم الحالي: {current_username}
-• الاسم المطلوب: {target_username}
-
-المطلوب:
-1. هل الاسم {target_username} مناسب؟ لماذا؟
-2. اقتراح 3 أسماء بديلة أفضل
-3. نصائح عامة لاختيار اسم مستخدم جذاب
-
-استخدم لغة عربية مختصرة.
-"""
-    result, error = await call_gemini_api(prompt, max_tokens=500)
-    return result if result else error
-
-
-async def analyze_channel_strengths_weaknesses(channel_details):
-    """
-    تحليل نقاط القوة والضعف في القناة (بدون توصيات، فقط تحليل)
-    """
-    prompt = f"""
-حلل القناة التالية وأخبرني فقط نقاط القوة ونقاط الضعف:
-
+قم بتحليل قناة يوتيوب التالية بشكل استراتيجي:
 📺 القناة: {channel_details.get('title')}
 👥 المشتركين: {channel_details.get('subscribers')}
-👁️ المشاهدات: {channel_details.get('total_views')}
+👁️ المشاهدات الكلية: {channel_details.get('total_views')}
 📹 الفيديوهات: {channel_details.get('total_videos')}
 📊 متوسط المشاهدات: {channel_details.get('avg_views')}
+📝 سياق إضافي: {user_context if user_context else 'لا يوجد'}
 
 المطلوب:
-✅ نقاط القوة (3 نقاط)
-❌ نقاط الضعف (3 نقاط)
-
-لا تقدم توصيات الآن.
+1. تحليل نقاط القوة والضعف
+2. 10 أفكار محتوى جديدة
+3. 3 سكربتات جاهزة للتنفيذ
+4. استراتيجية نمو للأسبوعين القادمين
 """
-    result, error = await call_gemini_api(prompt, max_tokens=600)
-    return result if result else error
-
-
-async def get_growth_strategy(channel_details, period_days=30):
-    """
-    استراتيجية نمو مخصصة للقناة خلال فترة زمنية محددة
-    """
-    prompt = f"""
-ضع خطة نمو للقناة التالية خلال {period_days} يوماً:
-
-📺 القناة: {channel_details.get('title')}
-👥 المشتركين: {channel_details.get('subscribers')}
-👁️ المشاهدات: {channel_details.get('total_views')}
-📹 الفيديوهات: {channel_details.get('total_videos')}
-📊 متوسط المشاهدات: {channel_details.get('avg_views')}
-
-المطلوب:
-• هدف أسبوعي واقعي
-• 3 استراتيجيات رئيسية للتحقيق
-• مؤشرات قياس الأداء (KPIs)
-
-اجعل الخطة عملية وقابلة للتنفيذ.
-"""
-    result, error = await call_gemini_api(prompt, max_tokens=1200)
-    return result if result else error
-
-
-async def compare_with_similar_channels(current_channel, similar_channels_data):
-    """
-    مقارنة القناة الحالية بقنوات مشابهة (تحليل المنافسين)
-    """
-    prompt = f"""
-قارن القناة التالية مع قنوات مشابهة:
-
-📺 قناتي:
-• الاسم: {current_channel.get('title')}
-• المشتركين: {current_channel.get('subscribers')}
-• المشاهدات: {current_channel.get('total_views')}
-• الفيديوهات: {current_channel.get('total_videos')}
-
-📊 بيانات القنوات المشابهة المتوسطة:
-• متوسط المشتركين: {similar_channels_data.get('avg_subscribers', 'غير متوفر')}
-• متوسط المشاهدات: {similar_channels_data.get('avg_views', 'غير متوفر')}
-• متوسط الفيديوهات: {similar_channels_data.get('avg_videos', 'غير متوفر')}
-
-المطلوب:
-1. أين أتفوق على المنافسين؟
-2. أين أتأخر عنهم؟
-3. فرص للتحسين مقارنة بهم
-
-استخدم لغة عربية واضحة.
-"""
-    result, error = await call_gemini_api(prompt, max_tokens=800)
-    return result if result else error
+    return await call_gemini_api(prompt, max_tokens=2500)
