@@ -2103,12 +2103,12 @@ async def handle_username_check(update: Update, context: ContextTypes.DEFAULT_TY
 # =================================================================================
 
 async def set_commands(application: Application):
-    """تحديد قائمة الأوامر التي تظهر في القائمة الجانبية عند كتابة /"""
+    """تحديد قائمة الأوامر التي تظهر في القائمة الجانبية"""
     from telegram import BotCommand, BotCommandScopeDefault
     
     try:
         # حذف الأوامر القديمة
-        await application.bot.delete_my_commands(scope=BotCommandScopeDefault())
+        await application.bot.delete_my_commands()
         
         # تعيين الأوامر الجديدة
         commands = [
@@ -2120,11 +2120,7 @@ async def set_commands(application: Application):
             BotCommand(command="edit", description="تعديل بياناتي"),
         ]
         
-        await application.bot.set_my_commands(
-            commands=commands,
-            scope=BotCommandScopeDefault(),
-            language_code="ar"
-        )
+        await application.bot.set_my_commands(commands)
         
         print("✅ تم تعيين الأوامر التالية بنجاح:")
         for cmd in commands:
