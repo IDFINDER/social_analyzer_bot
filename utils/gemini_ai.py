@@ -65,6 +65,7 @@ async def call_gemini_api(prompt, max_tokens=2000):
     # الحصول على التوكن
     token, error = await get_access_token()
     if error:
+        logger.error(f"خطأ في التوكن: {error}")
         return None, error
     
     models_to_try = [GEMINI_MODEL] + FALLBACK_MODELS
@@ -72,7 +73,12 @@ async def call_gemini_api(prompt, max_tokens=2000):
     async with aiohttp.ClientSession() as session:
         for model in models_to_try:
             try:
-                api_url = f"{GEMINI_BASE_URL}/models/{model}:generateContent"
+                # ✅ تأكد من أن اسم النموذج صحيح
+                model_name = model
+                if not model_name.startswith("models/"):
+                    model_name = f"models/{model_name}"
+                
+                api_url = f"{GEMINI_BASE_URL}/{model_name}:generateContent"
                 headers = {
                     'Authorization': f'Bearer {token}',
                     'Content-Type': 'application/json'
@@ -92,6 +98,8 @@ async def call_gemini_api(prompt, max_tokens=2000):
                     }
                 }
                 
+                logger.info(f"محاولة الاتصال بالنموذج: {model_name}")
+                
                 async with session.post(api_url, headers=headers, json=payload, timeout=60) as response:
                     if response.status == 200:
                         data = await response.json()
@@ -100,7 +108,7 @@ async def call_gemini_api(prompt, max_tokens=2000):
                         return result, None
                     else:
                         error_text = await response.text()
-                        logger.warning(f"Model {model} failed: {response.status} - {error_text[:100]}")
+                        logger.warning(f"Model {model} failed: {response.status} - {error_text[:200]}")
                         continue
                         
             except asyncio.TimeoutError:
