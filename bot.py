@@ -14,7 +14,7 @@ import logging
 import threading
 import asyncio
 from datetime import datetime, date, timedelta
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, BotCommand
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler, ConversationHandler
 from flask import Flask, request, render_template, jsonify
 
@@ -2098,22 +2098,45 @@ async def handle_username_check(update: Update, context: ContextTypes.DEFAULT_TY
             f"يرجى المحاولة مرة أخرى لاحقاً.",
             parse_mode='HTML'
         )
+# =================================================================================
+# إعداد قائمة الأوامر (Commands Menu)
+# =================================================================================
 
+async def set_commands(application: Application):
+    """تحديد قائمة الأوامر التي تظهر في القائمة الجانبية عند كتابة /"""
+    from telegram import BotCommand, BotCommandScopeDefault
+    
+    try:
+        # حذف الأوامر القديمة
+        await application.bot.delete_my_commands(scope=BotCommandScopeDefault())
+        
+        # تعيين الأوامر الجديدة
+        commands = [
+            BotCommand(command="start", description="بدء الاستخدام والتسجيل"),
+            BotCommand(command="help", description="عرض المساعدة"),
+            BotCommand(command="mystats", description="عرض إحصائياتي الشخصية"),
+            BotCommand(command="premium", description="الاشتراك المميز"),
+            BotCommand(command="mydata", description="عرض بياناتي المسجلة"),
+            BotCommand(command="edit", description="تعديل بياناتي"),
+        ]
+        
+        await application.bot.set_my_commands(
+            commands=commands,
+            scope=BotCommandScopeDefault(),
+            language_code="ar"
+        )
+        
+        print("✅ تم تعيين الأوامر التالية بنجاح:")
+        for cmd in commands:
+            print(f"   /{cmd.command} - {cmd.description}")
+            
+    except Exception as e:
+        print(f"❌ خطأ في تعيين الأوامر: {e}")
 # =================================================================================
 # القسم 22: الدالة الرئيسية (Main Function)
 # =================================================================================
 
-async def set_commands(application: Application):
-    """تحديد قائمة الأوامر التي تظهر عند كتابة / في البوت"""
-    commands = [
-        ("start", "بدء الاستخدام والتسجيل"),
-        ("help", "عرض المساعدة"),
-        ("mystats", "عرض إحصائياتي الشخصية"),
-        ("premium", "الاشتراك المميز"),
-        ("mydata", "عرض بياناتي المسجلة"),
-        ("edit", "تعديل بياناتي"),
-    ]
-    await application.bot.set_my_commands(commands)
+
 
 
 def main():
@@ -2155,13 +2178,12 @@ def main():
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.add_handler(CallbackQueryHandler(button_callback))
     
-    # ========== إعداد قائمة الأوامر (Commands Menu) ==========
-    # إنشاء event loop جديد لتنفيذ الدالة غير المتزامنة
+    # ========== إعداد قائمة الأوامر ==========
     import asyncio
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(set_commands(application))
-    # =========================================================
+    # ========================================
     
     # طباعة معلومات بدء التشغيل
     print("=" * 60)
