@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-دوال الذكاء الاصطناعي باستخدام Gemini 3 Flash - الإصدار الاحترافي 2026
-المطور: E_Alshabany & Gemini AI Collaboration
+دوال الذكاء الاصطناعي باستخدام Gemini API - النسخة المحسنة
 """
 
 import os
@@ -11,52 +10,33 @@ import json
 
 logger = logging.getLogger(__name__)
 
-# ========== إعدادات Gemini API المحدثة ==========
+# ========== إعدادات Gemini API ==========
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
-GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-3-flash')
+GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-flash-latest')
 
 FALLBACK_MODELS = [
-    "gemini-flash-latest",
     "gemini-1.5-flash",
     "gemini-1.5-pro",
 ]
 
-GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-
-SYSTEM_INSTRUCTION = """
-أنت الآن "الخبير الاستراتيجي الأول لنمو السوشيال ميديا". مهمتك هي استقبال بيانات حساب وتحويلها إلى تقرير تنفيذي عالي المستوى.
-طبق القواعد التالية:
-1. التحليل العشوائي مرفوض: استخدم لغة الأرقام والنسب المئوية التقديرية.
-2. عقلية "مدير الحساب": أعطِ نصائح كأنك تديره فعلياً وتتحمل مسؤولية نموه.
-3. التركيز على الـ Retention: حلل أول 3 ثواني (الـ Hooks) واقترح بدائل تجذب المشاهد فوراً.
-4. استراتيجية الـ SEO: اقترح كلمات مفتاحية وأوسمة (Hashtags) ذكية لخوارزميات 2026.
-5. التنسيق: استخدم الجداول، الرموز التعبيرية، والخطوط العريضة.
-6. القيمة المضافة: قدم دائماً 10 أفكار محتوى و3 سكربتات جاهزة للتنفيذ.
-أجب باللغة العربية بأسلوب: احترافي، محفز، مباشر، وذكي جداً.
-"""
+GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
 
 
 async def call_gemini_api(prompt, max_tokens=2000):
-    """استدعاء Gemini API بشكل غير متزامن مع إمكانية التبديل التلقائي للنماذج"""
+    """استدعاء Gemini API بشكل غير متزامن"""
     if not GEMINI_API_KEY:
         return None, "⚠️ خدمة الذكاء الاصطناعي غير متاحة حالياً."
-    
-    if len(GEMINI_API_KEY) < 10:
-        return None, "⚠️ مفتاح API غير صالح."
     
     models_to_try = [GEMINI_MODEL] + FALLBACK_MODELS
     
     async with aiohttp.ClientSession() as session:
         for model in models_to_try:
             try:
-                api_url = f"{GEMINI_BASE_URL.format(model=model)}?key={GEMINI_API_KEY}"
-                
-                # دمج التعليمات البرمجية مع طلب المستخدم
-                full_content = f"{SYSTEM_INSTRUCTION}\n\nبيانات الحساب والمطلوب:\n{prompt}"
+                api_url = GEMINI_BASE_URL.format(model=model, key=GEMINI_API_KEY)
                 
                 payload = {
                     "contents": [{
-                        "parts": [{"text": full_content}]
+                        "parts": [{"text": prompt}]
                     }],
                     "generationConfig": {
                         "temperature": 0.8,
@@ -72,112 +52,71 @@ async def call_gemini_api(prompt, max_tokens=2000):
                         logger.info(f"✅ Gemini API succeeded with model: {model}")
                         return result, None
                     else:
-                        error_text = await response.text()
                         logger.warning(f"Model {model} failed: {response.status}")
                         continue
                         
-            except asyncio.TimeoutError:
-                logger.warning(f"Timeout with model {model}")
-                continue
             except Exception as e:
                 logger.warning(f"Error with model {model}: {e}")
                 continue
     
-    return None, "⚠️ عذراً، جميع نماذج الذكاء الاصطناعي غير متاحة حالياً."
+    return None, "⚠️ جميع نماذج الذكاء الاصطناعي غير متاحة حالياً."
 
 
 async def get_advanced_recommendations(channel_details, user_context=""):
     """
-    الدالة الرئيسية للتوصيات الاستراتيجية المتقدمة (النسخة الاحترافية)
+    الدالة الرئيسية للتوصيات (نسخة مختصرة ولكنها مكتملة)
     """
     prompt = f"""
-📊 تحليل استراتيجي لقناة يوتيوب:
+أنت خبير استراتيجي في تحسين قنوات يوتيوب. قدم تقريراً مختصراً ولكنه مكتمل لهذه القناة:
 
-📺 اسم القناة: {channel_details.get('title', 'غير معروف')}
-👥 عدد المشتركين: {channel_details.get('subscribers', '0')}
-👁️ إجمالي المشاهدات: {channel_details.get('total_views', '0')}
-📹 عدد الفيديوهات: {channel_details.get('total_videos', '0')}
+📺 القناة: {channel_details.get('title', 'غير معروف')}
+👥 المشتركين: {channel_details.get('subscribers', '0')}
+👁️ المشاهدات: {channel_details.get('total_views', '0')}
+📹 الفيديوهات: {channel_details.get('total_videos', '0')}
 📊 متوسط المشاهدات: {channel_details.get('avg_views', '0')}
 
-📝 ملاحظات إضافية: {user_context if user_context else 'لا توجد ملاحظات إضافية'}
+⚠️ تعليمات مهمة:
+1. كن مختصراً ومركزاً (لا تزيد عن 1500 رمز)
+2. استخدم الرموز التعبيرية بشكل بسيط
+3. رتب التوصيات في نقاط واضحة
 
-المطلوب:
-1 تحليل نقاط القوة والضعف
-2 5 أفكار محتوى مبتكرة وجاهزة للتصوير
-3 استراتيجية نمو للأسبوعين القادمين
-4 نصائح لتحسين الـ Hooks والعناوين SEO
+المطلوب (باختصار):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 نقاط القوة والضعف (نقطتان لكل منهما)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎬 تحليل الـ Hooks (اقتراحان)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💡 5 أفكار محتوى جديدة (عنوان + شرح قصير)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📜 سكربت واحد جاهز (30 ثانية)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚀 3 نصائح سريعة للنمو
 
-⚠️ استخدم اللغة العربية الفصحى البسيطة مع لمسة شبابية جذابة.
+استخدم اللغة العربية البسيطة، واجعل التقرير سهل القراءة.
 """
-    result, error = await call_gemini_api(prompt, max_tokens=2500)
+    result, error = await call_gemini_api(prompt, max_tokens=2000)
     return result if result else error
 
 
 async def get_channel_recommendations(channel_details):
-    """دالة للتوافق مع الكود القديم (تستخدم التوصيات المتقدمة)"""
+    """دالة للتوافق مع الكود القديم"""
     return await get_advanced_recommendations(channel_details)
 
 
 async def get_username_recommendations(platform, current_username, target_username):
-    """توصيات لتحسين اسم المستخدم (للمنصات المختلفة)"""
+    """توصيات لتحسين اسم المستخدم"""
     prompt = f"""
-قدم نصائح احترافية لتحسين اسم المستخدم:
+قدم نصائح مختصرة لتحسين اسم المستخدم على {platform}:
 
-• المنصة: {platform}
 • الاسم الحالي: {current_username}
-• الاسم المطلوب التحقق منه: {target_username}
+• الاسم المطلوب: {target_username}
 
 المطلوب:
-1. تقييم الاسم {target_username} (مناسب/غير مناسب مع الشرح)
-2. اقتراح 2 أسماء بديلة أفضل مع شرح سبب الاقتراح
-3. 3 نصائح عامة لاختيار اسم مستخدم جذاب لا يُنسى
+1. هل الاسم مناسب؟ (جملة واحدة)
+2. اقتراح اسمين بديلين
+3. 3 نصائح سريعة لاختيار اسم جذاب
 
-استخدم لغة عربية واضحة واحترافية.
+كن مختصراً ومباشراً.
 """
     result, error = await call_gemini_api(prompt, max_tokens=500)
-    return result if result else error
-
-
-# ========== دوال للتوافق مع الكود القديم (يمكن الاستغناء عنها لاحقاً) ==========
-
-async def analyze_channel_strengths_weaknesses(channel_details):
-    """تحليل نقاط القوة والضعف (متوافق مع الكود القديم)"""
-    prompt = f"""
-حلل القناة التالية وأخبرني فقط نقاط القوة ونقاط الضعف:
-
-📺 القناة: {channel_details.get('title')}
-👥 المشتركين: {channel_details.get('subscribers')}
-👁️ المشاهدات: {channel_details.get('total_views')}
-📹 الفيديوهات: {channel_details.get('total_videos')}
-📊 متوسط المشاهدات: {channel_details.get('avg_views')}
-
-المطلوب:
-✅ نقاط القوة (3 نقاط مع شرح)
-❌ نقاط الضعف (3 نقاط مع شرح)
-
-لا تقدم توصيات الآن، فقط تحليل.
-"""
-    result, error = await call_gemini_api(prompt, max_tokens=600)
-    return result if result else error
-
-
-async def get_growth_strategy(channel_details, period_days=30):
-    """استراتيجية نمو مخصصة (متوافق مع الكود القديم)"""
-    prompt = f"""
-ضع خطة نمو عملية للقناة التالية خلال {period_days} يوماً:
-
-📺 القناة: {channel_details.get('title')}
-👥 المشتركين: {channel_details.get('subscribers')}
-👁️ المشاهدات: {channel_details.get('total_views')}
-📹 الفيديوهات: {channel_details.get('total_videos')}
-📊 متوسط المشاهدات: {channel_details.get('avg_views')}
-
-المطلوب:
-• هدف أسبوعي واقعي وقابل للقياس
-• 3 استراتيجيات رئيسية للتحقيق
-• مؤشرات قياس الأداء (KPIs) لتتبع التقدم
-
-اجعل الخطة عملية وتناسب حجم القناة.
-"""
-    result, error = await call_gemini_api(prompt, max_tokens=1000)
     return result if result else error
