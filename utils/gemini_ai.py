@@ -3,7 +3,7 @@
 دوال الذكاء الاصطناعي باستخدام Gemini API مع Service Account
 الإصدار الاحترافي 2026
 """
-
+import asyncio
 import os
 import json
 import logging
