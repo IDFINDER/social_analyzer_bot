@@ -14,14 +14,15 @@ logger = logging.getLogger(__name__)
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 
 # الحصول على النموذج من متغيرات البيئة (يمكن تغييره دون تعديل الكود)
-GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-1.5-flash')
+GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-1.5-pro')
 
 # النماذج الاحتياطية (إذا فشل النموذج الرئيسي)
 FALLBACK_MODELS = [
-    "gemini-flash-latest",
+    "gemini-3-flash-preview",
+    "gemini-1.5-flash",
     "gemini-1.5-pro",
-    "gemini-pro",
-    "gemini-1.0-pro",
+    "gemini-2.0-flash-exp",
+    "gemini-flash-latest",
 ]
 
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
@@ -57,7 +58,7 @@ async def call_gemini_api(prompt, max_tokens=800):
                         "topP": 0.9
                     }
                 },
-                timeout=60  # زيادة المهلة للتوصيات الطويلة
+                timeout=60
             )
             
             if response.status_code == 200:
@@ -80,7 +81,6 @@ async def get_channel_recommendations(channel_details):
     """
     الحصول على توصيات لتحسين القناة (نسخة محسنة ومختصرة)
     """
-    # استخراج البيانات الأساسية فقط
     title = channel_details.get('title', 'غير معروف')
     subscribers = channel_details.get('subscribers', '0')
     total_views = channel_details.get('total_views', '0')
