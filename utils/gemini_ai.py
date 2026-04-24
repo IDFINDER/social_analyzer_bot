@@ -37,9 +37,12 @@ SYSTEM_INSTRUCTION = """
 
 
 async def call_gemini_api(prompt, max_tokens=2000):
-    """استدعاء Gemini API بشكل غير متزامن"""
+    """استدعاء Gemini API بشكل غير متزامن مع إمكانية التبديل التلقائي للنماذج"""
     if not GEMINI_API_KEY:
         return None, "⚠️ خدمة الذكاء الاصطناعي غير متاحة حالياً."
+    
+    if len(GEMINI_API_KEY) < 10:
+        return None, "⚠️ مفتاح API غير صالح."
     
     models_to_try = [GEMINI_MODEL] + FALLBACK_MODELS
     
@@ -48,6 +51,7 @@ async def call_gemini_api(prompt, max_tokens=2000):
             try:
                 api_url = f"{GEMINI_BASE_URL.format(model=model)}?key={GEMINI_API_KEY}"
                 
+                # دمج التعليمات البرمجية مع طلب المستخدم
                 full_content = f"{SYSTEM_INSTRUCTION}\n\nبيانات الحساب والمطلوب:\n{prompt}"
                 
                 payload = {
@@ -72,6 +76,9 @@ async def call_gemini_api(prompt, max_tokens=2000):
                         logger.warning(f"Model {model} failed: {response.status}")
                         continue
                         
+            except asyncio.TimeoutError:
+                logger.warning(f"Timeout with model {model}")
+                continue
             except Exception as e:
                 logger.warning(f"Error with model {model}: {e}")
                 continue
@@ -80,20 +87,98 @@ async def call_gemini_api(prompt, max_tokens=2000):
 
 
 async def get_advanced_recommendations(channel_details, user_context=""):
-    """الدالة الرئيسية للتوصيات الاستراتيجية المتقدمة"""
+    """
+    الدالة الرئيسية للتوصيات الاستراتيجية المتقدمة (النسخة الاحترافية)
+    """
     prompt = f"""
-قم بتحليل قناة يوتيوب التالية بشكل استراتيجي:
-📺 القناة: {channel_details.get('title')}
-👥 المشتركين: {channel_details.get('subscribers')}
-👁️ المشاهدات الكلية: {channel_details.get('total_views')}
-📹 الفيديوهات: {channel_details.get('total_videos')}
-📊 متوسط المشاهدات: {channel_details.get('avg_views')}
-📝 سياق إضافي: {user_context if user_context else 'لا يوجد'}
+📊 تحليل استراتيجي لقناة يوتيوب:
+
+📺 اسم القناة: {channel_details.get('title', 'غير معروف')}
+👥 عدد المشتركين: {channel_details.get('subscribers', '0')}
+👁️ إجمالي المشاهدات: {channel_details.get('total_views', '0')}
+📹 عدد الفيديوهات: {channel_details.get('total_videos', '0')}
+📊 متوسط المشاهدات: {channel_details.get('avg_views', '0')}
+
+📝 ملاحظات إضافية: {user_context if user_context else 'لا توجد ملاحظات إضافية'}
 
 المطلوب:
-1. تحليل نقاط القوة والضعف
-2. 10 أفكار محتوى جديدة
-3. 3 سكربتات جاهزة للتنفيذ
-4. استراتيجية نمو للأسبوعين القادمين
+1️⃣ تحليل نقاط القوة والضعف
+2️⃣ 10 أفكار محتوى مبتكرة وجاهزة للتصوير
+3️⃣ 3 سكربتات مفصلة (لكل فكرة رئيسية)
+4️⃣ استراتيجية نمو للأسبوعين القادمين
+5️⃣ نصائح لتحسين الـ Hooks والعناوين SEO
+
+⚠️ استخدم اللغة العربية الفصحى البسيطة مع لمسة شبابية جذابة.
 """
-    return await call_gemini_api(prompt, max_tokens=2500)
+    result, error = await call_gemini_api(prompt, max_tokens=2500)
+    return result if result else error
+
+
+async def get_channel_recommendations(channel_details):
+    """دالة للتوافق مع الكود القديم (تستخدم التوصيات المتقدمة)"""
+    return await get_advanced_recommendations(channel_details)
+
+
+async def get_username_recommendations(platform, current_username, target_username):
+    """توصيات لتحسين اسم المستخدم (للمنصات المختلفة)"""
+    prompt = f"""
+قدم نصائح احترافية لتحسين اسم المستخدم:
+
+• المنصة: {platform}
+• الاسم الحالي: {current_username}
+• الاسم المطلوب التحقق منه: {target_username}
+
+المطلوب:
+1. تقييم الاسم {target_username} (مناسب/غير مناسب مع الشرح)
+2. اقتراح 3 أسماء بديلة أفضل مع شرح سبب الاقتراح
+3. 5 نصائح عامة لاختيار اسم مستخدم جذاب لا يُنسى
+
+استخدم لغة عربية واضحة واحترافية.
+"""
+    result, error = await call_gemini_api(prompt, max_tokens=500)
+    return result if result else error
+
+
+# ========== دوال للتوافق مع الكود القديم (يمكن الاستغناء عنها لاحقاً) ==========
+
+async def analyze_channel_strengths_weaknesses(channel_details):
+    """تحليل نقاط القوة والضعف (متوافق مع الكود القديم)"""
+    prompt = f"""
+حلل القناة التالية وأخبرني فقط نقاط القوة ونقاط الضعف:
+
+📺 القناة: {channel_details.get('title')}
+👥 المشتركين: {channel_details.get('subscribers')}
+👁️ المشاهدات: {channel_details.get('total_views')}
+📹 الفيديوهات: {channel_details.get('total_videos')}
+📊 متوسط المشاهدات: {channel_details.get('avg_views')}
+
+المطلوب:
+✅ نقاط القوة (3 نقاط مع شرح)
+❌ نقاط الضعف (3 نقاط مع شرح)
+
+لا تقدم توصيات الآن، فقط تحليل.
+"""
+    result, error = await call_gemini_api(prompt, max_tokens=600)
+    return result if result else error
+
+
+async def get_growth_strategy(channel_details, period_days=30):
+    """استراتيجية نمو مخصصة (متوافق مع الكود القديم)"""
+    prompt = f"""
+ضع خطة نمو عملية للقناة التالية خلال {period_days} يوماً:
+
+📺 القناة: {channel_details.get('title')}
+👥 المشتركين: {channel_details.get('subscribers')}
+👁️ المشاهدات: {channel_details.get('total_views')}
+📹 الفيديوهات: {channel_details.get('total_videos')}
+📊 متوسط المشاهدات: {channel_details.get('avg_views')}
+
+المطلوب:
+• هدف أسبوعي واقعي وقابل للقياس
+• 3 استراتيجيات رئيسية للتحقيق
+• مؤشرات قياس الأداء (KPIs) لتتبع التقدم
+
+اجعل الخطة عملية وتناسب حجم القناة.
+"""
+    result, error = await call_gemini_api(prompt, max_tokens=1000)
+    return result if result else error
