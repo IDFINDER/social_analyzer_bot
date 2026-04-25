@@ -1,95 +1,42 @@
 # -*- coding: utf-8 -*-
 """
-دوال الذكاء الاصطناعي باستخدام Gemini API مع Service Account
-الإصدار الاحترافي 2026
+دوال الذكاء الاصطناعي باستخدام Gemini API - النسخة المستقرة
 """
-import asyncio
+
 import os
-import json
 import logging
 import aiohttp
-from google.oauth2 import service_account
-import google.auth.transport.requests
+import json
 
 logger = logging.getLogger(__name__)
 
 # ========== إعدادات Gemini API ==========
-# سيتم قراءة بيانات اعتماد Service Account من متغير البيئة
-GOOGLE_CREDENTIALS_JSON = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS_JSON')
-GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-1.5-flash')
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+GEMINI_MODEL = os.environ.get('GEMINI_MODEL', 'gemini-flash-latest')
 
-# نماذج احتياطية (في حال فشل النموذج الأساسي)
 FALLBACK_MODELS = [
+    "gemini-1.5-flash",
     "gemini-1.5-pro",
-    "gemini-2.0-flash-exp",
-    "gemini-flash-latest",
 ]
 
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 
-# البرومبت السحري (System Instruction) ليتم دمجه مع كل طلب
-SYSTEM_INSTRUCTION = """
-أنت الآن "الخبير الاستراتيجي الأول لنمو السوشيال ميديا". طبق القواعد التالية:
-1. استخدم لغة الأرقام والنسب المئوية التقديرية.
-2. قدم نصائح كأنك تدير الحساب فعلياً.
-3. حلل الـ Hooks واقترح بدائل.
-4. اقترح كلمات مفتاحية وأوسمة لخوارزميات 2026.
-5. استخدم الجداول والرموز التعبيرية بشكل بسيط.
-6. قدم 5 أفكار محتوى وسكربتاً واحداً جاهزاً.
-أجب باللغة العربية بأسلوب احترافي محفز.
-"""
-
-
-async def get_access_token():
-    """جلب توكن وصول (Access Token) من Service Account"""
-    if not GOOGLE_CREDENTIALS_JSON:
-        return None, "⚠️ متغير GOOGLE_APPLICATION_CREDENTIALS_JSON غير موجود في البيئة"
-    
-    try:
-        creds_dict = json.loads(GOOGLE_CREDENTIALS_JSON)
-        credentials = service_account.Credentials.from_service_account_info(
-            creds_dict,
-            scopes=['https://www.googleapis.com/auth/cloud-platform']
-        )
-        # تجديد التوكن إذا كان منتهياً
-        auth_req = google.auth.transport.requests.Request()
-        credentials.refresh(auth_req)
-        return credentials.token, None
-    except Exception as e:
-        logger.error(f"خطأ في الحصول على التوكن: {e}")
-        return None, f"⚠️ فشل المصادقة: {str(e)[:100]}"
-
 
 async def call_gemini_api(prompt, max_tokens=2000):
-    """استدعاء Gemini API باستخدام Bearer Token من Service Account"""
-    # الحصول على التوكن
-    token, error = await get_access_token()
-    if error:
-        logger.error(f"خطأ في التوكن: {error}")
-        return None, error
+    """استدعاء Gemini API"""
+    if not GEMINI_API_KEY:
+        return None, "⚠️ خدمة الذكاء الاصطناعي غير متاحة حالياً."
     
     models_to_try = [GEMINI_MODEL] + FALLBACK_MODELS
     
     async with aiohttp.ClientSession() as session:
         for model in models_to_try:
             try:
-                # ✅ تأكد من أن اسم النموذج صحيح
-                model_name = model
-                if not model_name.startswith("models/"):
-                    model_name = f"models/{model_name}"
-                
-                api_url = f"{GEMINI_BASE_URL}/{model_name}:generateContent"
-                headers = {
-                    'Authorization': f'Bearer {token}',
-                    'Content-Type': 'application/json'
-                }
-                
-                # دمج التعليمات البرمجية مع طلب المستخدم
-                full_content = f"{SYSTEM_INSTRUCTION}\n\n{prompt}"
+                api_url = f"{GEMINI_BASE_URL}/models/{model}:generateContent?key={GEMINI_API_KEY}"
                 
                 payload = {
                     "contents": [{
-                        "parts": [{"text": full_content}]
+                        "parts": [{"text": prompt}]
                     }],
                     "generationConfig": {
                         "temperature": 0.8,
@@ -98,22 +45,16 @@ async def call_gemini_api(prompt, max_tokens=2000):
                     }
                 }
                 
-                logger.info(f"محاولة الاتصال بالنموذج: {model_name}")
-                
-                async with session.post(api_url, headers=headers, json=payload, timeout=60) as response:
+                async with session.post(api_url, json=payload, timeout=60) as response:
                     if response.status == 200:
                         data = await response.json()
                         result = data['candidates'][0]['content']['parts'][0]['text']
                         logger.info(f"✅ Gemini API succeeded with model: {model}")
                         return result, None
                     else:
-                        error_text = await response.text()
-                        logger.warning(f"Model {model} failed: {response.status} - {error_text[:200]}")
+                        logger.warning(f"Model {model} failed: {response.status}")
                         continue
                         
-            except asyncio.TimeoutError:
-                logger.warning(f"Timeout with model {model}")
-                continue
             except Exception as e:
                 logger.warning(f"Error with model {model}: {e}")
                 continue
@@ -122,11 +63,9 @@ async def call_gemini_api(prompt, max_tokens=2000):
 
 
 async def get_advanced_recommendations(channel_details, user_context=""):
-    """
-    الدالة الرئيسية للتوصيات الاستراتيجية المتقدمة (نسخة مختصرة مكتملة)
-    """
+    """الدالة الرئيسية للتوصيات (نسخة مختصرة مكتملة)"""
     prompt = f"""
-📊 تحليل استراتيجي لقناة يوتيوب (مختصر ومكتمل):
+أنت خبير استراتيجي في تحسين قنوات يوتيوب. قدم تقريراً مختصراً ولكنه مكتمل لهذه القناة:
 
 📺 القناة: {channel_details.get('title', 'غير معروف')}
 👥 المشتركين: {channel_details.get('subscribers', '0')}
@@ -134,23 +73,21 @@ async def get_advanced_recommendations(channel_details, user_context=""):
 📹 الفيديوهات: {channel_details.get('total_videos', '0')}
 📊 متوسط المشاهدات: {channel_details.get('avg_views', '0')}
 
-📝 سياق إضافي: {user_context if user_context else 'لا يوجد'}
-
-المطلوب (باختصار):
+المطلوب:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📊 نقطتا قوة ونقطتا ضعف
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎬 اقتراحان لتحسين أول 3 ثوانٍ (Hooks)
+🎬 اقتراحان لتحسين أول 3 ثوانٍ
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-💡 5 أفكار محتوى جديدة (عنوان + شرح قصير)
+💡 5 أفكار محتوى جديدة (عنوان + جملة شرح)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📜 سكربت واحد جاهز (30 ثانية)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🚀 3 نصائح سريعة للنمو
 
-اجعل الإجابات مركزة ومباشرة. استخدم لغة عربية سلسة.
+استخدم اللغة العربية، كن مختصراً ومركزاً.
 """
-    result, error = await call_gemini_api(prompt, max_tokens=2000)
+    result, error = await call_gemini_api(prompt, max_tokens=1800)
     return result if result else error
 
 
@@ -169,9 +106,9 @@ async def get_username_recommendations(platform, current_username, target_userna
 • الاسم المطلوب: {target_username}
 
 المطلوب:
-1. تقييم الاسم (جملة واحدة)
-2. اقتراح اسمين بديلين
-3. 3 نصائح سريعة لاختيار اسم جذاب
+1. تقييم الاسم (جملة)
+2. اسمان بديلان
+3. 3 نصائح سريعة
 """
-    result, error = await call_gemini_api(prompt, max_tokens=500)
+    result, error = await call_gemini_api(prompt, max_tokens=400)
     return result if result else error
