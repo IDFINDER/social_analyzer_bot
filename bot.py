@@ -2233,18 +2233,38 @@ async def stars_subscribe_command(update: Update, context: ContextTypes.DEFAULT_
 
 
 async def star_subscription_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالج اختيار خطة الاشتراك بالنجوم"""
+    """معالج اختيار خطة الاشتراك بالنجوم مع رسائل توضيحية"""
     query = update.callback_query
     await query.answer()
     
     user_id = query.from_user.id
     plan_type = query.data.replace("star_sub_", "")
     
-    from utils.db import create_star_invoice_data
+    from utils.db import create_star_invoice_data, get_star_price
     
+    stars_price = get_star_price(plan_type)
     invoice_data = create_star_invoice_data(user_id, plan_type)
     
+    plan_names = {
+        'monthly': 'شهري',
+        'half_yearly': 'نصف سنوي',
+        'yearly': 'سنوي',
+        'lifetime': 'مدى الحياة'
+    }
+    plan_name = plan_names.get(plan_type, plan_type)
+    
+    # رسالة توضيحية قبل الفاتورة
+    await query.message.reply_text(
+        f"💎 <b>طلب اشتراك {plan_name}</b>\n\n"
+        f"⭐ <b>المطلوب:</b> {stars_price} نجم\n\n"
+        f"📌 <b>ملاحظة:</b> سيتم خصم {stars_price} نجم من رصيدك فور تأكيد الدفع.\n"
+        f"إذا كان رصيدك غير كافٍ، يمكنك شراء النجوم من المطور أولاً.\n\n"
+        f"🔽 اضغط على الزر أدناه لإتمام الدفع:",
+        parse_mode='HTML'
+    )
+    
     try:
+        # إرسال الفاتورة
         await query.message.reply_invoice(
             title=invoice_data['title'],
             description=invoice_data['description'],
@@ -2259,9 +2279,32 @@ async def star_subscription_callback(update: Update, context: ContextTypes.DEFAU
             disable_notification=False,
             start_parameter=f"sub_{plan_type}"
         )
+        
+        # إضافة أزرار المساعدة بعد الفاتورة
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("⭐ شراء نجوم", callback_data="buy_stars")],
+            [InlineKeyboardButton("❌ إلغاء العملية", callback_data="premium_back")]
+        ])
+        
+        await query.message.reply_text(
+            "💡 <b>ليس لديك رصيد كافٍ من النجوم؟</b>\n\n"
+            "يمكنك شراء نجوم Telegram من المطور بالعملات المحلية:\n"
+            "• 100 نجم = 2 دولار (≈ 1060 ريال)\n"
+            "• 500 نجم = 10 دولار (≈ 5300 ريال)\n"
+            "• 1000 نجم = 20 دولار (≈ 10600 ريال)\n\n"
+            "📩 <b>لشراء النجوم:</b> تواصل مع المطور @Alshabany_Ai\n\n"
+            "⭐ بعد الشراء، عد إلى هذه المحادثة وأعد محاولة الدفع.",
+            parse_mode='HTML',
+            reply_markup=keyboard
+        )
+        
     except Exception as e:
         logger.error(f"Error sending invoice: {e}")
-        await query.message.reply_text(f"❌ حدث خطأ: {e}")
+        await query.message.reply_text(
+            f"❌ حدث خطأ أثناء إعداد الفاتورة.\n\n"
+            f"📩 يرجى التواصل مع المطور: @Alshabany_Ai",
+            parse_mode='HTML'
+        )
 
 
 async def pre_checkout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
