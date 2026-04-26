@@ -1331,3 +1331,111 @@ def get_all_gemini_limits():
     except Exception as e:
         logger.error(f"Error getting all gemini limits: {e}")
         return []
+
+# ========== دوال الدفع عبر نجوم Telegram ==========
+
+def get_star_price(plan_type):
+    """جلب سعر الخطة بالنجوم من bot_settings_social"""
+    price_key = f'stars_{plan_type}'
+    value = get_bot_setting(price_key, '0')
+    return int(value)
+
+
+def get_star_prices_all():
+    """جلب جميع أسعار الخطط بالنجوم"""
+    return {
+        'monthly': get_star_price('monthly'),
+        'half_yearly': get_star_price('half_yearly'),
+        'yearly': get_star_price('yearly'),
+        'lifetime': get_star_price('lifetime'),
+        'extra_recs_small': int(get_bot_setting('stars_extra_recs_small', '50')),
+        'extra_recs_medium': int(get_bot_setting('stars_extra_recs_medium', '100')),
+        'extra_recs_large': int(get_bot_setting('stars_extra_recs_large', '200')),
+        'extra_recs_premium': int(get_bot_setting('stars_extra_recs_premium', '500')),
+    }
+
+
+def is_stars_enabled():
+    """التحقق من تفعيل الدفع بالنجوم"""
+    return get_bot_setting('stars_enabled', 'true') == 'true'
+
+
+def get_stars_local_rate():
+    """سعر النجم بالريال اليمني"""
+    stars_usd_rate = float(get_bot_setting('stars_usd_rate', '0.025'))
+    usd_to_rial = 530
+    return stars_usd_rate * usd_to_rial
+
+
+def create_star_invoice_data(user_id, plan_type, extra_recs=0):
+    """إنشاء بيانات فاتورة النجوم"""
+    import time
+    import json
+    
+    if extra_recs > 0:
+        price = get_extra_recs_star_price(extra_recs)
+        payload = json.dumps({
+            'type': 'extra_recs',
+            'user_id': user_id,
+            'extra_recs': extra_recs,
+            'price': price,
+            'timestamp': int(time.time())
+        })
+        title = f"⭐ {extra_recs} توصية إضافية"
+        description = f"زيادة حصة التوصيات الشهرية بمقدار {extra_recs} توصية"
+    else:
+        price = get_star_price(plan_type)
+        payload = json.dumps({
+            'type': 'subscription',
+            'user_id': user_id,
+            'plan_type': plan_type,
+            'price': price,
+            'timestamp': int(time.time())
+        })
+        plan_names = {
+            'monthly': 'شهري',
+            'half_yearly': 'نصف سنوي',
+            'yearly': 'سنوي',
+            'lifetime': 'مدى الحياة'
+        }
+        title = f"⭐ اشتراك {plan_names.get(plan_type, plan_type)}"
+        description = f"الخطة {plan_names.get(plan_type, plan_type)} من بوت تحليل الحسابات"
+    
+    return {
+        'title': title,
+        'description': description,
+        'payload': payload,
+        'currency': 'XTR',
+        'prices': [{'label': f'⭐ {price} نجم', 'amount': price}]
+    }
+
+
+def get_extra_recs_star_price(recs_count):
+    """جلب سعر عدد التوصيات الإضافية"""
+    if recs_count <= 10:
+        return int(get_bot_setting('stars_extra_recs_small', '50'))
+    elif recs_count <= 25:
+        return int(get_bot_setting('stars_extra_recs_medium', '100'))
+    elif recs_count <= 50:
+        return int(get_bot_setting('stars_extra_recs_large', '200'))
+    else:
+        return int(get_bot_setting('stars_extra_recs_premium', '500'))
+
+
+def activate_extra_recs(user_id, extra_recs):
+    """تفعيل التوصيات الإضافية للمستخدم"""
+    try:
+        # جلب الحد الحالي للمستخدم
+        current_limit = get_user_gemini_limit(user_id)
+        new_limit = current_limit + extra_recs
+        
+        # تحديث الحد
+        result = set_user_gemini_limit(user_id, new_limit)
+        
+        if result:
+            logger.info(f"✅ User {user_id} got {extra_recs} extra recommendations. New limit: {new_limit}")
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Error activating extra recs: {e}")
+        return False
