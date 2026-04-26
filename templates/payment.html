@@ -131,11 +131,55 @@
         @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
         @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
         
+        /* قسم النجوم الجديد */
+        .stars-info {
+            background: linear-gradient(135deg, #ffe6b3, #ffcc80);
+            border-radius: 20px;
+            padding: 25px;
+            margin-top: 25px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .stars-info h3 {
+            color: #b85c00;
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+        .stars-info p {
+            color: #5a3a00;
+            margin: 10px 0;
+            font-size: 0.95em;
+        }
+        .stars-info strong {
+            color: #e65100;
+        }
+        .stars-button {
+            background: #ff9800 !important;
+            display: inline-block;
+            background: #ff9800;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 10px;
+            text-decoration: none;
+            margin: 15px 5px 5px;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        .stars-button:hover {
+            background: #f57c00 !important;
+            transform: scale(1.02);
+        }
+        .stars-info a {
+            color: #e65100;
+        }
+        
         @media (max-width: 600px) {
             .container { padding: 10px; }
             .card { padding: 20px; }
             .number { font-size: 1.2em; }
             .price { font-size: 2em; }
+            .stars-info { padding: 15px; }
+            .stars-info h3 { font-size: 1.2em; }
         }
     </style>
 </head>
@@ -176,6 +220,17 @@
             </div>
             
             <a href="https://t.me/E_Alshabany" class="button">📩 تواصل مع المطور</a>
+            
+            <!-- قسم الدفع عبر نجوم Telegram -->
+            <div class="stars-info">
+                <h3>⭐ الدفع عبر نجوم Telegram</h3>
+                <p>يمكنك أيضاً الاشتراك مباشرة عبر <strong>نجوم Telegram</strong> من داخل البوت!</p>
+                <p>💰 <strong>أسعار النجوم:</strong> 100 نجم = 2 دولار (≈ 1060 ريال)</p>
+                <p>📱 <strong>لشراء النجوم:</strong> تواصل مع المطور <a href="https://t.me/Alshabany_Ai" target="_blank">@Alshabany_Ai</a></p>
+                <p>⭐ النجوم صالحة للاستخدام في <strong>جميع خدماتنا</strong></p>
+                <a href="https://t.me/Social_Media_tools_bot" class="stars-button">⭐ الاشتراك بالنجوم</a>
+            </div>
+            
             <a href="/" class="button back-btn">🏠 العودة للرئيسية</a>
             
             <div class="footer">
