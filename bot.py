@@ -2098,6 +2098,229 @@ async def handle_username_check(update: Update, context: ContextTypes.DEFAULT_TY
             f"يرجى المحاولة مرة أخرى لاحقاً.",
             parse_mode='HTML'
         )
+
+# =================================================================================
+# دوال الدفع عبر نجوم Telegram
+# =================================================================================
+
+async def stars_subscribe_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """عرض خيارات الاشتراك بالنجوم"""
+    user_id = update.effective_user.id
+    user_info = get_user_info(user_id)
+    is_premium = user_info['status'] == 'premium' if user_info else False
+    
+    if is_premium:
+        await update.message.reply_text("✅ أنت مشترك بالفعل في الخطة المميزة!")
+        return
+    
+    from utils.db import get_star_prices_all, is_stars_enabled
+    
+    if not is_stars_enabled():
+        await update.message.reply_text("⚠️ نظام الدفع بالنجوم قيد التحديث حالياً")
+        return
+    
+    prices = get_star_prices_all()
+    
+    plans_info = f"""
+• 🌙 شهري: {prices['monthly']} ⭐
+• 📅 نصف سنوي: {prices['half_yearly']} ⭐
+• 🎉 سنوي: {prices['yearly']} ⭐
+• 💎 مدى الحياة: {prices['lifetime']} ⭐
+"""
+    
+    keyboard = [
+        [InlineKeyboardButton(f"🌙 شهري - {prices['monthly']} ⭐", callback_data=f"star_sub_monthly")],
+        [InlineKeyboardButton(f"📅 نصف سنوي - {prices['half_yearly']} ⭐", callback_data=f"star_sub_half_yearly")],
+        [InlineKeyboardButton(f"🎉 سنوي - {prices['yearly']} ⭐", callback_data=f"star_sub_yearly")],
+        [InlineKeyboardButton(f"💎 مدى الحياة - {prices['lifetime']} ⭐", callback_data=f"star_sub_lifetime")],
+        [InlineKeyboardButton("⭐ شراء نجوم", callback_data="buy_stars")],
+        [InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")]
+    ]
+    
+    await update.message.reply_text(
+        StarPaymentMessages.SUBSCRIBE_STARS.format(plans_info=plans_info, user_stars=0),
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+async def star_subscription_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالج اختيار خطة الاشتراك بالنجوم"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    plan_type = query.data.replace("star_sub_", "")
+    
+    from utils.db import create_star_invoice_data
+    
+    invoice_data = create_star_invoice_data(user_id, plan_type)
+    
+    try:
+        await query.message.reply_invoice(
+            title=invoice_data['title'],
+            description=invoice_data['description'],
+            payload=invoice_data['payload'],
+            currency=invoice_data['currency'],
+            prices=invoice_data['prices'],
+            need_name=False,
+            need_phone_number=False,
+            need_email=False,
+            need_shipping_address=False,
+            is_flexible=False,
+            disable_notification=False,
+            start_parameter=f"sub_{plan_type}"
+        )
+    except Exception as e:
+        logger.error(f"Error sending invoice: {e}")
+        await query.message.reply_text(f"❌ حدث خطأ: {e}")
+
+
+async def pre_checkout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالج التحقق من الدفع"""
+    query = update.pre_checkout_query
+    await query.answer(ok=True)
+
+
+async def successful_payment_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالج الدفع الناجح"""
+    message = update.message
+    payment = message.successful_payment
+    
+    import json
+    payload_data = json.loads(payment.invoice_payload)
+    
+    user_id = payload_data.get('user_id')
+    payment_type = payload_data.get('type')
+    amount = payment.total_amount
+    
+    from utils.db import get_star_prices_all, activate_extra_recs
+    from utils.db import upgrade_user_to_premium
+    
+    if payment_type == 'subscription':
+        plan_type = payload_data.get('plan_type')
+        
+        # تحديث الاشتراك
+        plan_days = {
+            'monthly': 30,
+            'half_yearly': 180,
+            'yearly': 365,
+            'lifetime': 36500
+        }
+        
+        success = upgrade_user_to_premium(user_id, plan_days.get(plan_type, 30))
+        
+        if success:
+            await message.reply_text(
+                f"✅ <b>تم تفعيل الاشتراك {plan_type} بنجاح!</b>\n\n"
+                f"⭐ تم خصم {amount} نجم من رصيدك\n\n"
+                f"شكراً لثقتك! 🙏",
+                parse_mode='HTML'
+            )
+        else:
+            await message.reply_text("❌ حدث خطأ في تفعيل الاشتراك، يرجى التواصل مع الدعم")
+    
+    elif payment_type == 'extra_recs':
+        extra_recs = payload_data.get('extra_recs')
+        
+        success = activate_extra_recs(user_id, extra_recs)
+        
+        if success:
+            new_limit = get_user_gemini_limit(user_id)
+            await message.reply_text(
+                f"✅ <b>تم إضافة {extra_recs} توصيات إضافية!</b>\n\n"
+                f"⭐ تم خصم {amount} نجم من رصيدك\n"
+                f"📊 حصتك الجديدة: {new_limit} توصية شهرياً\n\n"
+                f"شكراً لثقتك! 🙏",
+                parse_mode='HTML'
+            )
+        else:
+            await message.reply_text("❌ حدث خطأ في إضافة التوصيات، يرجى التواصل مع الدعم")
+
+
+async def buy_stars_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالج عرض معلومات شراء النجوم"""
+    query = update.callback_query
+    await query.answer()
+    
+    await query.message.reply_text(
+        StarPaymentMessages.HOW_TO_BUY,
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("📩 تواصل مع المطور", url="https://t.me/Alshabany_Ai"),
+            InlineKeyboardButton("🔙 رجوع", callback_data="stars_back")
+        ]])
+    )
+
+
+async def extra_recs_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """عرض خيارات شراء توصيات إضافية"""
+    user_id = update.effective_user.id
+    user_info = get_user_info(user_id)
+    is_premium = user_info['status'] == 'premium' if user_info else False
+    
+    if not is_premium:
+        await update.message.reply_text("💎 هذه الميزة متاحة فقط للمستخدمين المميزين!")
+        return
+    
+    from utils.db import get_star_prices_all, get_user_gemini_limit
+    
+    prices = get_star_prices_all()
+    current_limit = get_user_gemini_limit(user_id)
+    
+    keyboard = [
+        [InlineKeyboardButton(f"🌱 +10 توصيات - {prices['extra_recs_small']} ⭐", callback_data=f"buy_recs_10")],
+        [InlineKeyboardButton(f"🌿 +25 توصية - {prices['extra_recs_medium']} ⭐", callback_data=f"buy_recs_25")],
+        [InlineKeyboardButton(f"🌳 +50 توصية - {prices['extra_recs_large']} ⭐", callback_data=f"buy_recs_50")],
+        [InlineKeyboardButton(f"🌲 +150 توصية - {prices['extra_recs_premium']} ⭐", callback_data=f"buy_recs_150")],
+        [InlineKeyboardButton("⭐ شراء نجوم", callback_data="buy_stars")],
+        [InlineKeyboardButton("🔙 رجوع", callback_data="main_menu")]
+    ]
+    
+    await update.message.reply_text(
+        StarPaymentMessages.EXTRA_RECS_STARS.format(
+            current_limit=current_limit,
+            small_price=prices['extra_recs_small'],
+            medium_price=prices['extra_recs_medium'],
+            large_price=prices['extra_recs_large'],
+            premium_price=prices['extra_recs_premium'],
+            user_stars=0
+        ),
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+async def buy_recs_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالج شراء توصيات إضافية"""
+    query = update.callback_query
+    await query.answer()
+    
+    user_id = query.from_user.id
+    extra_recs = int(query.data.replace("buy_recs_", ""))
+    
+    from utils.db import create_star_invoice_data
+    
+    invoice_data = create_star_invoice_data(user_id, None, extra_recs)
+    
+    try:
+        await query.message.reply_invoice(
+            title=invoice_data['title'],
+            description=invoice_data['description'],
+            payload=invoice_data['payload'],
+            currency=invoice_data['currency'],
+            prices=invoice_data['prices'],
+            need_name=False,
+            need_phone_number=False,
+            need_email=False,
+            need_shipping_address=False,
+            is_flexible=False,
+            disable_notification=False,
+            start_parameter=f"recs_{extra_recs}"
+        )
+    except Exception as e:
+        logger.error(f"Error sending extra recs invoice: {e}")
+        await query.message.reply_text(f"❌ حدث خطأ: {e}")
 # =================================================================================
 # إعداد قائمة الأوامر (Commands Menu)
 # =================================================================================
