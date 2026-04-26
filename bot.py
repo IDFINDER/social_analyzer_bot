@@ -494,19 +494,19 @@ async def my_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # =================================================================================
 
 async def premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معلومات الاشتراك المميز - خطط متعددة"""
+    """معلومات الاشتراك المميز - عرض خيارات الدفع"""
     user_id = update.effective_user.id
     user_info = get_user_info(user_id)
     is_premium = user_info['status'] == 'premium' if user_info else False
     
-    from utils.db import get_all_prices
-    prices = get_all_prices()
+    # جلب الإعدادات من قاعدة البيانات
+    from utils.db import get_all_prices, get_star_prices_all, is_stars_enabled
     
-    promo_text = ""
-    if prices.get('promo_active', False):
-        promo_text = f"\n🎉 <b>عرض خاص!</b>\n• نصف سنوي: {prices['promo_half_yearly']}$ فقط\n• سنوي: {prices['promo_yearly']}$ فقط\n"
+    prices = get_all_prices()
+    star_prices = get_star_prices_all() if is_stars_enabled() else {}
     
     if is_premium:
+        # جلب تفاصيل الاشتراك الحالي
         from utils.db import get_user_active_subscription
         subscription = get_user_active_subscription(user_id)
         
@@ -514,35 +514,107 @@ async def premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if subscription:
             plan_name = subscription.get('subscription_plans_social', {}).get('name_ar', 'مميز')
             end_date = subscription.get('end_date', '')
-            sub_text = f"\n📅 <b>خطتك:</b> {plan_name}\n⏰ <b>تنتهي في:</b> {end_date}\n"
+            sub_text = f"\n📅 <b>خطتك الحالية:</b> {plan_name}\n⏰ <b>تنتهي في:</b> {end_date}\n"
         
-        text = Messages.PREMIUM_ALREADY.format(sub_text=sub_text)
+        text = f"""
+👑 <b>أنت مشترك بالفعل في الخطة المميزة!</b>
+{sub_text}
+✅ <b>مميزات الاشتراك المميز:</b>
+• تحليل غير محدود لجميع الحسابات
+• توصيات الذكاء الاصطناعي (حصة شهرية)
+• صفحة بايو شخصية
+• فحص توافر اليوزرنيم
+• دعم أولوية في المعالجة
+
+شكراً لدعمك! 🙏
+"""
         await update.message.reply_text(text, parse_mode='HTML', reply_markup=get_main_keyboard(True))
+        return
+    
+    # رسالة الاشتراك للمستخدمين المجانيين
+    remaining = get_remaining_analyses(user_id)
+    
+    # بناء خيارات الدفع
+    keyboard = []
+    
+    # إضافة خيارات الدفع بالنجوم (إذا كان مفعلاً)
+    if is_stars_enabled() and star_prices:
+        keyboard.append([InlineKeyboardButton(
+            f"⭐ اشتراك شهري - {star_prices.get('monthly', 200)} نجم", 
+            callback_data="star_sub_monthly"
+        )])
+        keyboard.append([InlineKeyboardButton(
+            f"⭐ اشتراك نصف سنوي - {star_prices.get('half_yearly', 500)} نجم", 
+            callback_data="star_sub_half_yearly"
+        )])
+        keyboard.append([InlineKeyboardButton(
+            f"⭐ اشتراك سنوي - {star_prices.get('yearly', 800)} نجم", 
+            callback_data="star_sub_yearly"
+        )])
+        keyboard.append([InlineKeyboardButton(
+            f"⭐ اشتراك مدى الحياة - {star_prices.get('lifetime', 2000)} نجم", 
+            callback_data="star_sub_lifetime"
+        )])
+        keyboard.append([InlineKeyboardButton("⭐ شراء نجوم", callback_data="buy_stars")])
+        keyboard.append([InlineKeyboardButton("📄 الدفع يدوياً (تحويل بنكي)", callback_data="manual_payment")])
     else:
-        remaining = get_remaining_analyses(user_id)
-        
-        text = Messages.PREMIUM_PLANS.format(
-            monthly=prices.get('price_monthly', 10),
-            half_yearly=prices.get('price_half_yearly', 30),
-            yearly=prices.get('price_yearly', 48),
-            lifetime=prices.get('price_lifetime', 100),
-            promo_text=promo_text,
-            remaining=remaining,
-            free_limit=prices.get('free_limit', FREE_LIMIT)
-        )
-        
-        keyboard = [
-            [InlineKeyboardButton(f"🌙 شهري - {prices.get('price_monthly', 10)}$", callback_data="subscribe_monthly")],
-            [InlineKeyboardButton(f"📅 نصف سنوي - {prices.get('price_half_yearly', 30)}$", callback_data="subscribe_half_yearly")],
-            [InlineKeyboardButton(f"🎉 سنوي - {prices.get('price_yearly', 48)}$", callback_data="subscribe_yearly")],
-            [InlineKeyboardButton(f"💎 مدى الحياة - {prices.get('price_lifetime', 100)}$", callback_data="subscribe_lifetime")],
-            [InlineKeyboardButton(Buttons.CONFIRM_BUTTONS["main_menu"], callback_data="main_menu")]
-        ]
-        
-        if prices.get('promo_active', False):
-            keyboard.insert(0, [InlineKeyboardButton(f"🎁 عرض نصف سنوي - {prices.get('promo_half_yearly', 25)}$", callback_data="subscribe_promo")])
-        
-        await update.message.reply_text(text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
+        # النظام القديم (صفحة الدفع العادية)
+        keyboard.append([InlineKeyboardButton("💳 الدفع بالتحويل البنكي", callback_data="manual_payment")])
+    
+    keyboard.append([InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")])
+    
+    text = f"""
+💎 <b>الاشتراك المميز</b>
+
+🎁 <b>مميزات الخطة المميزة:</b>
+• ✅ تحليل غير محدود
+• ✅ توصيات الذكاء الاصطناعي (حصة شهرية)
+• ✅ صفحة بايو شخصية
+• ✅ فحص توافر اليوزرنيم
+• ✅ دعم أولوية في المعالجة
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💰 <b>خطط الاشتراك:</b>
+
+🌙 <b>شهري:</b> {prices.get('price_monthly', 10)}$ / {star_prices.get('monthly', 200)} ⭐
+📅 <b>نصف سنوي:</b> {prices.get('price_half_yearly', 30)}$ (5$ شهرياً)
+🎉 <b>سنوي:</b> {prices.get('price_yearly', 48)}$ (4$ شهرياً)
+💎 <b>مدى الحياة:</b> {prices.get('price_lifetime', 100)}$ (مرة واحدة)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 <b>حالتك الحالية:</b>
+• نوع الخطة: مجانية
+• التحليلات المتبقية اليوم: {remaining}/{prices.get('free_limit', FREE_LIMIT)}
+
+🔽 <b>اختر طريقة الدفع:</b>
+"""
+    await update.message.reply_text(text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+async def manual_payment_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """عرض طريقة الدفع اليدوي (صفحة الدفع القديمة)"""
+    query = update.callback_query
+    await query.answer()
+    
+    RENDER_URL = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
+    payment_url = f"https://{RENDER_URL}/payment"
+    
+    keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton("💳 صفحة الدفع", web_app=WebAppInfo(url=payment_url)),
+        InlineKeyboardButton("🔙 رجوع", callback_data="premium_back")
+    ]])
+    
+    await query.message.reply_text(
+        "💳 <b>الدفع اليدوي (تحويل بنكي)</b>\n\n"
+        "يمكنك الدفع عبر التحويل البنكي إلى رقم الواتساب أو جيب أو كريمي:\n\n"
+        "📱 <b>رقم التحويل الموحد:</b> 772130931\n\n"
+        "⚠️ بعد التحويل، تواصل مع المطور @E_Alshabany\n"
+        "📩 أرسل صورة الإيصال وسيتم تفعيل اشتراكك فوراً.\n\n"
+        "🔽 اضغط على الزر أدناه لفتح صفحة الدفع:",
+        parse_mode='HTML',
+        reply_markup=keyboard
+    )
 
 async def subscription_callback(update: Update, context: ContextTypes.DEFAULT_TYPE, plan_type):
     """معالجة اختيار خطة الاشتراك"""
