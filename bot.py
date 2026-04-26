@@ -2314,7 +2314,7 @@ async def pre_checkout_callback(update: Update, context: ContextTypes.DEFAULT_TY
 
 
 async def successful_payment_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالج الدفع الناجح"""
+    """معالج الدفع الناجح مع رسالة ترحيب محسنة"""
     message = update.message
     payment = message.successful_payment
     
@@ -2326,12 +2326,10 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
     amount = payment.total_amount
     
     from utils.db import get_star_prices_all, activate_extra_recs
-    from utils.db import upgrade_user_to_premium
+    from utils.db import upgrade_user_to_premium, get_user_gemini_limit
     
     if payment_type == 'subscription':
         plan_type = payload_data.get('plan_type')
-        
-        # تحديث الاشتراك
         plan_days = {
             'monthly': 30,
             'half_yearly': 180,
@@ -2341,19 +2339,54 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
         
         success = upgrade_user_to_premium(user_id, plan_days.get(plan_type, 30))
         
+        plan_names = {
+            'monthly': 'شهري',
+            'half_yearly': 'نصف سنوي',
+            'yearly': 'سنوي',
+            'lifetime': 'مدى الحياة'
+        }
+        plan_name = plan_names.get(plan_type, plan_type)
+        
         if success:
+            # جلب معلومات المستخدم
+            user_info = get_user_info(user_id)
+            gemini_limit = get_user_gemini_limit(user_id)
+            
             await message.reply_text(
-                f"✅ <b>تم تفعيل الاشتراك {plan_type} بنجاح!</b>\n\n"
+                f"🎉 <b>تم تفعيل اشتراكك {plan_name} بنجاح!</b>\n\n"
                 f"⭐ تم خصم {amount} نجم من رصيدك\n\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"✅ <b>مميزاتك الآن:</b>\n"
+                f"• 📊 تحليل غير محدود لجميع الحسابات\n"
+                f"• 🤖 {gemini_limit} توصية ذكاء اصطناعي شهرياً\n"
+                f"• 📄 صفحة بايو شخصية\n"
+                f"• 🔍 فحص توافر اليوزرنيم\n"
+                f"• ⚡ دعم أولوية في المعالجة\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                f"💡 <b>لبدء الاستخدام:</b> اضغط على 🎯 تحليل حساباتي\n\n"
                 f"شكراً لثقتك! 🙏",
                 parse_mode='HTML'
             )
+            
+            # عرض القائمة الرئيسية بعد ثانيتين
+            await asyncio.sleep(2)
+            await message.reply_text(
+                "🏠 <b>القائمة الرئيسية</b>\n\nاختر ما تريد:",
+                parse_mode='HTML',
+                reply_markup=get_main_keyboard(True)
+            )
         else:
-            await message.reply_text("❌ حدث خطأ في تفعيل الاشتراك، يرجى التواصل مع الدعم")
+            await message.reply_text(
+                f"⚠️ <b>تم خصم {amount} نجم ولكن حدث خطأ في تفعيل الاشتراك!</b>\n\n"
+                f"📩 يرجى التواصل مع المطور فوراً مع إرسال هذا الإشعار:\n"
+                f"🆔 معرف المستخدم: {user_id}\n"
+                f"📅 التاريخ: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+                f"@Alshabany_Ai",
+                parse_mode='HTML'
+            )
     
     elif payment_type == 'extra_recs':
         extra_recs = payload_data.get('extra_recs')
-        
         success = activate_extra_recs(user_id, extra_recs)
         
         if success:
@@ -2362,11 +2395,16 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
                 f"✅ <b>تم إضافة {extra_recs} توصيات إضافية!</b>\n\n"
                 f"⭐ تم خصم {amount} نجم من رصيدك\n"
                 f"📊 حصتك الجديدة: {new_limit} توصية شهرياً\n\n"
+                f"🤖 يمكنك الآن استخدام التوصيات الإضافية في أي وقت.\n\n"
                 f"شكراً لثقتك! 🙏",
                 parse_mode='HTML'
             )
         else:
-            await message.reply_text("❌ حدث خطأ في إضافة التوصيات، يرجى التواصل مع الدعم")
+            await message.reply_text(
+                f"⚠️ <b>تم خصم {amount} نجم ولكن لم تتم إضافة التوصيات!</b>\n\n"
+                f"📩 يرجى التواصل مع المطور: @Alshabany_Ai",
+                parse_mode='HTML'
+            )
 
 
 async def buy_stars_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
