@@ -1724,14 +1724,14 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.delete_message()
 
     # ========== أزرار الدفع بالنجوم ==========
-elif data.startswith("star_sub_"):
-    await star_subscription_callback(update, context)
-elif data == "buy_stars":
-    await buy_stars_callback(update, context)
-elif data == "stars_back":
-    await stars_subscribe_command(update, context)
-elif data.startswith("buy_recs_"):
-    await buy_recs_callback(update, context)
+    elif data.startswith("star_sub_"):
+        await star_subscription_callback(update, context)
+    elif data == "buy_stars":
+        await buy_stars_callback(update, context)
+    elif data == "stars_back":
+        await stars_subscribe_command(update, context)
+    elif data.startswith("buy_recs_"):
+        await buy_recs_callback(update, context)
     
     # ----- توصيات الذكاء الاصطناعي -----
     elif data.startswith("ai_recommendations"):
