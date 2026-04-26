@@ -1804,6 +1804,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await stars_subscribe_command(update, context)
     elif data.startswith("buy_recs_"):
         await buy_recs_callback(update, context)
+
+    # في دالة button_callback، أضف:
+    elif data == "manual_payment":
+        await manual_payment_callback(update, context)
+    elif data == "premium_back":
+        await premium_command(update, context)
     
     # ----- توصيات الذكاء الاصطناعي -----
     elif data.startswith("ai_recommendations"):
