@@ -2408,17 +2408,32 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
 
 
 async def buy_stars_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالج عرض معلومات شراء النجوم"""
+    """شرح طريقة شراء النجوم للمستخدم"""
     query = update.callback_query
     await query.answer()
     
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("📩 تواصل مع المطور", url="https://t.me/Alshabany_Ai")],
+        [InlineKeyboardButton("🔙 رجوع للاشتراك", callback_data="premium_back")],
+        [InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="main_menu")]
+    ])
+    
     await query.message.reply_text(
-        StarPaymentMessages.HOW_TO_BUY,
+        "⭐ <b>شراء نجوم Telegram</b>\n\n"
+        "يمكنك شراء النجوم من المطور بالعملات المحلية:\n\n"
+        "💰 <b>أسعار النجوم:</b>\n"
+        "• 100 نجم = 2 دولار (≈ 1060 ريال)\n"
+        "• 500 نجم = 10 دولار (≈ 5300 ريال)\n"
+        "• 1000 نجم = 20 دولار (≈ 10600 ريال)\n\n"
+        "📱 <b>طرق الدفع المتاحة:</b>\n"
+        "• جيب (Jib)\n"
+        "• كريمي (Creemy)\n"
+        "• جوالي (JoWally)\n"
+        "• ون كاش (OneCash)\n\n"
+        "📩 <b>للشراء:</b> تواصل مع المطور @Alshabany_Ai\n\n"
+        "⭐ بعد الشراء، سيتم إضافة النجوم إلى محفظتك في Telegram ويمكنك استخدامها للدفع فوراً.",
         parse_mode='HTML',
-        reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("📩 تواصل مع المطور", url="https://t.me/Alshabany_Ai"),
-            InlineKeyboardButton("🔙 رجوع", callback_data="stars_back")
-        ]])
+        reply_markup=keyboard
     )
 
 
