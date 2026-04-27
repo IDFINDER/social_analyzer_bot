@@ -1804,12 +1804,20 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await stars_subscribe_command(update, context)
     elif data.startswith("buy_recs_"):
         await buy_recs_callback(update, context)
-
-    # في دالة button_callback، أضف:
     elif data == "manual_payment":
         await manual_payment_callback(update, context)
     elif data == "premium_back":
-        await premium_command(update, context)
+        user_info = get_user_info(user_id)
+        is_premium = user_info['status'] == 'premium' if user_info else False
+        if is_premium:
+            await query.message.reply_text(
+                "🏠 <b>القائمة الرئيسية</b>\n\nاختر ما تريد:",
+                parse_mode='HTML',
+                reply_markup=get_main_keyboard(True)
+            )
+            await query.delete_message()
+        else:
+            await premium_command(update, context)
     
     # ----- توصيات الذكاء الاصطناعي -----
     elif data.startswith("ai_recommendations"):
