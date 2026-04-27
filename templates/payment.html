@@ -3,253 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الاشتراك المميز - بوت تحليل الحسابات</title>
+    <title>تعديل الأسعار والإعدادات - بوت تحليل الحسابات</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Tahoma', 'Arial', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
-            min-height: 100vh;
+            font-family: 'Segoe UI', 'Tahoma', Arial, sans-serif;
+            background: #f5f7fa;
             padding: 20px;
-            color: #2c3e50;
         }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .header a {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 10px;
+            text-decoration: none;
+        }
         .card {
             background: white;
             border-radius: 20px;
-            padding: 30px;
+            padding: 25px;
             margin-bottom: 20px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
-        h1 {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            margin-bottom: 20px;
-            font-size: 2em;
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
         }
-        .price { font-size: 3em; color: #48bb78; margin: 20px 0; }
-        .features {
-            text-align: right;
-            margin: 30px 0;
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 20px;
+        .form-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
         }
-        .features li {
-            margin: 12px 0;
-            list-style: none;
-            font-size: 1.1em;
+        .form-group label {
+            width: 200px;
+            font-weight: 500;
+            color: #2c3e50;
         }
-        .features li::before { content: "✅ "; color: #48bb78; }
-        .payment-methods {
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        .method {
-            display: inline-block;
-            background: #e9ecef;
-            padding: 8px 15px;
-            border-radius: 25px;
-            margin: 5px;
-            font-size: 0.9em;
-        }
-        .number {
-            font-size: 1.8em;
-            font-weight: bold;
-            color: #48bb78;
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 15px;
-            margin: 20px 0;
-            direction: ltr;
-            text-align: center;
-            letter-spacing: 2px;
-        }
-        .copy-btn {
-            background: #48bb78;
-            color: white;
-            border: none;
-            padding: 10px 20px;
+        .form-group input, .form-group select {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
             border-radius: 10px;
-            cursor: pointer;
-            font-size: 1em;
-            margin: 10px 0;
-            transition: all 0.3s;
+            font-size: 14px;
         }
-        .copy-btn:hover { background: #38a169; transform: scale(1.02); }
-        .warning {
-            background: #fff3cd;
-            border-right: 3px solid #ffc107;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
-            text-align: right;
-            color: #856404;
+        .form-group small {
+            width: 100%;
+            color: #888;
+            font-size: 11px;
+            margin-right: 210px;
         }
-        .button {
-            display: inline-block;
-            background: #48bb78;
-            color: white;
-            padding: 12px 30px;
-            border-radius: 10px;
-            text-decoration: none;
-            margin: 10px;
-            transition: all 0.3s;
-        }
-        .button:hover { background: #38a169; transform: scale(1.02); }
-        .back-btn { background: #6c757d; }
-        .back-btn:hover { background: #5a6268; }
-        .footer { text-align: center; margin-top: 30px; padding: 20px; color: #6c757d; font-size: 0.8rem; }
-        .plan-badge {
+        .row { display: flex; gap: 15px; flex-wrap: wrap; }
+        .col { flex: 1; min-width: 200px; }
+        hr { margin: 20px 0; border: none; border-top: 1px solid #eee; }
+        .save-btn {
             background: #667eea;
             color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            display: inline-block;
-            margin-bottom: 10px;
-        }
-        .toast {
-            visibility: hidden;
-            min-width: 250px;
-            background-color: #48bb78;
-            color: white;
-            text-align: center;
-            border-radius: 8px;
-            padding: 12px;
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1;
-        }
-        .toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
-        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
-        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
-        
-        /* قسم النجوم الجديد */
-        .stars-info {
-            background: linear-gradient(135deg, #ffe6b3, #ffcc80);
-            border-radius: 20px;
-            padding: 25px;
-            margin-top: 25px;
-            text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        .stars-info h3 {
-            color: #b85c00;
-            font-size: 1.5em;
-            margin-bottom: 15px;
-        }
-        .stars-info p {
-            color: #5a3a00;
-            margin: 10px 0;
-            font-size: 0.95em;
-        }
-        .stars-info strong {
-            color: #e65100;
-        }
-        .stars-button {
-            background: #ff9800 !important;
-            display: inline-block;
-            background: #ff9800;
-            color: white;
+            border: none;
             padding: 12px 30px;
             border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .save-btn:hover { background: #5a67d8; }
+        .back-btn {
+            background: #6c757d;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
             text-decoration: none;
-            margin: 15px 5px 5px;
-            transition: all 0.3s;
-            font-weight: bold;
+            display: inline-block;
         }
-        .stars-button:hover {
-            background: #f57c00 !important;
-            transform: scale(1.02);
+        .alert {
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
         }
-        .stars-info a {
-            color: #e65100;
-        }
-        
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .badge { background: #667eea; color: white; padding: 2px 8px; border-radius: 20px; font-size: 11px; display: inline-block; margin-right: 10px; }
         @media (max-width: 600px) {
-            .container { padding: 10px; }
-            .card { padding: 20px; }
-            .number { font-size: 1.2em; }
-            .price { font-size: 2em; }
-            .stars-info { padding: 15px; }
-            .stars-info h3 { font-size: 1.2em; }
+            .form-group label { width: 100%; }
+            .form-group small { margin-right: 0; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="card">
-            <div class="plan-badge">⭐ الخطة {{ plan.name }}</div>
-            <h1>💎 الاشتراك المميز</h1>
-            <div class="price">{{ plan.price }}$ <span style="font-size: 0.5em;">
-                {% if selected_plan == 'monthly' %}شهرياً
-                {% elif selected_plan == 'half_yearly' %}لمدة 6 أشهر
-                {% elif selected_plan == 'yearly' %}لمدة سنة
-                {% else %}مدى الحياة{% endif %}
-            </span></div>
-            
-            <div class="features">
-                <li>📊 تحليل غير محدود للحسابات</li>
-                <li>🤖 توصيات الذكاء الاصطناعي (5 يومياً)</li>
-                <li>📄 صفحة بايو شخصية</li>
-                <li>🔍 فحص توافر اليوزرنيم</li>
-                <li>⚡ دعم أولوية في المعالجة</li>
-            </div>
-            
-            <div class="payment-methods">
-                <h3>طرق الدفع المتاحة:</h3>
-                <span class="method">📱 جيب (Jib)</span>
-                <span class="method">💳 كريمي (Creemy)</span>
-                <span class="method">📲 جوالي (JoWally)</span>
-                <span class="method">💵 ونكاش (OneCash)</span>
-            </div>
-            
-            <h3>رقم التحويل الموحد:</h3>
-            <div class="number" id="paymentNumber">772130931</div>
-            <button class="copy-btn" onclick="copyNumber()">📋 نسخ الرقم</button>
-            
-            <div class="warning">
-                ⚠️ <strong>تنبيه:</strong> بعد التحويل، تواصل مع المطور على تلجرام لإرسال صورة الإيصال وتفعيل الاشتراك.
-            </div>
-            
-            <a href="https://t.me/E_Alshabany" class="button">📩 تواصل مع المطور</a>
-            
-            <!-- قسم الدفع عبر نجوم Telegram -->
-            <div class="stars-info">
-                <h3>⭐ الدفع عبر نجوم Telegram</h3>
-                <p>يمكنك أيضاً الاشتراك مباشرة عبر <strong>نجوم Telegram</strong> من داخل البوت!</p>
-                <p>💰 <strong>أسعار النجوم:</strong> 100 نجم = 2 دولار (≈ 1060 ريال)</p>
-                <p>📱 <strong>لشراء النجوم:</strong> تواصل مع المطور <a href="https://t.me/Alshabany_Ai" target="_blank">@Alshabany_Ai</a></p>
-                <p>⭐ النجوم صالحة للاستخدام في <strong>جميع خدماتنا</strong></p>
-                <a href="https://t.me/Social_Media_tools_bot" class="stars-button">⭐ الاشتراك بالنجوم</a>
-            </div>
-            
-            <a href="/" class="button back-btn">🏠 العودة للرئيسية</a>
-            
-            <div class="footer">
-                <p>👨‍💻 للمساعدة: <a href="https://t.me/E_Alshabany" style="color: #667eea;">@E_Alshabany</a></p>
-                <p>🚀 اشتراك واحد - جميع البوتات - استخدام غير محدود</p>
-            </div>
+        <div class="header">
+            <h1>💰 تعديل الأسعار والإعدادات</h1>
+            <a href="/admin/dashboard">← العودة للوحة التحكم</a>
         </div>
+        
+        {% if msg %}
+        <div class="alert alert-{{ msg_type }}">{{ msg }}</div>
+        {% endif %}
+        
+        <form method="POST">
+            <!-- ========== 1. الأسعار بالدولار (للدفع اليدوي) ========== -->
+            <div class="card">
+                <h2>💰 الأسعار (دولار - للتحويل البنكي)</h2>
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group"><label>🌙 شهري:</label><input type="number" name="price_monthly" value="{{ prices.price_monthly }}" step="1" required></div>
+                        <div class="form-group"><label>📅 نصف سنوي:</label><input type="number" name="price_half_yearly" value="{{ prices.price_half_yearly }}" step="1" required></div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group"><label>🎉 سنوي:</label><input type="number" name="price_yearly" value="{{ prices.price_yearly }}" step="1" required></div>
+                        <div class="form-group"><label>💎 مدى الحياة:</label><input type="number" name="price_lifetime" value="{{ prices.price_lifetime }}" step="1" required></div>
+                    </div>
+                </div>
+                <div class="form-group"><label>📊 الحد اليومي للمجاني:</label><input type="number" name="free_limit" value="{{ prices.free_limit }}" step="1" required><small>عدد التحليلات اليومية للمستخدم المجاني</small></div>
+                <div class="form-group"><label>🤖 الحد الشهري للتوصيات (مميز):</label><input type="number" name="gemini_monthly_limit" value="{{ prices.gemini_monthly_limit }}" step="1" required><small>عدد توصيات الذكاء الاصطناعي للمستخدم المميز شهرياً</small></div>
+                <div class="form-group"><label>🤖 الحد الشهري للتوصيات (مجاني):</label><input type="number" name="gemini_free_limit" value="{{ prices.gemini_free_limit }}" step="1" required><small>0 = غير متاح</small></div>
+            </div>
+            
+            <!-- ========== 2. أسعار النجوم (للدفع عبر Telegram Stars) ========== -->
+            <div class="card">
+                <h2>⭐ أسعار الخطط بالنجوم <span class="badge">دفع فوري</span></h2>
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group"><label>🌙 شهري:</label><input type="number" name="stars_monthly" value="{{ prices.stars_monthly }}" step="1" required> <small>نجوم</small></div>
+                        <div class="form-group"><label>📅 نصف سنوي:</label><input type="number" name="stars_half_yearly" value="{{ prices.stars_half_yearly }}" step="1" required> <small>نجوم</small></div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group"><label>🎉 سنوي:</label><input type="number" name="stars_yearly" value="{{ prices.stars_yearly }}" step="1" required> <small>نجوم</small></div>
+                        <div class="form-group"><label>💎 مدى الحياة:</label><input type="number" name="stars_lifetime" value="{{ prices.stars_lifetime }}" step="1" required> <small>نجوم</small></div>
+                    </div>
+                </div>
+                <div class="form-group"><label>⭐ سعر النجم بالدولار:</label><input type="number" name="stars_usd_rate" value="{{ prices.stars_usd_rate }}" step="0.001" required><small>مثال: 0.025 = 100 نجم = 2.5$</small></div>
+                <div class="form-group"><label>⭐ تفعيل الدفع بالنجوم:</label>
+                    <select name="stars_enabled">
+                        <option value="true" {% if prices.stars_enabled %}selected{% endif %}>✅ مفعل</option>
+                        <option value="false" {% if not prices.stars_enabled %}selected{% endif %}>❌ غير مفعل</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- ========== 3. باقات التوصيات الإضافية بالنجوم ========== -->
+            <div class="card">
+                <h2>🎁 باقات التوصيات الإضافية <span class="badge">قابلة للشراء منفصلة</span></h2>
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group"><label>🌱 باقة صغيرة (+10 توصيات):</label><input type="number" name="stars_extra_recs_small" value="{{ prices.stars_extra_recs_small }}" step="1" required> <small>نجوم</small></div>
+                        <div class="form-group"><label>🌿 باقة متوسطة (+25 توصية):</label><input type="number" name="stars_extra_recs_medium" value="{{ prices.stars_extra_recs_medium }}" step="1" required> <small>نجوم</small></div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group"><label>🌳 باقة كبيرة (+50 توصية):</label><input type="number" name="stars_extra_recs_large" value="{{ prices.stars_extra_recs_large }}" step="1" required> <small>نجوم</small></div>
+                        <div class="form-group"><label>🌲 باقة بريميوم (+150 توصية):</label><input type="number" name="stars_extra_recs_premium" value="{{ prices.stars_extra_recs_premium }}" step="1" required> <small>نجوم</small></div>
+                    </div>
+                </div>
+                <div class="form-group"><small>💡 هذه الباقات تسمح للمستخدمين المميزين بزيادة حصتهم الشهرية من التوصيات</small></div>
+            </div>
+            
+            <!-- ========== 4. معلومات التواصل ========== -->
+            <div class="card">
+                <h2>📞 معلومات التواصل</h2>
+                <div class="form-group"><label>📱 رقم التحويل:</label><input type="text" name="payment_number" value="{{ prices.payment_number }}"></div>
+                <div class="form-group"><label>🔗 رابط المطور:</label><input type="url" name="developer_link" value="{{ prices.developer_link }}"></div>
+                <div class="form-group"><label>🤖 رابط البوت:</label><input type="url" name="bot_link" value="{{ prices.bot_link }}"></div>
+            </div>
+            
+            <button type="submit" class="save-btn">💾 حفظ جميع التغييرات</button>
+            <a href="/admin/dashboard" class="back-btn">🔙 العودة للوحة التحكم</a>
+        </form>
     </div>
-    
-    <div id="toast" class="toast">✅ تم نسخ الرقم!</div>
-    
-    <script>
-        function copyNumber() {
-            var number = document.getElementById("paymentNumber").innerText;
-            navigator.clipboard.writeText(number);
-            var toast = document.getElementById("toast");
-            toast.className = "toast show";
-            setTimeout(function(){ toast.className = "toast"; }, 3000);
-        }
-    </script>
 </body>
 </html>
