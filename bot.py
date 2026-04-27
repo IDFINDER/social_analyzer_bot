@@ -2238,23 +2238,25 @@ async def stars_subscribe_command(update: Update, context: ContextTypes.DEFAULT_
     prices = get_star_prices_all()
     
     plans_info = f"""
-• 🌙 شهري: {prices['monthly']} ⭐
-• 📅 نصف سنوي: {prices['half_yearly']} ⭐
-• 🎉 سنوي: {prices['yearly']} ⭐
-• 💎 مدى الحياة: {prices['lifetime']} ⭐
+• 🌙 شهري: {prices.get('monthly', 200)} ⭐
+• 📅 نصف سنوي: {prices.get('half_yearly', 500)} ⭐
+• 🎉 سنوي: {prices.get('yearly', 800)} ⭐
+• 💎 مدى الحياة: {prices.get('lifetime', 2000)} ⭐
 """
     
     keyboard = [
-        [InlineKeyboardButton(f"🌙 شهري - {prices['monthly']} ⭐", callback_data=f"star_sub_monthly")],
-        [InlineKeyboardButton(f"📅 نصف سنوي - {prices['half_yearly']} ⭐", callback_data=f"star_sub_half_yearly")],
-        [InlineKeyboardButton(f"🎉 سنوي - {prices['yearly']} ⭐", callback_data=f"star_sub_yearly")],
-        [InlineKeyboardButton(f"💎 مدى الحياة - {prices['lifetime']} ⭐", callback_data=f"star_sub_lifetime")],
+        [InlineKeyboardButton(f"🌙 شهري - {prices.get('monthly', 200)} ⭐", callback_data="star_sub_monthly")],
+        [InlineKeyboardButton(f"📅 نصف سنوي - {prices.get('half_yearly', 500)} ⭐", callback_data="star_sub_half_yearly")],
+        [InlineKeyboardButton(f"🎉 سنوي - {prices.get('yearly', 800)} ⭐", callback_data="star_sub_yearly")],
+        [InlineKeyboardButton(f"💎 مدى الحياة - {prices.get('lifetime', 2000)} ⭐", callback_data="star_sub_lifetime")],
         [InlineKeyboardButton("⭐ شراء نجوم", callback_data="buy_stars")],
         [InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")]
     ]
     
     await update.message.reply_text(
-        StarPaymentMessages.SUBSCRIBE_STARS.format(plans_info=plans_info, user_stars=0),
+        f"💎 <b>الاشتراك المميز عبر النجوم</b>\n\n"
+        f"اختر خطتك المفضلة:\n{plans_info}\n\n"
+        f"⭐ يمكنك شراء النجوم من المطور إذا كان رصيدك غير كافٍ.",
         parse_mode='HTML',
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
@@ -2481,23 +2483,23 @@ async def extra_recs_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     current_limit = get_user_gemini_limit(user_id)
     
     keyboard = [
-        [InlineKeyboardButton(f"🌱 +10 توصيات - {prices['extra_recs_small']} ⭐", callback_data=f"buy_recs_10")],
-        [InlineKeyboardButton(f"🌿 +25 توصية - {prices['extra_recs_medium']} ⭐", callback_data=f"buy_recs_25")],
-        [InlineKeyboardButton(f"🌳 +50 توصية - {prices['extra_recs_large']} ⭐", callback_data=f"buy_recs_50")],
-        [InlineKeyboardButton(f"🌲 +150 توصية - {prices['extra_recs_premium']} ⭐", callback_data=f"buy_recs_150")],
+        [InlineKeyboardButton(f"🌱 +10 توصيات - {prices.get('extra_recs_small', 50)} ⭐", callback_data="buy_recs_10")],
+        [InlineKeyboardButton(f"🌿 +25 توصية - {prices.get('extra_recs_medium', 100)} ⭐", callback_data="buy_recs_25")],
+        [InlineKeyboardButton(f"🌳 +50 توصية - {prices.get('extra_recs_large', 200)} ⭐", callback_data="buy_recs_50")],
+        [InlineKeyboardButton(f"🌲 +150 توصية - {prices.get('extra_recs_premium', 500)} ⭐", callback_data="buy_recs_150")],
         [InlineKeyboardButton("⭐ شراء نجوم", callback_data="buy_stars")],
-        [InlineKeyboardButton("🔙 رجوع", callback_data="main_menu")]
+        [InlineKeyboardButton("🔙 القائمة الرئيسية", callback_data="main_menu")]
     ]
     
     await update.message.reply_text(
-        StarPaymentMessages.EXTRA_RECS_STARS.format(
-            current_limit=current_limit,
-            small_price=prices['extra_recs_small'],
-            medium_price=prices['extra_recs_medium'],
-            large_price=prices['extra_recs_large'],
-            premium_price=prices['extra_recs_premium'],
-            user_stars=0
-        ),
+        f"🤖 <b>شراء توصيات إضافية</b>\n\n"
+        f"📊 حصتك الحالية: {current_limit} توصية شهرياً\n\n"
+        f"🎁 <b>اختر الباقة المناسبة:</b>\n"
+        f"• 🌱 +10 توصيات: {prices.get('extra_recs_small', 50)} ⭐\n"
+        f"• 🌿 +25 توصية: {prices.get('extra_recs_medium', 100)} ⭐\n"
+        f"• 🌳 +50 توصية: {prices.get('extra_recs_large', 200)} ⭐\n"
+        f"• 🌲 +150 توصية: {prices.get('extra_recs_premium', 500)} ⭐\n\n"
+        f"⭐ التوصيات تضاف إلى حصتك الشهرية فوراً بعد الدفع.",
         parse_mode='HTML',
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
