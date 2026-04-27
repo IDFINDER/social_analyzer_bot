@@ -718,7 +718,7 @@ def update_bot_setting(setting_key, setting_value):
         return False
 
 def get_all_prices():
-    """جلب جميع الأسعار والإعدادات من جدول bot_settings_social"""
+    """جلب جميع الأسعار والإعدادات من جدول bot_settings_social (بما فيها النجوم)"""
     try:
         response = supabase.table('bot_settings_social').select('setting_key, setting_value').execute()
         
@@ -727,22 +727,45 @@ def get_all_prices():
         
         # القيم الافتراضية إذا لم تكن موجودة
         return {
+            # ========== الأسعار بالدولار (للدفع اليدوي) ==========
             'price_monthly': int(settings.get('price_monthly', 10)),
             'price_half_yearly': int(settings.get('price_half_yearly', 30)),
             'price_yearly': int(settings.get('price_yearly', 48)),
             'price_lifetime': int(settings.get('price_lifetime', 100)),
+            
+            # ========== مدة الخطط بالأيام ==========
             'duration_monthly': int(settings.get('duration_monthly', 30)),
             'duration_half_yearly': int(settings.get('duration_half_yearly', 180)),
             'duration_yearly': int(settings.get('duration_yearly', 365)),
             'duration_lifetime': int(settings.get('duration_lifetime', 36500)),
+            
+            # ========== حدود الاستخدام ==========
             'free_limit': int(settings.get('free_limit', 2)),
             'premium_limit': int(settings.get('premium_limit', -1)),
             'gemini_monthly_limit': int(settings.get('gemini_monthly_limit', 20)),
             'gemini_free_limit': int(settings.get('gemini_free_limit', 0)),
+            
+            # ========== ⭐ أسعار النجوم (جديد) ==========
+            'stars_monthly': int(settings.get('stars_monthly', 200)),
+            'stars_half_yearly': int(settings.get('stars_half_yearly', 500)),
+            'stars_yearly': int(settings.get('stars_yearly', 800)),
+            'stars_lifetime': int(settings.get('stars_lifetime', 2000)),
+            'stars_usd_rate': float(settings.get('stars_usd_rate', 0.025)),
+            'stars_enabled': settings.get('stars_enabled', 'true') == 'true',
+            
+            # ========== 🎁 باقات التوصيات الإضافية (جديد) ==========
+            'stars_extra_recs_small': int(settings.get('stars_extra_recs_small', 50)),
+            'stars_extra_recs_medium': int(settings.get('stars_extra_recs_medium', 100)),
+            'stars_extra_recs_large': int(settings.get('stars_extra_recs_large', 200)),
+            'stars_extra_recs_premium': int(settings.get('stars_extra_recs_premium', 500)),
+            
+            # ========== العروض الترويجية ==========
             'promo_active': settings.get('promo_active', 'false') == 'true',
             'promo_half_yearly': int(settings.get('promo_half_yearly', 25)),
             'promo_yearly': int(settings.get('promo_yearly', 40)),
             'promo_end_date': settings.get('promo_end_date', ''),
+            
+            # ========== معلومات التواصل ==========
             'payment_number': settings.get('payment_number', '772130931'),
             'developer_link': settings.get('developer_link', 'https://t.me/E_Alshabany'),
             'bot_link': settings.get('bot_link', 'https://t.me/Social_Media_tools_bot')
