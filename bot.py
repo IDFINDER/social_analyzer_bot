@@ -2127,6 +2127,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await bio_page_command(update, context)
     elif text == "🔍 فحص يوزرنيم":
         await username_check_command(update, context)
+    elif text == "⭐ اشتراك بالنجوم":
+        await stars_subscribe_command(update, context)
+        return
+    elif text == "🤖 توصيات إضافية":
+        await extra_recs_command(update, context)
+        return
     
     # ----- معالجة تعديل الحساب -----
     elif context.user_data.get('editing_platform'):
