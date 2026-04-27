@@ -1826,6 +1826,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await query.delete_message()
         else:
             await premium_command(update, context)
+
+    # ========== أزرار القائمة الرئيسية للمستخدم المميز ==========
+    elif data == "stars_subscribe":
+        await stars_subscribe_command(update, context)
+    elif data == "extra_recs":
+        await extra_recs_command(update, context)
     
     # ----- توصيات الذكاء الاصطناعي -----
     elif data.startswith("ai_recommendations"):
