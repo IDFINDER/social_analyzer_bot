@@ -930,33 +930,55 @@ def security_info():
 @app.route('/admin-prices', methods=['GET', 'POST'])
 @login_required
 def admin_prices():
-    """صفحة تعديل الأسعار والإعدادات - مع رسائل تأكيد"""
+    """صفحة تعديل الأسعار والإعدادات - مع رسائل تأكيد ودعم النجوم"""
     from utils.db import update_bot_setting, get_all_prices, supabase
     from datetime import datetime
-    import json
     
     message = None
     message_type = None  # 'success' or 'error'
     
     if request.method == 'POST':
         try:
-            # حفظ الأسعار
+            # حفظ جميع الإعدادات (القديمة والجديدة)
             settings_to_save = {
+                # ========== الأسعار بالدولار ==========
                 'price_monthly': request.form.get('price_monthly', '10'),
                 'price_half_yearly': request.form.get('price_half_yearly', '30'),
                 'price_yearly': request.form.get('price_yearly', '48'),
                 'price_lifetime': request.form.get('price_lifetime', '100'),
+                
+                # ========== مدة الخطط ==========
                 'duration_monthly': request.form.get('duration_monthly', '30'),
                 'duration_half_yearly': request.form.get('duration_half_yearly', '180'),
                 'duration_yearly': request.form.get('duration_yearly', '365'),
                 'duration_lifetime': request.form.get('duration_lifetime', '36500'),
+                
+                # ========== حدود الاستخدام ==========
                 'free_limit': request.form.get('free_limit', '2'),
                 'gemini_monthly_limit': request.form.get('gemini_monthly_limit', '20'),
                 'gemini_free_limit': request.form.get('gemini_free_limit', '0'),
+                
+                # ========== ⭐ أسعار النجوم (جديد) ==========
+                'stars_monthly': request.form.get('stars_monthly', '200'),
+                'stars_half_yearly': request.form.get('stars_half_yearly', '500'),
+                'stars_yearly': request.form.get('stars_yearly', '800'),
+                'stars_lifetime': request.form.get('stars_lifetime', '2000'),
+                'stars_usd_rate': request.form.get('stars_usd_rate', '0.025'),
+                'stars_enabled': request.form.get('stars_enabled', 'true'),
+                
+                # ========== 🎁 باقات التوصيات الإضافية (جديد) ==========
+                'stars_extra_recs_small': request.form.get('stars_extra_recs_small', '50'),
+                'stars_extra_recs_medium': request.form.get('stars_extra_recs_medium', '100'),
+                'stars_extra_recs_large': request.form.get('stars_extra_recs_large', '200'),
+                'stars_extra_recs_premium': request.form.get('stars_extra_recs_premium', '500'),
+                
+                # ========== العروض الترويجية ==========
                 'promo_active': request.form.get('promo_active', 'false'),
                 'promo_half_yearly': request.form.get('promo_half_yearly', '25'),
                 'promo_yearly': request.form.get('promo_yearly', '40'),
                 'promo_end_date': request.form.get('promo_end_date', ''),
+                
+                # ========== معلومات التواصل ==========
                 'payment_number': request.form.get('payment_number', '772130931'),
                 'developer_link': request.form.get('developer_link', 'https://t.me/E_Alshabany'),
                 'bot_link': request.form.get('bot_link', 'https://t.me/Social_Media_tools_bot')
