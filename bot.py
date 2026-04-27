@@ -495,6 +495,12 @@ async def my_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """معلومات الاشتراك المميز - عرض خيارات الدفع"""
+    # تحديد مصدر الرسالة (سواء كانت من أمر مباشر أو من زر)
+    if update.callback_query:
+        message = update.callback_query.message
+    else:
+        message = update.message
+    
     user_id = update.effective_user.id
     user_info = get_user_info(user_id)
     is_premium = user_info['status'] == 'premium' if user_info else False
@@ -528,7 +534,7 @@ async def premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 شكراً لدعمك! 🙏
 """
-        await update.message.reply_text(text, parse_mode='HTML', reply_markup=get_main_keyboard(True))
+        await message.reply_text(text, parse_mode='HTML', reply_markup=get_main_keyboard(True))
         return
     
     # رسالة الاشتراك للمستخدمين المجانيين
@@ -589,7 +595,7 @@ async def premium_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 🔽 <b>اختر طريقة الدفع:</b>
 """
-    await update.message.reply_text(text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
+    await message.reply_text(text, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
 
 
 async def manual_payment_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
