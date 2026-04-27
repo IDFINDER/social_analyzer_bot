@@ -14,9 +14,11 @@ import logging
 import threading
 import asyncio
 from datetime import datetime, date, timedelta
-from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, BotCommand
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, BotCommand, LabeledPrice
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler, ConversationHandler
 from flask import Flask, request, render_template, jsonify
+from telegram.ext import PreCheckoutQueryHandler
+
 
 # إضافة مجلد utils إلى المسار
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -2519,6 +2521,88 @@ async def buy_recs_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Error sending extra recs invoice: {e}")
         await query.message.reply_text(f"❌ حدث خطأ: {e}")
+
+# =================================================================================
+
+async def pre_checkout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالج التحقق من الدفع - يجب أن يستجيب بسرعة فائقة"""
+    query = update.pre_checkout_query
+    try:
+        await query.answer(ok=True)
+        logger.info(f"✅ Pre-checkout approved for user {query.from_user.id}")
+    except Exception as e:
+        logger.error(f"Error in pre_checkout_callback: {e}")
+        await query.answer(ok=False, error_message="حدث خطأ، يرجى المحاولة مرة أخرى")
+
+
+async def successful_payment_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالج الدفع الناجح - تفعيل الاشتراك"""
+    message = update.message
+    payment = message.successful_payment
+    user_id = message.from_user.id
+    
+    import json
+    payload_data = json.loads(payment.invoice_payload)
+    
+    logger.info(f"✅ Successful payment from user {user_id}: {payment.total_amount} stars")
+    
+    # التحقق من نوع الدفع
+    if payload_data.get('type') == 'subscription':
+        plan_type = payload_data.get('plan_type')
+        
+        plan_days = {
+            'monthly': 30,
+            'half_yearly': 180,
+            'yearly': 365,
+            'lifetime': 36500
+        }
+        
+        from utils.db import upgrade_user_to_premium
+        success = upgrade_user_to_premium(user_id, plan_days.get(plan_type, 30))
+        
+        plan_names = {
+            'monthly': 'شهري',
+            'half_yearly': 'نصف سنوي',
+            'yearly': 'سنوي',
+            'lifetime': 'مدى الحياة'
+        }
+        plan_name = plan_names.get(plan_type, plan_type)
+        
+        if success:
+            await message.reply_text(
+                f"✅ <b>تم تفعيل اشتراكك {plan_name} بنجاح!</b>\n\n"
+                f"⭐ تم خصم {payment.total_amount} نجم من رصيدك\n\n"
+                f"شكراً لثقتك! 🙏",
+                parse_mode='HTML'
+            )
+        else:
+            await message.reply_text(
+                f"❌ حدث خطأ في تفعيل الاشتراك {plan_name}\n\n"
+                f"📩 يرجى التواصل مع المطور: @Alshabany_Ai",
+                parse_mode='HTML'
+            )
+    
+    elif payload_data.get('type') == 'extra_recs':
+        extra_recs = payload_data.get('extra_recs')
+        
+        from utils.db import activate_extra_recs, get_user_gemini_limit
+        success = activate_extra_recs(user_id, extra_recs)
+        
+        if success:
+            new_limit = get_user_gemini_limit(user_id)
+            await message.reply_text(
+                f"✅ <b>تم إضافة {extra_recs} توصيات إضافية!</b>\n\n"
+                f"⭐ تم خصم {payment.total_amount} نجم من رصيدك\n"
+                f"📊 حصتك الجديدة: {new_limit} توصية شهرياً\n\n"
+                f"شكراً لثقتك! 🙏",
+                parse_mode='HTML'
+            )
+        else:
+            await message.reply_text(
+                f"❌ حدث خطأ في إضافة التوصيات\n\n"
+                f"📩 يرجى التواصل مع المطور: @Alshabany_Ai",
+                parse_mode='HTML'
+            )
 # =================================================================================
 # إعداد قائمة الأوامر (Commands Menu)
 # =================================================================================
@@ -2594,7 +2678,8 @@ def main():
     application.add_handler(CommandHandler("edit", edit_data_command))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     application.add_handler(CallbackQueryHandler(button_callback))
-    
+    application.add_handler(PreCheckoutQueryHandler(pre_checkout_callback))
+    application.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_callback))
     # ========== إعداد قائمة الأوامر ==========
     import asyncio
     loop = asyncio.new_event_loop()
