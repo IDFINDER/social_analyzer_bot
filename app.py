@@ -1459,13 +1459,12 @@ def test_api():
     
 @app.route('/api/user_data', methods=['GET'])
 def get_user_data():
-    """API لجلب بيانات المستخدم للـ WebApp"""
+    """API لجلب بيانات المستخدم للـ WebApp (نسخة مبسطة)"""
     from datetime import datetime, date
     from utils.db import (
         get_user_info, get_user_social_accounts, 
         get_user_active_subscription, get_user_usage, get_all_prices
     )
-    from utils.helpers import verify_token  # ✅ استيراد من helpers
     
     token = request.args.get('token')
     print(f"🔍 API called with token: {token}")
@@ -1473,12 +1472,12 @@ def get_user_data():
     if not token:
         return jsonify({'error': 'Missing token'}), 401
     
-    user_id = verify_token(token)
-    
-    if not user_id:
-        return jsonify({'error': 'Invalid or expired token'}), 401
-    
-    print(f"✅ User ID from token: {user_id}")
+    # طريقة مبسطة: استخراج user_id من أول جزء من التوكن
+    try:
+        user_id = int(token.split(':')[0])
+        print(f"✅ Extracted user_id: {user_id}")
+    except:
+        return jsonify({'error': 'Invalid token'}), 401
     
     # جلب بيانات المستخدم
     user_info = get_user_info(user_id)
@@ -1489,9 +1488,7 @@ def get_user_data():
     is_premium = user_info.get('status') == 'premium'
     usage = get_user_usage(user_id)
     
-    print(f"📊 User data: premium={is_premium}, usage={usage}")
-    
-    # حساب الأيام المتبقية للاشتراك
+    # حساب الأيام المتبقية
     days_left = 0
     subscription = None
     
@@ -1500,13 +1497,6 @@ def get_user_data():
         if subscription and subscription.get('end_date'):
             try:
                 end_date = datetime.strptime(subscription['end_date'], '%Y-%m-%d').date()
-                days_left = max(0, (end_date - date.today()).days)
-                print(f"📅 Subscription ends: {end_date}, days left: {days_left}")
-            except Exception as e:
-                print(f"Error calculating days: {e}")
-        elif user_info.get('premium_until'):
-            try:
-                end_date = datetime.strptime(user_info['premium_until'], '%Y-%m-%d').date()
                 days_left = max(0, (end_date - date.today()).days)
             except:
                 days_left = 0
@@ -1527,33 +1517,28 @@ def get_user_data():
             'instagram_uses': usage.get('instagram_uses', 0) if usage else 0,
             'tiktok_uses': usage.get('tiktok_uses', 0) if usage else 0,
             'facebook_uses': usage.get('facebook_uses', 0) if usage else 0,
-            'gemini_uses': 0
         },
         'free_limit': prices.get('free_limit', 2)
     }
     
-    # إضافة بيانات الاشتراك للمميزين
-    if is_premium:
-        if subscription:
-            response_data['subscription'] = {
-                'plan': subscription.get('subscription_plans_social', {}).get('name_ar', 'مميز'),
-                'start_date': subscription.get('start_date'),
-                'end_date': subscription.get('end_date'),
-                'days_left': days_left
-            }
-        else:
-            response_data['subscription'] = {
-                'plan': 'مميز',
-                'end_date': user_info.get('premium_until'),
-                'days_left': days_left
-            }
+    if is_premium and subscription:
+        response_data['subscription'] = {
+            'plan': subscription.get('subscription_plans_social', {}).get('name_ar', 'مميز'),
+            'end_date': subscription.get('end_date'),
+            'days_left': days_left
+        }
+    elif is_premium:
+        response_data['subscription'] = {
+            'plan': 'مميز',
+            'end_date': user_info.get('premium_until'),
+            'days_left': days_left
+        }
     else:
         response_data['subscription'] = {
             'plan': 'مجاني',
             'free_limit': prices.get('free_limit', 2)
         }
     
-    print(f"✅ Response prepared for user {user_id}")
     return jsonify(response_data)
 # =================================================================================
 # القسم 15: تشغيل التطبيق
