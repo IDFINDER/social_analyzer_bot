@@ -15,7 +15,7 @@ import logging
 from flask import Flask, render_template, request, jsonify, send_from_directory, session, redirect, url_for, render_template_string
 from datetime import datetime, timedelta
 from functools import wraps
-
+from utils.helpers import verify_token
 # =================================================================================
 # القسم 1: إعدادات المسارات والمكتبات
 # =================================================================================
@@ -1445,36 +1445,39 @@ def gemini_limits_page():
 # =================================================================================
 @app.route('/api/user_data', methods=['GET'])
 def get_user_data():
-    print(f"🔍 API called with token: {request.args.get('token')}")
     """API لجلب بيانات المستخدم للـ WebApp"""
+    from datetime import datetime, date  # 🔴 أضف هذا السطر
+    from utils.db import (
+        get_user_info, get_user_social_accounts, 
+        get_user_active_subscription, get_user_usage, get_all_prices
+    )
+    from bot import verify_token
+    
+    print(f"🔍 API called with token: {request.args.get('token')}")
+    
     token = request.args.get('token')
     
     if not token:
         return jsonify({'error': 'Missing token'}), 401
     
-    # التحقق من صحة token باستخدام الدالة من bot.py
-    # ملاحظة: ستحتاج إلى استيراد verify_token أو إعادة كتابتها هنا
-    from bot import verify_token
+    # التحقق من صحة token
     user_id = verify_token(token)
     
     if not user_id:
         return jsonify({'error': 'Invalid or expired token'}), 401
     
-    # جلب بيانات المستخدم من قاعدة البيانات
-    from utils.db import (
-        get_user_info, get_user_social_accounts, 
-        get_user_active_subscription, get_user_usage
-    )
+    print(f"✅ User ID from token: {user_id}")
     
+    # جلب بيانات المستخدم
     user_info = get_user_info(user_id)
     if not user_info:
         return jsonify({'error': 'User not found'}), 404
     
     accounts = get_user_social_accounts(user_id)
     is_premium = user_info.get('status') == 'premium'
-    
-    # إحصائيات الاستخدام
     usage = get_user_usage(user_id)
+    
+    print(f"📊 User data: premium={is_premium}, usage={usage}")
     
     # حساب الأيام المتبقية للاشتراك
     days_left = 0
@@ -1486,8 +1489,9 @@ def get_user_data():
             try:
                 end_date = datetime.strptime(subscription['end_date'], '%Y-%m-%d').date()
                 days_left = max(0, (end_date - date.today()).days)
-            except:
-                days_left = 0
+                print(f"📅 Subscription ends: {end_date}, days left: {days_left}")
+            except Exception as e:
+                print(f"Error calculating days: {e}")
         elif user_info.get('premium_until'):
             try:
                 end_date = datetime.strptime(user_info['premium_until'], '%Y-%m-%d').date()
@@ -1495,8 +1499,6 @@ def get_user_data():
             except:
                 days_left = 0
     
-    # تحضير البيانات للإرسال
-    from utils.db import get_all_prices
     prices = get_all_prices()
     
     response_data = {
@@ -1513,7 +1515,7 @@ def get_user_data():
             'instagram_uses': usage.get('instagram_uses', 0) if usage else 0,
             'tiktok_uses': usage.get('tiktok_uses', 0) if usage else 0,
             'facebook_uses': usage.get('facebook_uses', 0) if usage else 0,
-            'gemini_uses': 0  # يمكن إضافة لاحقاً
+            'gemini_uses': 0
         },
         'free_limit': prices.get('free_limit', 2)
     }
@@ -1539,6 +1541,7 @@ def get_user_data():
             'free_limit': prices.get('free_limit', 2)
         }
     
+    print(f"✅ Response prepared for user {user_id}")
     return jsonify(response_data)
 # =================================================================================
 # القسم 15: تشغيل التطبيق
