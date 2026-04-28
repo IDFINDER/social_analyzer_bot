@@ -1446,8 +1446,92 @@ def get_user_data():
     if not token:
         return jsonify({'error': 'Missing token'}), 401
     
-    # التحقق من صلاحية token (يفضل تخزينه في مؤقت)
-    # مؤقتاً، سنستخدم token مؤقت من الذاكرة
+    # التحقق من صحة token باستخدام الدالة من bot.py
+    # ملاحظة: ستحتاج إلى استيراد verify_token أو إعادة كتابتها هنا
+    from bot import verify_token
+    user_id = verify_token(token)
+    
+    if not user_id:
+        return jsonify({'error': 'Invalid or expired token'}), 401
+    
+    # جلب بيانات المستخدم من قاعدة البيانات
+    from utils.db import (
+        get_user_info, get_user_social_accounts, 
+        get_user_active_subscription, get_user_usage
+    )
+    
+    user_info = get_user_info(user_id)
+    if not user_info:
+        return jsonify({'error': 'User not found'}), 404
+    
+    accounts = get_user_social_accounts(user_id)
+    is_premium = user_info.get('status') == 'premium'
+    
+    # إحصائيات الاستخدام
+    usage = get_user_usage(user_id)
+    
+    # حساب الأيام المتبقية للاشتراك
+    days_left = 0
+    subscription = None
+    
+    if is_premium:
+        subscription = get_user_active_subscription(user_id)
+        if subscription and subscription.get('end_date'):
+            try:
+                end_date = datetime.strptime(subscription['end_date'], '%Y-%m-%d').date()
+                days_left = max(0, (end_date - date.today()).days)
+            except:
+                days_left = 0
+        elif user_info.get('premium_until'):
+            try:
+                end_date = datetime.strptime(user_info['premium_until'], '%Y-%m-%d').date()
+                days_left = max(0, (end_date - date.today()).days)
+            except:
+                days_left = 0
+    
+    # تحضير البيانات للإرسال
+    from utils.db import get_all_prices
+    prices = get_all_prices()
+    
+    response_data = {
+        'is_premium': is_premium,
+        'user': {
+            'first_name': user_info.get('first_name'),
+            'username': user_info.get('username'),
+            'user_id': user_id
+        },
+        'accounts': accounts,
+        'stats': {
+            'total_uses': usage.get('total_uses', 0) if usage else 0,
+            'youtube_uses': usage.get('youtube_uses', 0) if usage else 0,
+            'instagram_uses': usage.get('instagram_uses', 0) if usage else 0,
+            'tiktok_uses': usage.get('tiktok_uses', 0) if usage else 0,
+            'facebook_uses': usage.get('facebook_uses', 0) if usage else 0,
+            'gemini_uses': 0  # يمكن إضافة لاحقاً
+        },
+        'free_limit': prices.get('free_limit', 2)
+    }
+    
+    # إضافة بيانات الاشتراك للمميزين
+    if is_premium:
+        if subscription:
+            response_data['subscription'] = {
+                'plan': subscription.get('subscription_plans_social', {}).get('name_ar', 'مميز'),
+                'start_date': subscription.get('start_date'),
+                'end_date': subscription.get('end_date'),
+                'days_left': days_left
+            }
+        else:
+            response_data['subscription'] = {
+                'plan': 'مميز',
+                'end_date': user_info.get('premium_until'),
+                'days_left': days_left
+            }
+    else:
+        response_data['subscription'] = {
+            'plan': 'مجاني',
+            'free_limit': prices.get('free_limit', 2)
+        }
     
     return jsonify(response_data)
 # =================================================================================
