@@ -18,7 +18,40 @@ from telegram import Update, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboard
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler, ConversationHandler
 from flask import Flask, request, render_template, jsonify
 from telegram.ext import PreCheckoutQueryHandler
+import hashlib
+import time
+import secrets
 
+def create_secure_token(user_id):
+    """إنشاء token آمن باستخدام user_id والتوقيت"""
+    secret = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-it')
+    timestamp = int(time.time())
+    data = f"{user_id}:{timestamp}"
+    signature = hashlib.sha256(f"{data}:{secret}".encode()).hexdigest()[:16]
+    return f"{data}:{signature}"
+
+def verify_token(token):
+    """التحقق من صحة token واستخراج user_id"""
+    try:
+        parts = token.split(':')
+        if len(parts) != 3:
+            return None
+        user_id, timestamp_str, signature = parts
+        timestamp = int(timestamp_str)
+        
+        # التحقق من صلاحية token (ساعة واحدة = 3600 ثانية)
+        if time.time() - timestamp > 3600:
+            return None
+        
+        secret = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-it')
+        expected = hashlib.sha256(f"{user_id}:{timestamp}:{secret}".encode()).hexdigest()[:16]
+        
+        if signature == expected:
+            return int(user_id)
+        return None
+    except Exception as e:
+        print(f"Token verification error: {e}")
+        return None
 
 # إضافة مجلد utils إلى المسار
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -2617,6 +2650,33 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
                 f"📩 يرجى التواصل مع المطور: @Alshabany_Ai",
                 parse_mode='HTML'
             )
+# =================================================================================
+async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """فتح لوحة التحكم كـ WebApp"""
+    user_id = update.effective_user.id
+    
+    # إنشاء token آمن مشفر (بدون تخزين في الذاكرة)
+    token = create_secure_token(user_id)
+    
+    # رابط الصفحة (استخدم رابط Flask الخاص بك)
+    RENDER_URL = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
+    webapp_url = f"https://{RENDER_URL}/dashboard?token={token}"
+    
+    keyboard = [[
+        InlineKeyboardButton("📊 فتح لوحة التحكم", web_app=WebAppInfo(url=webapp_url))
+    ]]
+    
+    await update.message.reply_text(
+        "📱 <b>لوحة التحكم المتكاملة</b>\n\n"
+        "اضغط على الزر أدناه لفتح لوحة التحكم الخاصة بك:\n\n"
+        "• 📋 عرض بياناتك الشخصية\n"
+        "• 💎 متابعة اشتراكك وتاريخه\n"
+        "• 📊 إحصائيات تحليلاتك\n"
+        "• 📖 تعليمات الاستخدام\n\n"
+        "🔒 هذه نافذة آمنة ومشفرة، وصالحة لمدة ساعة واحدة",
+        parse_mode='HTML',
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 # =================================================================================
 # إعداد قائمة الأوامر (Commands Menu)
 # =================================================================================
