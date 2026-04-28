@@ -8,11 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
         :root {
             --youtube: #ff0000;
@@ -38,7 +34,6 @@
             color: var(--text);
         }
         
-        /* شاشة التحميل */
         .loading-screen {
             position: fixed;
             top: 0;
@@ -63,47 +58,17 @@
             animation: spin 1s linear infinite;
         }
         
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        .loading-text {
-            color: white;
-            margin-top: 15px;
-            font-size: 14px;
-        }
+        .loading-text { color: white; margin-top: 15px; font-size: 14px; }
         
-        /* المحتوى الرئيسي */
-        .container {
-            padding: 16px;
-            padding-bottom: 80px;
-            max-width: 500px;
-            margin: 0 auto;
-        }
+        .container { padding: 16px; padding-bottom: 80px; max-width: 500px; margin: 0 auto; }
         
-        /* التبويبات */
-        .tab-content {
-            display: none;
-            animation: fadeInUp 0.4s ease-out;
-        }
+        .tab-content { display: none; animation: fadeInUp 0.4s ease-out; }
+        .tab-content.active { display: block; }
         
-        .tab-content.active {
-            display: block;
-        }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        /* البطاقات */
         .card {
             background: white;
             border-radius: 20px;
@@ -113,10 +78,7 @@
             transition: transform 0.2s, box-shadow 0.2s;
         }
         
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-        }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
         
         .card h3 {
             margin-top: 0;
@@ -127,7 +89,6 @@
             font-size: 1.1rem;
         }
         
-        /* أزرار المنصات بألوانها */
         .platform-btn {
             display: flex;
             align-items: center;
@@ -144,14 +105,8 @@
             color: white;
         }
         
-        .platform-btn:hover {
-            transform: translateX(-5px);
-            filter: brightness(1.05);
-        }
-        
-        .platform-btn i {
-            font-size: 20px;
-        }
+        .platform-btn:hover { transform: translateX(-5px); filter: brightness(1.05); }
+        .platform-btn i { font-size: 20px; }
         
         .btn-youtube { background: var(--youtube); }
         .btn-instagram { background: var(--instagram); }
@@ -159,7 +114,6 @@
         .btn-facebook { background: var(--facebook); }
         .btn-primary { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
         
-        /* إحصائيات */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -176,50 +130,14 @@
             transition: transform 0.2s;
         }
         
-        .stat-card:hover {
-            transform: translateY(-3px);
-        }
+        .stat-card:hover { transform: translateY(-3px); }
+        .stat-number { font-size: 22px; font-weight: bold; color: var(--primary); }
+        .stat-label { font-size: 10px; color: var(--text-light); margin-top: 5px; }
         
-        .stat-number {
-            font-size: 22px;
-            font-weight: bold;
-            color: var(--primary);
-        }
+        .warning-badge { background: var(--warning); color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; display: inline-block; }
+        .danger-badge { background: var(--danger); color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; display: inline-block; }
+        .success-badge { background: var(--success); color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; display: inline-block; }
         
-        .stat-label {
-            font-size: 10px;
-            color: var(--text-light);
-            margin-top: 5px;
-        }
-        
-        .warning-badge {
-            background: var(--warning);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            display: inline-block;
-        }
-        
-        .danger-badge {
-            background: var(--danger);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            display: inline-block;
-        }
-        
-        .success-badge {
-            background: var(--success);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            display: inline-block;
-        }
-        
-        /* القائمة السفلية */
         .nav-bar {
             position: fixed;
             bottom: 0;
@@ -240,58 +158,26 @@
             cursor: pointer;
             flex: 1;
             transition: all 0.2s;
-            padding: 5px 0;
+            padding: 8px 0;
             border-radius: 12px;
+            font-weight: bold;
         }
         
-        .nav-item i {
-            font-size: 22px;
-        }
+        .nav-item i { font-size: 24px; }
+        .nav-item span { display: block; font-size: 12px; margin-top: 4px; font-weight: bold; }
         
-        .nav-item span {
-            display: block;
-            font-size: 11px;
-            margin-top: 4px;
-        }
+        .nav-item:nth-child(1).active-nav { color: #667eea; background: rgba(102,126,234,0.15); }
+        .nav-item:nth-child(2).active-nav { color: #48bb78; background: rgba(72,187,120,0.15); }
+        .nav-item:nth-child(3).active-nav { color: #ed8936; background: rgba(237,137,54,0.15); }
+        .nav-item:nth-child(4).active-nav { color: #e53e3e; background: rgba(229,62,62,0.15); }
         
-        .nav-item.active-nav {
-            color: var(--primary);
-            background: rgba(102,126,234,0.1);
-        }
+        .alert { padding: 12px; border-radius: 12px; margin-bottom: 15px; text-align: center; }
+        .alert-warning { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+        .alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         
-        /* تنبيه */
-        .alert {
-            padding: 12px;
-            border-radius: 12px;
-            margin-bottom: 15px;
-            text-align: center;
-        }
+        .chart-container { position: relative; height: 200px; margin-top: 15px; }
         
-        .alert-warning {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffc107;
-        }
-        
-        .alert-danger {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .chart-container {
-            position: relative;
-            height: 200px;
-            margin-top: 15px;
-        }
-        
-        /* أيقونات الحسابات */
         .account-item {
             display: flex;
             align-items: center;
@@ -319,16 +205,13 @@
 </head>
 <body>
 
-<!-- شاشة التحميل -->
 <div id="loadingScreen" class="loading-screen">
     <div class="loading-spinner"></div>
     <div class="loading-text">جاري تحميل لوحة التحكم...</div>
 </div>
 
-<!-- المحتوى الرئيسي -->
 <div id="mainContent" style="display: none;">
     <div class="container">
-        <!-- تبويب 1: بياناتي -->
         <div id="profileTab" class="tab-content active">
             <div class="card">
                 <h3><i class="fas fa-user-circle"></i> ملفي الشخصي</h3>
@@ -349,23 +232,21 @@
             <div class="card">
                 <h3><i class="fas fa-link"></i> حساباتي المسجلة</h3>
                 <div id="accountsList"></div>
-                <button class="platform-btn btn-primary" onclick="window.location.href='https://t.me/Social_Media_tools_bot?start=edit'">
+                <button class="platform-btn btn-primary" onclick="openAddAccount()">
                     <span><i class="fas fa-plus"></i> إضافة حساب جديد</span>
                     <i class="fas fa-arrow-left"></i>
                 </button>
             </div>
         </div>
         
-        <!-- تبويب 2: اشتراكاتي -->
         <div id="subscriptionTab" class="tab-content">
             <div id="subscriptionContent"></div>
-            <button class="platform-btn btn-primary" onclick="window.location.href='https://t.me/Social_Media_tools_bot?start=premium'">
+            <button class="platform-btn btn-primary" onclick="openUpgrade()">
                 <span><i class="fas fa-gem"></i> ترقية / تجديد الاشتراك</span>
                 <i class="fas fa-arrow-left"></i>
             </button>
         </div>
         
-        <!-- تبويب 3: إحصائياتي -->
         <div id="statsTab" class="tab-content">
             <div class="card">
                 <h3><i class="fas fa-chart-line"></i> إحصائيات التحليلات</h3>
@@ -384,7 +265,6 @@
             </div>
         </div>
         
-        <!-- تبويب 4: تعليمات -->
         <div id="infoTab" class="tab-content">
             <div class="card">
                 <h3><i class="fas fa-book"></i> تعليمات سريعة</h3>
@@ -407,7 +287,6 @@
         </div>
     </div>
     
-    <!-- القائمة السفلية -->
     <div class="nav-bar">
         <div class="nav-item active-nav" onclick="showTab('profile')">
             <i class="fas fa-id-card"></i><span>بياناتي</span>
@@ -435,6 +314,14 @@
     
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
+    
+    function openAddAccount() {
+        tg.openTelegramLink('https://t.me/Social_Media_tools_bot?start=edit');
+    }
+    
+    function openUpgrade() {
+        tg.openTelegramLink('https://t.me/Social_Media_tools_bot?start=premium');
+    }
     
     if (!token) {
         document.getElementById('loadingScreen').innerHTML = '<div class="loading-screen" style="background:#e53e3e;"><div class="loading-text">❌ رابط غير صالح</div></div>';
@@ -467,7 +354,6 @@
     }
     
     function updateUI(data) {
-        // بيانات المستخدم
         document.getElementById('userName').innerText = data.user.first_name || '-';
         document.getElementById('userHandle').innerText = data.user.username ? `@${data.user.username}` : '-';
         
@@ -478,7 +364,6 @@
             statusSpan.innerHTML = '<span class="warning-badge">🎁 مجاني</span>';
         }
         
-        // الحسابات المسجلة
         const accountsList = document.getElementById('accountsList');
         const platformInfo = {
             youtube: { name: 'YouTube', icon: 'fab fa-youtube', color: '#ff0000' },
@@ -505,10 +390,7 @@
             accountsList.innerHTML = '<div style="text-align:center; padding:20px; color:#888;"><i class="fas fa-info-circle"></i> لا توجد حسابات مسجلة</div>';
         }
         
-        // الاشتراكات
         updateSubscriptionUI(data);
-        
-        // الإحصائيات
         updateStatsUI(data);
     }
     
@@ -530,9 +412,15 @@
                 badge = '<span class="success-badge">✅ نشط</span>';
             }
             
+            const startDate = data.subscription.start_date ? new Date(data.subscription.start_date).toLocaleDateString('ar-EG') : 'غير محدد';
+            
             container.innerHTML = `
                 ${alertMsg}
                 <div style="background: linear-gradient(135deg, #667eea10, #764ba210); border-radius: 16px; padding: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                        <span>📅 تاريخ البداية:</span>
+                        <span><strong>${startDate}</strong></span>
+                    </div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
                         <span>⭐ خطتك:</span>
                         <span><strong>${data.subscription.plan}</strong></span>
@@ -575,7 +463,6 @@
             <div class="stat-card"><div class="stat-number">${stats.gemini_uses || 0}</div><div class="stat-label">🤖 توصيات AI</div></div>
         `;
         
-        // رسم بياني للمنصات
         const ctx = document.getElementById('platformChart').getContext('2d');
         if (platformChart) platformChart.destroy();
         
@@ -585,12 +472,7 @@
                 labels: ['🎬 يوتيوب', '📸 انستقرام', '🎵 تيك توك', '📘 فيسبوك'],
                 datasets: [{
                     label: 'عدد التحليلات',
-                    data: [
-                        stats.youtube_uses || 0,
-                        stats.instagram_uses || 0,
-                        stats.tiktok_uses || 0,
-                        stats.facebook_uses || 0
-                    ],
+                    data: [stats.youtube_uses || 0, stats.instagram_uses || 0, stats.tiktok_uses || 0, stats.facebook_uses || 0],
                     backgroundColor: ['#ff0000', '#e1306c', '#000000', '#1877f2'],
                     borderRadius: 8
                 }]
@@ -598,7 +480,6 @@
             options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
         });
         
-        // رسم بياني للتطور (بيانات تجريبية، يمكن ربطها بقاعدة البيانات لاحقاً)
         const trendCtx = document.getElementById('trendChart').getContext('2d');
         if (trendChart) trendChart.destroy();
         
