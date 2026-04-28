@@ -1438,6 +1438,19 @@ def gemini_limits_page():
         logger.error(f"Error in gemini_limits_page: {e}")
         return f"حدث خطأ: {e}", 500
 # =================================================================================
+@app.route('/api/user_data', methods=['GET'])
+def get_user_data():
+    """API لجلب بيانات المستخدم للـ WebApp"""
+    token = request.args.get('token')
+    
+    if not token:
+        return jsonify({'error': 'Missing token'}), 401
+    
+    # التحقق من صلاحية token (يفضل تخزينه في مؤقت)
+    # مؤقتاً، سنستخدم token مؤقت من الذاكرة
+    
+    return jsonify(response_data)
+# =================================================================================
 # القسم 15: تشغيل التطبيق
 # =================================================================================
 
