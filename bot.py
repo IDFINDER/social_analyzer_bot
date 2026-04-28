@@ -2166,6 +2166,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif text == "🤖 توصيات إضافية":
         await extra_recs_command(update, context)
         return
+    elif text == "📊 لوحة التحكم":
+        await dashboard_command(update, context)
+        return
     
     # ----- معالجة تعديل الحساب -----
     elif context.user_data.get('editing_platform'):
