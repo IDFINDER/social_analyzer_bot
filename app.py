@@ -1445,6 +1445,7 @@ def gemini_limits_page():
 # =================================================================================
 @app.route('/api/user_data', methods=['GET'])
 def get_user_data():
+    print(f"🔍 API called with token: {request.args.get('token')}")
     """API لجلب بيانات المستخدم للـ WebApp"""
     token = request.args.get('token')
     
