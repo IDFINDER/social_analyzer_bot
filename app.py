@@ -1443,6 +1443,11 @@ def gemini_limits_page():
         logger.error(f"Error in gemini_limits_page: {e}")
         return f"حدث خطأ: {e}", 500
 # =================================================================================
+@app.route('/api/test', methods=['GET'])
+def test_api():
+    """نقطة نهاية اختبارية للتأكد من أن API يعمل"""
+    return jsonify({'status': 'ok', 'message': 'API is working'})
+    
 @app.route('/api/user_data', methods=['GET'])
 def get_user_data():
     """API لجلب بيانات المستخدم للـ WebApp"""
