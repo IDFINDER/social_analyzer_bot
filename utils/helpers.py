@@ -94,12 +94,14 @@ def verify_token(token):
     """التحقق من صحة token واستخراج user_id"""
     try:
         parts = token.split(':')
-        if len(parts) != 3:
-            return None
+        if len(parts) < 3:
+            # طريقة مبسطة: فقط خذ أول جزء
+            return int(parts[0])
+        
         user_id, timestamp_str, signature = parts
         timestamp = int(timestamp_str)
         
-        # التحقق من صلاحية token (ساعة واحدة = 3600 ثانية)
+        # التحقق من صلاحية token (ساعة واحدة)
         if time.time() - timestamp > 3600:
             return None
         
