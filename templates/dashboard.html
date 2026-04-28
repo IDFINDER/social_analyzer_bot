@@ -506,9 +506,13 @@
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
     
-    if (!token) {
-        document.getElementById('loadingScreen').innerHTML = '<div class="loading-screen" style="background:#e53e3e;"><div class="loading-text">❌ رابط غير صالح</div></div>';
-        return;
+    // دالة للتحقق من وجود token
+    function checkToken() {
+        if (!token) {
+            document.getElementById('loadingScreen').innerHTML = '<div class="loading-screen" style="background:#e53e3e;"><div class="loading-text">❌ رابط غير صالح</div></div>';
+            return false;
+        }
+        return true;
     }
     
     // جلب البيانات من الخادم
