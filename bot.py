@@ -2757,6 +2757,7 @@ def main():
     application.add_handler(CallbackQueryHandler(button_callback))
     application.add_handler(PreCheckoutQueryHandler(pre_checkout_callback))
     application.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_callback))
+    application.add_handler(CommandHandler("dashboard", dashboard_command))
     # ========== إعداد قائمة الأوامر ==========
     import asyncio
     loop = asyncio.new_event_loop()
