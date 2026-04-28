@@ -513,35 +513,56 @@
     
     // جلب البيانات من الخادم
     async function loadUserData() {
-        try {
-            const response = await fetch(`https://${window.location.host}/api/user_data?token=${encodeURIComponent(token)}`);
-            const data = await response.json();
-            
-            if (data.error) {
-                throw new Error(data.error);
-            }
-            
-            userData = data;
-            updateUI(data);
-            
-            // إخفاء شاشة التحميل
-            document.getElementById('loadingScreen').style.opacity = '0';
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        
+        if (!token) {
+            throw new Error('No token found');
+        }
+        
+        // استخدم الرابط الكامل للـ API
+        const apiUrl = `/api/user_data?token=${encodeURIComponent(token)}`;
+        console.log('Fetching:', apiUrl);
+        
+        const response = await fetch(apiUrl);
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Data received:', data);
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        userData = data;
+        updateUI(data);
+        
+        // إخفاء شاشة التحميل
+        const loadingScreen = document.getElementById('loadingScreen');
+        if (loadingScreen) {
+            loadingScreen.style.opacity = '0';
             setTimeout(() => {
-                document.getElementById('loadingScreen').style.display = 'none';
+                loadingScreen.style.display = 'none';
                 document.getElementById('mainContent').style.display = 'block';
             }, 300);
-            
-        } catch (error) {
-            console.error('Error loading data:', error);
-            document.getElementById('loadingScreen').innerHTML = `
-                <div class="loading-screen" style="background:#e53e3e;">
-                    <div class="loading-text">❌ فشل تحميل البيانات</div>
-                    <div class="loading-text" style="font-size:12px;">يرجى المحاولة مرة أخرى</div>
-                    <button onclick="location.reload()" style="margin-top:20px; background:white; color:#e53e3e;">إعادة المحاولة</button>
-                </div>
-            `;
         }
+        
+    } catch (error) {
+        console.error('Error loading data:', error);
+        document.getElementById('loadingScreen').innerHTML = `
+            <div class="loading-screen" style="background:#e53e3e;">
+                <div class="loading-text">❌ فشل تحميل البيانات</div>
+                <div class="loading-text" style="font-size:12px;">${error.message}</div>
+                <button onclick="location.reload()" style="margin-top:20px; background:white; color:#e53e3e; border:none; padding:10px 20px; border-radius:10px;">إعادة المحاولة</button>
+            </div>
+        `;
     }
+}
     
     function updateUI(data) {
         // تحديث بيانات المستخدم
