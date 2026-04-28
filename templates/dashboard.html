@@ -15,24 +15,27 @@
         }
         
         :root {
-            --tg-theme-bg-color: #f5f7fa;
-            --primary-color: #667eea;
-            --secondary-color: #764ba2;
-            --success-color: #48bb78;
-            --warning-color: #ed8936;
-            --danger-color: #e53e3e;
-            --text-color: #2d3748;
+            --youtube: #ff0000;
+            --instagram: #e1306c;
+            --tiktok: #000000;
+            --facebook: #1877f2;
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success: #48bb78;
+            --warning: #ed8936;
+            --danger: #e53e3e;
+            --dark: #1a1a2e;
+            --light: #f5f7fa;
+            --text: #2d3748;
             --text-light: #718096;
-            --border-color: #e2e8f0;
         }
         
         body {
             font-family: 'Segoe UI', 'Tahoma', Geneva, Verdana, sans-serif;
-            background-color: var(--tg-theme-bg-color);
+            background: linear-gradient(135deg, var(--light) 0%, #e2e8f0 100%);
             margin: 0;
             padding: 0;
-            color: var(--text-color);
-            direction: rtl;
+            color: var(--text);
         }
         
         /* شاشة التحميل */
@@ -42,7 +45,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -73,7 +76,7 @@
         
         /* المحتوى الرئيسي */
         .container {
-            padding: 20px;
+            padding: 16px;
             padding-bottom: 80px;
             max-width: 500px;
             margin: 0 auto;
@@ -104,46 +107,119 @@
         .card {
             background: white;
             border-radius: 20px;
-            padding: 20px;
+            padding: 18px;
             margin-bottom: 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             transition: transform 0.2s, box-shadow 0.2s;
         }
         
         .card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
         }
         
         .card h3 {
             margin-top: 0;
             margin-bottom: 15px;
-            color: var(--primary-color);
-            border-bottom: 2px solid var(--primary-color);
-            padding-bottom: 10px;
+            color: var(--primary);
+            border-right: 4px solid var(--primary);
+            padding-right: 12px;
             font-size: 1.1rem;
         }
         
-        /* أزرار */
-        button {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-            color: white;
+        /* أزرار المنصات بألوانها */
+        .platform-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 12px 16px;
+            margin: 8px 0;
             border: none;
-            padding: 10px 20px;
             border-radius: 12px;
-            cursor: pointer;
             font-size: 14px;
             font-weight: 500;
-            width: 100%;
+            cursor: pointer;
             transition: all 0.3s;
+            color: white;
         }
         
-        button:hover {
-            opacity: 0.9;
-            transform: scale(1.02);
+        .platform-btn:hover {
+            transform: translateX(-5px);
+            filter: brightness(1.05);
         }
         
-        /* قائمة التنقل السفلية */
+        .platform-btn i {
+            font-size: 20px;
+        }
+        
+        .btn-youtube { background: var(--youtube); }
+        .btn-instagram { background: var(--instagram); }
+        .btn-tiktok { background: var(--tiktok); }
+        .btn-facebook { background: var(--facebook); }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
+        
+        /* إحصائيات */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9fa, #ffffff);
+            border-radius: 16px;
+            padding: 12px 8px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .stat-number {
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .stat-label {
+            font-size: 10px;
+            color: var(--text-light);
+            margin-top: 5px;
+        }
+        
+        .warning-badge {
+            background: var(--warning);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            display: inline-block;
+        }
+        
+        .danger-badge {
+            background: var(--danger);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            display: inline-block;
+        }
+        
+        .success-badge {
+            background: var(--success);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            display: inline-block;
+        }
+        
+        /* القائمة السفلية */
         .nav-bar {
             position: fixed;
             bottom: 0;
@@ -153,8 +229,8 @@
             display: flex;
             justify-content: space-around;
             padding: 8px 0 12px;
-            box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
-            border-top: 1px solid var(--border-color);
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+            border-top: 1px solid #e2e8f0;
             z-index: 100;
         }
         
@@ -179,121 +255,34 @@
         }
         
         .nav-item.active-nav {
-            color: var(--primary-color);
+            color: var(--primary);
             background: rgba(102,126,234,0.1);
         }
         
-        /* العناصر المشتركة */
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .info-row:last-child {
-            border-bottom: none;
-        }
-        
-        .info-label {
-            font-weight: 500;
-            color: var(--text-light);
-        }
-        
-        .info-value {
-            font-weight: 600;
-            color: var(--text-color);
-        }
-        
-        /* شارات الحالة */
-        .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-        
-        .badge-premium {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-        }
-        
-        .badge-free {
-            background: #e2e8f0;
-            color: #4a5568;
-        }
-        
-        .badge-success {
-            background: var(--success-color);
-            color: white;
-        }
-        
-        .badge-warning {
-            background: var(--warning-color);
-            color: white;
-        }
-        
-        /* قائمة الحسابات */
-        .account-list {
-            list-style: none;
-            padding: 0;
-        }
-        
-        .account-list li {
-            padding: 10px 0;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .account-list li:last-child {
-            border-bottom: none;
-        }
-        
-        .account-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            color: white;
-        }
-        
-        /* ألوان المنصات */
-        .icon-youtube { background: #ff0000; }
-        .icon-instagram { background: #e1306c; }
-        .icon-tiktok { background: #000000; }
-        .icon-facebook { background: #1877f2; }
-        
-        /* قسم الإحصائيات */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        
-        .stat-card {
-            background: #f8f9fa;
-            border-radius: 16px;
-            padding: 15px;
+        /* تنبيه */
+        .alert {
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 15px;
             text-align: center;
         }
         
-        .stat-number {
-            font-size: 24px;
-            font-weight: bold;
-            color: var(--primary-color);
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffc107;
         }
         
-        .stat-label {
-            font-size: 12px;
-            color: var(--text-light);
-            margin-top: 5px;
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
         }
         
         .chart-container {
@@ -302,60 +291,29 @@
             margin-top: 15px;
         }
         
-        /* نافذة منبثقة للتأكيد */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            justify-content: center;
-            align-items: center;
-            z-index: 1001;
-        }
-        
-        .modal-content {
-            background: white;
-            border-radius: 20px;
-            padding: 25px;
-            width: 90%;
-            max-width: 320px;
-            text-align: center;
-        }
-        
-        .modal-buttons {
+        /* أيقونات الحسابات */
+        .account-item {
             display: flex;
-            gap: 10px;
-            margin-top: 20px;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
         }
         
-        .modal-buttons button {
-            flex: 1;
-        }
-        
-        .btn-cancel {
-            background: #e2e8f0 !important;
-            color: #4a5568 !important;
-        }
-        
-        /* رسالة خطأ */
-        .error-message {
-            background: #fed7d7;
-            color: #c53030;
-            padding: 12px;
-            border-radius: 12px;
-            text-align: center;
-            margin-bottom: 15px;
+        .account-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 12px;
         }
         
         @media (max-width: 480px) {
-            .container { padding: 15px; }
-            .card { padding: 15px; }
+            .container { padding: 12px; }
             .stats-grid { gap: 8px; }
-            .stat-card { padding: 10px; }
-            .stat-number { font-size: 20px; }
+            .stat-number { font-size: 18px; }
+            .platform-btn { padding: 10px 12px; font-size: 12px; }
         }
     </style>
 </head>
@@ -374,91 +332,76 @@
         <div id="profileTab" class="tab-content active">
             <div class="card">
                 <h3><i class="fas fa-user-circle"></i> ملفي الشخصي</h3>
-                <div class="info-row">
-                    <span class="info-label"><i class="fas fa-user"></i> الاسم:</span>
-                    <span class="info-value" id="userName">-</span>
+                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                    <span>👤 الاسم:</span>
+                    <span id="userName" style="font-weight: bold;">-</span>
                 </div>
-                <div class="info-row">
-                    <span class="info-label"><i class="fab fa-telegram"></i> المعرف:</span>
-                    <span class="info-value" id="userHandle">-</span>
+                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                    <span>📱 المعرف:</span>
+                    <span id="userHandle" style="font-weight: bold;">-</span>
                 </div>
-                <div class="info-row">
-                    <span class="info-label"><i class="fas fa-id-card"></i> الحالة:</span>
-                    <span class="info-value" id="userStatus">-</span>
+                <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                    <span>💎 الحالة:</span>
+                    <span id="userStatus">-</span>
                 </div>
             </div>
             
             <div class="card">
-                <h3><i class="fas fa-link"></i> الحسابات المسجلة</h3>
-                <ul id="accountsList" class="account-list">
-                    <li><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</li>
-                </ul>
+                <h3><i class="fas fa-link"></i> حساباتي المسجلة</h3>
+                <div id="accountsList"></div>
+                <button class="platform-btn btn-primary" onclick="window.location.href='https://t.me/Social_Media_tools_bot?start=edit'">
+                    <span><i class="fas fa-plus"></i> إضافة حساب جديد</span>
+                    <i class="fas fa-arrow-left"></i>
+                </button>
             </div>
         </div>
         
         <!-- تبويب 2: اشتراكاتي -->
         <div id="subscriptionTab" class="tab-content">
             <div id="subscriptionContent"></div>
+            <button class="platform-btn btn-primary" onclick="window.location.href='https://t.me/Social_Media_tools_bot?start=premium'">
+                <span><i class="fas fa-gem"></i> ترقية / تجديد الاشتراك</span>
+                <i class="fas fa-arrow-left"></i>
+            </button>
         </div>
         
         <!-- تبويب 3: إحصائياتي -->
         <div id="statsTab" class="tab-content">
             <div class="card">
                 <h3><i class="fas fa-chart-line"></i> إحصائيات التحليلات</h3>
-                <div class="stats-grid" id="statsGrid">
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalAnalyses">0</div>
-                        <div class="stat-label">📊 إجمالي التحليلات</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="youtubeAnalyses">0</div>
-                        <div class="stat-label">🎬 يوتيوب</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="instagramAnalyses">0</div>
-                        <div class="stat-label">📸 انستقرام</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="tiktokAnalyses">0</div>
-                        <div class="stat-label">🎵 تيك توك</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="facebookAnalyses">0</div>
-                        <div class="stat-label">📘 فيسبوك</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="geminiUses">0</div>
-                        <div class="stat-label">🤖 توصيات AI</div>
-                    </div>
-                </div>
-                
+                <div class="stats-grid" id="statsGrid"></div>
                 <div class="chart-container">
                     <canvas id="platformChart"></canvas>
                 </div>
+            </div>
+            
+            <div class="card">
+                <h3><i class="fas fa-chart-bar"></i> تطور التحليلات</h3>
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+                <p style="font-size: 11px; color: #888; text-align: center; margin-top: 10px;">آخر 7 أيام</p>
             </div>
         </div>
         
         <!-- تبويب 4: تعليمات -->
         <div id="infoTab" class="tab-content">
             <div class="card">
-                <h3><i class="fas fa-book"></i> تعليمات الاستخدام</h3>
-                <ul style="margin-right: 20px; line-height: 1.8;">
-                    <li><strong>🎯 تحليل حساباتي:</strong> اضغط على الزر في القائمة الرئيسية</li>
-                    <li><strong>📄 صفحة البايو:</strong> متاحة للمستخدمين المميزين فقط</li>
-                    <li><strong>🔍 فحص اليوزرنيم:</strong> تحقق من توافر الاسم على يوتيوب</li>
-                    <li><strong>⭐ الدفع بالنجوم:</strong> اشتراك فوري ومباشر</li>
-                    <li><strong>💬 الدعم الفني:</strong> تواصل مع المطور <a href="https://t.me/Alshabany_Ai">@Alshabany_Ai</a></li>
+                <h3><i class="fas fa-book"></i> تعليمات سريعة</h3>
+                <ul style="margin-right: 20px; line-height: 2;">
+                    <li>🎯 <strong>تحليل حساباتي:</strong> اضغط على الزر في القائمة الرئيسية</li>
+                    <li>📄 <strong>صفحة البايو:</strong> متاحة للمستخدمين المميزين</li>
+                    <li>🔍 <strong>فحص اليوزرنيم:</strong> تحقق من توافر الاسم على يوتيوب</li>
+                    <li>⭐ <strong>الدفع بالنجوم:</strong> اشتراك فوري ومباشر</li>
                 </ul>
             </div>
-            
             <div class="card">
                 <h3><i class="fas fa-gem"></i> مميزات الخطة المميزة</h3>
-                <ul style="margin-right: 20px; line-height: 1.8;">
-                    <li>✅ تحليل غير محدود لجميع الحسابات</li>
-                    <li>✅ توصيات الذكاء الاصطناعي (حصة شهرية)</li>
+                <ul style="margin-right: 20px; line-height: 2;">
+                    <li>✅ تحليل غير محدود</li>
+                    <li>✅ توصيات الذكاء الاصطناعي</li>
                     <li>✅ صفحة بايو شخصية</li>
                     <li>✅ فحص توافر اليوزرنيم</li>
-                    <li>✅ دعم أولوية في المعالجة</li>
                 </ul>
             </div>
         </div>
@@ -481,136 +424,91 @@
     </div>
 </div>
 
-<!-- نافذة تأكيد -->
-<div id="confirmModal" class="modal" onclick="closeModal(event)">
-    <div class="modal-content" onclick="event.stopPropagation()">
-        <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #ed8936; margin-bottom: 15px;"></i>
-        <h3 id="modalTitle">تأكيد</h3>
-        <p id="modalMessage">هل أنت متأكد؟</p>
-        <div class="modal-buttons">
-            <button id="modalConfirmBtn" class="btn-confirm">نعم</button>
-            <button class="btn-cancel" onclick="closeModal()">إلغاء</button>
-        </div>
-    </div>
-</div>
-
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
     tg.ready();
     
     let platformChart = null;
+    let trendChart = null;
     let userData = null;
     
-    // الحصول على token من URL
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
     
-    // دالة للتحقق من وجود token
-    function checkToken() {
-        if (!token) {
-            document.getElementById('loadingScreen').innerHTML = '<div class="loading-screen" style="background:#e53e3e;"><div class="loading-text">❌ رابط غير صالح</div></div>';
-            return false;
-        }
-        return true;
+    if (!token) {
+        document.getElementById('loadingScreen').innerHTML = '<div class="loading-screen" style="background:#e53e3e;"><div class="loading-text">❌ رابط غير صالح</div></div>';
     }
     
-    // جلب البيانات من الخادم
     async function loadUserData() {
-    try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('token');
-        
-        if (!token) {
-            throw new Error('No token found');
-        }
-        
-        // استخدم الرابط الكامل للـ API
-        const apiUrl = `/api/user_data?token=${encodeURIComponent(token)}`;
-        console.log('Fetching:', apiUrl);
-        
-        const response = await fetch(apiUrl);
-        console.log('Response status:', response.status);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('Data received:', data);
-        
-        if (data.error) {
-            throw new Error(data.error);
-        }
-        
-        userData = data;
-        updateUI(data);
-        
-        // إخفاء شاشة التحميل
-        const loadingScreen = document.getElementById('loadingScreen');
-        if (loadingScreen) {
-            loadingScreen.style.opacity = '0';
+        try {
+            const apiUrl = `/api/user_data?token=${encodeURIComponent(token)}`;
+            const response = await fetch(apiUrl);
+            
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            userData = await response.json();
+            updateUI(userData);
+            
+            document.getElementById('loadingScreen').style.opacity = '0';
             setTimeout(() => {
-                loadingScreen.style.display = 'none';
+                document.getElementById('loadingScreen').style.display = 'none';
                 document.getElementById('mainContent').style.display = 'block';
             }, 300);
+        } catch (error) {
+            document.getElementById('loadingScreen').innerHTML = `
+                <div class="loading-screen" style="background:#e53e3e;">
+                    <div class="loading-text">❌ فشل تحميل البيانات</div>
+                    <div class="loading-text">${error.message}</div>
+                    <button onclick="location.reload()" style="margin-top:20px; background:white; color:#e53e3e; border:none; padding:10px 20px; border-radius:10px;">إعادة المحاولة</button>
+                </div>
+            `;
         }
-        
-    } catch (error) {
-        console.error('Error loading data:', error);
-        document.getElementById('loadingScreen').innerHTML = `
-            <div class="loading-screen" style="background:#e53e3e;">
-                <div class="loading-text">❌ فشل تحميل البيانات</div>
-                <div class="loading-text" style="font-size:12px;">${error.message}</div>
-                <button onclick="location.reload()" style="margin-top:20px; background:white; color:#e53e3e; border:none; padding:10px 20px; border-radius:10px;">إعادة المحاولة</button>
-            </div>
-        `;
     }
-}
     
     function updateUI(data) {
-        // تحديث بيانات المستخدم
+        // بيانات المستخدم
         document.getElementById('userName').innerText = data.user.first_name || '-';
         document.getElementById('userHandle').innerText = data.user.username ? `@${data.user.username}` : '-';
         
-        const statusElement = document.getElementById('userStatus');
+        const statusSpan = document.getElementById('userStatus');
         if (data.is_premium) {
-            statusElement.innerHTML = '<span class="badge badge-premium">👑 مميز</span>';
+            statusSpan.innerHTML = '<span class="success-badge">👑 مميز</span>';
         } else {
-            statusElement.innerHTML = '<span class="badge badge-free">🎁 مجاني</span>';
+            statusSpan.innerHTML = '<span class="warning-badge">🎁 مجاني</span>';
         }
         
-        // تحديث الحسابات المسجلة
+        // الحسابات المسجلة
         const accountsList = document.getElementById('accountsList');
+        const platformInfo = {
+            youtube: { name: 'YouTube', icon: 'fab fa-youtube', color: '#ff0000' },
+            instagram: { name: 'Instagram', icon: 'fab fa-instagram', color: '#e1306c' },
+            tiktok: { name: 'TikTok', icon: 'fab fa-tiktok', color: '#000000' },
+            facebook: { name: 'Facebook', icon: 'fab fa-facebook-f', color: '#1877f2' }
+        };
+        
         if (data.accounts && Object.keys(data.accounts).length > 0) {
-            const platformIcons = {
-                'youtube': { icon: 'fab fa-youtube', class: 'icon-youtube', name: 'YouTube' },
-                'instagram': { icon: 'fab fa-instagram', class: 'icon-instagram', name: 'Instagram' },
-                'tiktok': { icon: 'fab fa-tiktok', class: 'icon-tiktok', name: 'TikTok' },
-                'facebook': { icon: 'fab fa-facebook-f', class: 'icon-facebook', name: 'Facebook' }
-            };
-            
             accountsList.innerHTML = '';
             for (const [platform, acc] of Object.entries(data.accounts)) {
-                const info = platformIcons[platform] || { icon: 'fas fa-link', class: '', name: platform };
+                const info = platformInfo[platform] || { name: platform, icon: 'fas fa-link', color: '#667eea' };
                 accountsList.innerHTML += `
-                    <li>
-                        <div class="account-icon ${info.class}" style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;">
-                            <i class="${info.icon}"></i>
+                    <div class="account-item">
+                        <div class="account-icon" style="background: ${info.color};">
+                            <i class="${info.icon}" style="color: white;"></i>
                         </div>
-                        <span style="flex:1"><strong>${info.name}</strong></span>
-                        <span>@${acc.account_identifier}</span>
-                    </li>
+                        <div style="flex:1;"><strong>${info.name}</strong></div>
+                        <div>@${acc.account_identifier}</div>
+                    </div>
                 `;
             }
         } else {
-            accountsList.innerHTML = '<li><i class="fas fa-info-circle"></i> لا توجد حسابات مسجلة</li>';
+            accountsList.innerHTML = '<div style="text-align:center; padding:20px; color:#888;"><i class="fas fa-info-circle"></i> لا توجد حسابات مسجلة</div>';
         }
         
-        // تحديث الاشتراكات
+        // الاشتراكات
         updateSubscriptionUI(data);
         
-        // تحديث الإحصائيات
+        // الإحصائيات
         updateStatsUI(data);
     }
     
@@ -619,63 +517,45 @@
         
         if (data.is_premium && data.subscription) {
             const daysLeft = data.subscription.days_left;
-            let daysBadge = '';
-            if (daysLeft <= 7 && daysLeft > 0) {
-                daysBadge = '<span class="badge badge-warning">⚠️ على وشك الانتهاء</span>';
-            } else if (daysLeft <= 0) {
-                daysBadge = '<span class="badge badge-danger">❌ منتهي</span>';
+            let badge = '';
+            let alertMsg = '';
+            
+            if (daysLeft <= 3 && daysLeft > 0) {
+                badge = '<span class="danger-badge">⚠️ على وشك الانتهاء</span>';
+                alertMsg = '<div class="alert alert-danger">⚠️ تنبيه: اشتراكك على وشك الانتهاء! يرجى التجديد قريباً.</div>';
+            } else if (daysLeft <= 7 && daysLeft > 3) {
+                badge = '<span class="warning-badge">⚠️ ينتهي قريباً</span>';
+                alertMsg = '<div class="alert alert-warning">⏰ ملاحظة: اشتراكك ينتهي بعد أيام قليلة.</div>';
             } else {
-                daysBadge = '<span class="badge badge-success">✅ نشط</span>';
+                badge = '<span class="success-badge">✅ نشط</span>';
             }
             
             container.innerHTML = `
-                <div class="card">
-                    <h3><i class="fas fa-gem"></i> حالة الاشتراك</h3>
-                    <div class="info-row">
-                        <span class="info-label">⭐ خطتك:</span>
-                        <span class="info-value"><strong>${data.subscription.plan}</strong></span>
+                ${alertMsg}
+                <div style="background: linear-gradient(135deg, #667eea10, #764ba210); border-radius: 16px; padding: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                        <span>⭐ خطتك:</span>
+                        <span><strong>${data.subscription.plan}</strong></span>
                     </div>
-                    <div class="info-row">
-                        <span class="info-label">📅 تنتهي في:</span>
-                        <span class="info-value">${data.subscription.end_date || 'غير محدد'}</span>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                        <span>📅 تنتهي في:</span>
+                        <span>${data.subscription.end_date || 'غير محدد'}</span>
                     </div>
-                    <div class="info-row">
-                        <span class="info-label">⏰ الأيام المتبقية:</span>
-                        <span class="info-value">${daysLeft > 0 ? daysLeft : 'منتهي'} ${daysBadge}</span>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>⏰ الأيام المتبقية:</span>
+                        <span><strong>${daysLeft > 0 ? daysLeft : 'منتهي'}</strong> ${badge}</span>
                     </div>
-                    <hr style="margin: 15px 0;">
-                    <h4>✅ مميزات خطتك:</h4>
-                    <ul style="margin-right: 20px; line-height: 1.8;">
-                        <li>📊 تحليل غير محدود</li>
-                        <li>🤖 توصيات الذكاء الاصطناعي</li>
-                        <li>📄 صفحة بايو شخصية</li>
-                        <li>🔍 فحص توافر اليوزرنيم</li>
-                    </ul>
-                    <button onclick="openUpgradeLink()">⭐ تجديد / ترقية</button>
                 </div>
             `;
         } else {
             container.innerHTML = `
-                <div class="card">
-                    <h3><i class="fas fa-gem"></i> حالة الاشتراك</h3>
-                    <div class="info-row">
-                        <span class="info-label">⭐ خطتك:</span>
-                        <span class="info-value"><strong>🎁 مجانية</strong></span>
+                <div class="alert alert-warning">
+                    <i class="fas fa-gem"></i> أنت حالياً في الخطة المجانية
+                </div>
+                <div style="background: linear-gradient(135deg, #667eea10, #764ba210); border-radius: 16px; padding: 15px;">
+                    <div style="text-align: center; margin-bottom: 10px;">
+                        📊 الحد اليومي: <strong>${data.free_limit} تحليل/يوم</strong>
                     </div>
-                    <div class="info-row">
-                        <span class="info-label">📊 الحد اليومي:</span>
-                        <span class="info-value">${data.subscription?.free_limit || 2} تحليل/يوم</span>
-                    </div>
-                    <hr style="margin: 15px 0;">
-                    <h4>💎 مميزات الخطة المميزة:</h4>
-                    <ul style="margin-right: 20px; line-height: 1.8;">
-                        <li>📊 تحليل غير محدود</li>
-                        <li>🤖 توصيات الذكاء الاصطناعي</li>
-                        <li>📄 صفحة بايو شخصية</li>
-                        <li>🔍 فحص توافر اليوزرنيم</li>
-                        <li>⚡ دعم أولوية</li>
-                    </ul>
-                    <button onclick="openUpgradeLink()">⭐ اشترك الآن</button>
                 </div>
             `;
         }
@@ -683,15 +563,19 @@
     
     function updateStatsUI(data) {
         const stats = data.stats || {};
+        const total = stats.total_uses || 0;
         
-        document.getElementById('totalAnalyses').innerText = stats.total_uses || 0;
-        document.getElementById('youtubeAnalyses').innerText = stats.youtube_uses || 0;
-        document.getElementById('instagramAnalyses').innerText = stats.instagram_uses || 0;
-        document.getElementById('tiktokAnalyses').innerText = stats.tiktok_uses || 0;
-        document.getElementById('facebookAnalyses').innerText = stats.facebook_uses || 0;
-        document.getElementById('geminiUses').innerText = stats.gemini_uses || 0;
+        const statsGrid = document.getElementById('statsGrid');
+        statsGrid.innerHTML = `
+            <div class="stat-card"><div class="stat-number">${total}</div><div class="stat-label">📊 إجمالي</div></div>
+            <div class="stat-card"><div class="stat-number">${stats.youtube_uses || 0}</div><div class="stat-label">🎬 يوتيوب</div></div>
+            <div class="stat-card"><div class="stat-number">${stats.instagram_uses || 0}</div><div class="stat-label">📸 انستقرام</div></div>
+            <div class="stat-card"><div class="stat-number">${stats.tiktok_uses || 0}</div><div class="stat-label">🎵 تيك توك</div></div>
+            <div class="stat-card"><div class="stat-number">${stats.facebook_uses || 0}</div><div class="stat-label">📘 فيسبوك</div></div>
+            <div class="stat-card"><div class="stat-number">${stats.gemini_uses || 0}</div><div class="stat-label">🤖 توصيات AI</div></div>
+        `;
         
-        // رسم بياني
+        // رسم بياني للمنصات
         const ctx = document.getElementById('platformChart').getContext('2d');
         if (platformChart) platformChart.destroy();
         
@@ -711,43 +595,45 @@
                     borderRadius: 8
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: { position: 'bottom', labels: { font: { size: 10 } } }
-                }
-            }
+            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
+        });
+        
+        // رسم بياني للتطور (بيانات تجريبية، يمكن ربطها بقاعدة البيانات لاحقاً)
+        const trendCtx = document.getElementById('trendChart').getContext('2d');
+        if (trendChart) trendChart.destroy();
+        
+        trendChart = new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: ['يوم 1', 'يوم 2', 'يوم 3', 'يوم 4', 'يوم 5', 'يوم 6', 'اليوم'],
+                datasets: [{
+                    label: 'عدد التحليلات',
+                    data: [3, 5, 4, 7, 6, 8, total],
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102,126,234,0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
         });
     }
     
     function showTab(tabName) {
-        // إخفاء جميع التبويبات
         document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-        
-        // إظهار التبويب المطلوب
         document.getElementById(`${tabName}Tab`).classList.add('active');
         
-        // تحديث حالة الأزرار
         document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active-nav'));
         event.currentTarget.classList.add('active-nav');
         
-        // إذا كان التبويب إحصائيات، أعد رسم الرسم البياني
-        if (tabName === 'stats' && platformChart) {
-            setTimeout(() => platformChart.resize(), 100);
+        if (tabName === 'stats') {
+            setTimeout(() => {
+                if (platformChart) platformChart.resize();
+                if (trendChart) trendChart.resize();
+            }, 100);
         }
     }
     
-    function openUpgradeLink() {
-        tg.openTelegramLink('https://t.me/Social_Media_tools_bot?start=premium');
-    }
-    
-    function closeModal(e) {
-        if (e && e.target !== e.currentTarget) return;
-        document.getElementById('confirmModal').style.display = 'none';
-    }
-    
-    // بدء تحميل البيانات
     loadUserData();
 </script>
 </body>
