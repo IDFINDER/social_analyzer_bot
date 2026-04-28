@@ -1460,21 +1460,19 @@ def test_api():
 @app.route('/api/user_data', methods=['GET'])
 def get_user_data():
     """API لجلب بيانات المستخدم للـ WebApp"""
-    from datetime import datetime, date  # 🔴 أضف هذا السطر
+    from datetime import datetime, date
     from utils.db import (
         get_user_info, get_user_social_accounts, 
         get_user_active_subscription, get_user_usage, get_all_prices
     )
-    from bot import verify_token
-    
-    print(f"🔍 API called with token: {request.args.get('token')}")
+    from utils.helpers import verify_token  # ✅ استيراد من helpers
     
     token = request.args.get('token')
+    print(f"🔍 API called with token: {token}")
     
     if not token:
         return jsonify({'error': 'Missing token'}), 401
     
-    # التحقق من صحة token
     user_id = verify_token(token)
     
     if not user_id:
