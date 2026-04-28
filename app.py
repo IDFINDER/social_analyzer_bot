@@ -280,6 +280,11 @@ def bio_page(page_url):
     except Exception as e:
         logger.error(f"Error in bio_page: {e}")
         return f"Internal error: {e}", 500
+# =================================================================================
+@app.route('/dashboard')
+def dashboard():
+    """صفحة لوحة التحكم (WebApp)"""
+    return render_template('dashboard.html')
 
 # =================================================================================
 # القسم: WebApp لإعدادات صفحة البايو
