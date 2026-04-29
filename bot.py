@@ -103,7 +103,22 @@ logger = logging.getLogger(__name__)
 
 # تخزين مؤقت لبيانات المستخدم أثناء التسجيل
 user_registration_data = {}
+# =================================================================================
+# دالة إرسال إشعار للمدير
+# =================================================================================
 
+async def notify_admin(context: ContextTypes.DEFAULT_TYPE, message: str):
+    """إرسال إشعار إلى المدير"""
+    try:
+        admin_chat_id = os.environ.get('ADMIN_CHAT_ID', '7850462368')
+        if admin_chat_id:
+            await context.bot.send_message(
+                chat_id=admin_chat_id,
+                text=message,
+                parse_mode='HTML'
+            )
+    except Exception as e:
+        logger.error(f"Error sending admin notification: {e}")
 # =================================================================================
 # القسم 4: دوال المساعدة (Helper Functions)
 # =================================================================================
@@ -155,7 +170,8 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """بدء البوت وتسجيل المستخدم"""
     user = update.effective_user
     
-    user_data = get_or_create_user(
+    # جلب أو إنشاء المستخدم (مع معرفة إذا كان جديداً)
+    user_data, is_new = get_or_create_user(
         user.id,
         user.first_name,
         user.username or "",
@@ -165,6 +181,21 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not user_data:
         await update.message.reply_text(Errors.GENERIC_ERROR)
         return ConversationHandler.END
+    
+    # إذا كان مستخدم جديد، أرسل إشعار للمدير
+    if is_new:
+        admin_message = f"""
+🆕 <b>مستخدم جديد!</b>
+
+👤 <b>الاسم:</b> {user.first_name}
+🆔 <b>المعرف:</b> @{user.username or 'لا يوجد'}
+🆔 <b>ID:</b> <code>{user.id}</code>
+🌐 <b>اللغة:</b> {user.language_code or 'غير محدد'}
+📅 <b>التاريخ:</b> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+📊 <b>إجمالي المستخدمين الحالي:</b> {get_total_users_count()}
+"""
+        await notify_admin(context, admin_message)
     
     accounts = get_user_social_accounts(user.id)
     
@@ -193,8 +224,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # مستخدم جديد - بدء التسجيل مع رسالة ترحيب ديناميكية
         
         # جلب الإعدادات الديناميكية من قاعدة البيانات
-        
-        
         prices = get_all_prices()
         
         free_limit = prices.get('free_limit', FREE_LIMIT)
@@ -243,6 +272,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(welcome_text, parse_mode='HTML')
         return ASK_NAME
 
+
 async def cancel_registration(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """إلغاء التسجيل"""
     user_id = update.effective_user.id
@@ -250,6 +280,7 @@ async def cancel_registration(update: Update, context: ContextTypes.DEFAULT_TYPE
         del user_registration_data[user_id]
     await update.message.reply_text(Errors.CANCELED, reply_markup=get_main_keyboard(False))
     return ConversationHandler.END
+
 
 async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """استقبال الاسم"""
@@ -262,6 +293,7 @@ async def ask_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ASK_YOUTUBE
 
+
 async def skip_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """تجاوز إدخال يوتيوب"""
     user_id = update.effective_user.id
@@ -269,6 +301,7 @@ async def skip_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_registration_data[user_id]['youtube'] = None
     await update.message.reply_text("⏭️ تم تجاوز إضافة حساب يوتيوب\n\n" + Messages.ASK_INSTAGRAM)
     return ASK_INSTAGRAM
+
 
 async def ask_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """استقبال حساب يوتيوب"""
@@ -282,6 +315,7 @@ async def ask_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ASK_INSTAGRAM
 
+
 async def skip_instagram(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """تجاوز إدخال انستقرام"""
     user_id = update.effective_user.id
@@ -289,6 +323,7 @@ async def skip_instagram(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_registration_data[user_id]['instagram'] = None
     await update.message.reply_text("⏭️ تم تجاوز إضافة حساب انستقرام\n\n" + Messages.ASK_TIKTOK)
     return ASK_TIKTOK
+
 
 async def ask_instagram(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """استقبال حساب انستقرام"""
@@ -302,6 +337,7 @@ async def ask_instagram(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return ASK_TIKTOK
 
+
 async def skip_tiktok(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """تجاوز إدخال تيك توك"""
     user_id = update.effective_user.id
@@ -309,6 +345,7 @@ async def skip_tiktok(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_registration_data[user_id]['tiktok'] = None
     await update.message.reply_text("⏭️ تم تجاوز إضافة حساب تيك توك\n\n" + Messages.ASK_FACEBOOK)
     return ASK_FACEBOOK
+
 
 async def ask_tiktok(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """استقبال حساب تيك توك"""
@@ -321,6 +358,7 @@ async def ask_tiktok(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode='HTML'
     )
     return ASK_FACEBOOK
+
 
 async def skip_facebook(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """تجاوز إدخال فيسبوك وإنهاء التسجيل"""
@@ -349,6 +387,7 @@ async def skip_facebook(update: Update, context: ContextTypes.DEFAULT_TYPE):
     summary += f"💎 <b>للبحث غير المحدود:</b> /premium\n\n🎯 <b>للبدء، اضغط على 🎯 تحليل حساباتي</b>"
     await update.message.reply_text(summary, parse_mode='HTML', reply_markup=get_main_keyboard(False))
     return ConversationHandler.END
+
 
 async def ask_facebook(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """استقبال حساب فيسبوك وإنهاء التسجيل"""
