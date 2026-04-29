@@ -90,7 +90,6 @@ def create_secure_token(user_id):
     return f"{data}:{signature}"
 
 
-# الطريقة الصحيحة والآمنة
 def verify_token(token):
     """التحقق من صحة token واستخراج user_id"""
     if not token or not isinstance(token, str):
@@ -99,12 +98,13 @@ def verify_token(token):
     try:
         parts = token.split(':')
         if len(parts) != 3:
-            return None  # ❌ نرفض أي تنسيق غير صحيح
+            return None
         
-        user_id, timestamp_str, signature = parts
+        user_id_str, timestamp_str, signature = parts
+        user_id = int(user_id_str)
         timestamp = int(timestamp_str)
         
-        # صلاحية ساعة واحدة
+        # صلاحية ساعة واحدة (3600 ثانية)
         if time.time() - timestamp > 3600:
             return None
         
@@ -112,6 +112,8 @@ def verify_token(token):
         data = f"{user_id}:{timestamp}"
         expected = hashlib.sha256(f"{data}:{secret}".encode()).hexdigest()[:16]
         
-        return int(user_id) if signature == expected else None
+        if signature == expected:
+            return user_id
+        return None
     except (ValueError, TypeError):
         return None
