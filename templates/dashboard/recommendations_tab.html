@@ -1,0 +1,52 @@
+<div class="card">
+    <h3><i class="fas fa-robot"></i> آخر توصيات الذكاء الاصطناعي</h3>
+    <div id="recommendationsList"></div>
+</div>
+
+<script>
+    function updateRecommendationsTab(data) {
+        const container = document.getElementById('recommendationsList');
+        const recommendations = data.recommendations || [];
+        
+        const platformColors = {
+            youtube: '#ff0000',
+            instagram: '#e1306c',
+            tiktok: '#000000',
+            facebook: '#1877f2'
+        };
+        
+        const platformNames = {
+            youtube: 'يوتيوب',
+            instagram: 'انستقرام',
+            tiktok: 'تيك توك',
+            facebook: 'فيسبوك'
+        };
+        
+        const platformIcons = {
+            youtube: 'fab fa-youtube',
+            instagram: 'fab fa-instagram',
+            tiktok: 'fab fa-tiktok',
+            facebook: 'fab fa-facebook-f'
+        };
+        
+        if (!recommendations.length) {
+            container.innerHTML = '<div style="text-align:center; padding:40px; color:#888;"><i class="fas fa-robot"></i> لا توجد توصيات حتى الآن</div>';
+            return;
+        }
+        
+        container.innerHTML = recommendations.map(rec => `
+            <div class="recommendation-card">
+                <span class="recommendation-platform" style="background: ${platformColors[rec.platform] || '#667eea'}; color: white;">
+                    <i class="${platformIcons[rec.platform] || 'fas fa-robot'}"></i>
+                    ${platformNames[rec.platform] || rec.platform}
+                </span>
+                <div><strong>@${rec.account_identifier || 'غير محدد'}</strong></div>
+                <div class="recommendation-text">${rec.recommendation_summary ? rec.recommendation_summary.substring(0, 150) + '...' : 'لا يوجد نص'}</div>
+                <div class="recommendation-meta">
+                    <span><i class="fas fa-calendar"></i> ${new Date(rec.created_at).toLocaleDateString('ar-EG')}</span>
+                    <button class="btn-view" onclick="showFullRecommendation(${JSON.stringify(rec.recommendation_text || rec.recommendation_summary).replace(/"/g, '&quot;')})">عرض التوصية كاملة</button>
+                </div>
+            </div>
+        `).join('');
+    }
+</script>
