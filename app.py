@@ -463,7 +463,12 @@ def get_user_data():
         'gemini_limit': gemini_limit,
         'gemini_uses': gemini_uses,
         'recommendations': recommendations,
-        'bio_page': bio_page  # معلومات صفحة البايو (للQR code والمشاهدات)
+        # ========== معلومات صفحة البايو (للمستخدمين المميزين) ==========
+        'bio_page': {
+            'page_url': bio_page.get('page_url'),
+            'views_count': bio_page.get('views_count', 0),
+            'is_enabled': bio_page.get('is_enabled', False)
+        } if bio_page else None
     }
     
     # إضافة معلومات الاشتراك
