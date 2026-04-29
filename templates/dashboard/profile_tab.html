@@ -1,0 +1,62 @@
+<div class="card">
+    <h3><i class="fas fa-user-circle"></i> ملفي الشخصي</h3>
+    <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+        <span>👤 الاسم:</span>
+        <span id="userName" style="font-weight: bold;">-</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+        <span>📱 المعرف:</span>
+        <span id="userHandle" style="font-weight: bold;">-</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+        <span>💎 الحالة:</span>
+        <span id="userStatus">-</span>
+    </div>
+</div>
+
+<div class="card">
+    <h3><i class="fas fa-link"></i> حساباتي المسجلة</h3>
+    <div id="accountsList"></div>
+</div>
+
+<script>
+    function updateProfileTab(data) {
+        // تحديث معلومات المستخدم
+        document.getElementById('userName').innerText = data.user.first_name || '-';
+        document.getElementById('userHandle').innerText = data.user.username ? `@${data.user.username}` : '-';
+        
+        const statusSpan = document.getElementById('userStatus');
+        if (data.is_premium) {
+            statusSpan.innerHTML = '<span class="success-badge">👑 مميز</span>';
+        } else {
+            statusSpan.innerHTML = '<span class="warning-badge">🎁 مجاني</span>';
+        }
+        
+        // عرض الحسابات المسجلة
+        const accountsList = document.getElementById('accountsList');
+        const platformInfo = {
+            youtube: { name: 'YouTube', icon: 'fab fa-youtube', color: '#ff0000' },
+            instagram: { name: 'Instagram', icon: 'fab fa-instagram', color: '#e1306c' },
+            tiktok: { name: 'TikTok', icon: 'fab fa-tiktok', color: '#000000' },
+            facebook: { name: 'Facebook', icon: 'fab fa-facebook-f', color: '#1877f2' }
+        };
+        
+        if (data.accounts && Object.keys(data.accounts).length > 0) {
+            accountsList.innerHTML = '';
+            for (const [platform, acc] of Object.entries(data.accounts)) {
+                const info = platformInfo[platform] || { name: platform, icon: 'fas fa-link', color: '#667eea' };
+                accountsList.innerHTML += `
+                    <div class="account-item">
+                        <div class="account-icon" style="background: ${info.color};">
+                            <i class="${info.icon}" style="color: white;"></i>
+                        </div>
+                        <div style="flex:1;"><strong>${info.name}</strong></div>
+                        <div>@${acc.account_identifier}</div>
+                    </div>
+                `;
+            }
+        } else {
+            accountsList.innerHTML = '<div style="text-align:center; padding:20px; color:#888;"><i class="fas fa-info-circle"></i> لا توجد حسابات مسجلة</div>';
+        }
+    }
+</script>
