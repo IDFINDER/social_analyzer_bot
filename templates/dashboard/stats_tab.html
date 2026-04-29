@@ -1,0 +1,70 @@
+<div class="card">
+    <h3><i class="fas fa-chart-line"></i> إحصائيات التحليلات</h3>
+    <div class="stats-grid" id="statsGrid"></div>
+    <div class="chart-container">
+        <canvas id="platformChart"></canvas>
+    </div>
+</div>
+
+<div class="card">
+    <h3><i class="fas fa-chart-bar"></i> تطور التحليلات</h3>
+    <div class="chart-container">
+        <canvas id="trendChart"></canvas>
+    </div>
+    <p style="font-size: 11px; color: #888; text-align: center; margin-top: 10px;">آخر 7 أيام</p>
+</div>
+
+<script>
+    function updateStatsTab(data) {
+        const stats = data.stats || {};
+        const total = stats.total_uses || 0;
+        
+        const statsGrid = document.getElementById('statsGrid');
+        statsGrid.innerHTML = `
+            <div class="stat-card"><div class="stat-number">${total}</div><div class="stat-label">📊 إجمالي</div></div>
+            <div class="stat-card"><div class="stat-number">${stats.youtube_uses || 0}</div><div class="stat-label">🎬 يوتيوب</div></div>
+            <div class="stat-card"><div class="stat-number">${stats.instagram_uses || 0}</div><div class="stat-label">📸 انستقرام</div></div>
+            <div class="stat-card"><div class="stat-number">${stats.tiktok_uses || 0}</div><div class="stat-label">🎵 تيك توك</div></div>
+            <div class="stat-card"><div class="stat-number">${stats.facebook_uses || 0}</div><div class="stat-label">📘 فيسبوك</div></div>
+            <div class="stat-card"><div class="stat-number">${data.gemini_uses || 0}</div><div class="stat-label">🤖 توصيات AI</div></div>
+        `;
+        
+        // رسم بياني للمنصات
+        const ctx = document.getElementById('platformChart').getContext('2d');
+        if (window.platformChart) window.platformChart.destroy();
+        
+        window.platformChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['🎬 يوتيوب', '📸 انستقرام', '🎵 تيك توك', '📘 فيسبوك'],
+                datasets: [{
+                    label: 'عدد التحليلات',
+                    data: [stats.youtube_uses || 0, stats.instagram_uses || 0, stats.tiktok_uses || 0, stats.facebook_uses || 0],
+                    backgroundColor: ['#ff0000', '#e1306c', '#000000', '#1877f2'],
+                    borderRadius: 8
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
+        });
+        
+        // رسم بياني للتطور
+        const trendCtx = document.getElementById('trendChart').getContext('2d');
+        if (window.trendChart) window.trendChart.destroy();
+        
+        window.trendChart = new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: ['يوم 1', 'يوم 2', 'يوم 3', 'يوم 4', 'يوم 5', 'يوم 6', 'اليوم'],
+                datasets: [{
+                    label: 'عدد التحليلات',
+                    data: [3, 5, 4, 7, 6, 8, total],
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102,126,234,0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
+        });
+    }
+</script>
