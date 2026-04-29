@@ -1,0 +1,70 @@
+<div id="subscriptionContent"></div>
+
+<script>
+    function updateSubscriptionTab(data) {
+        const container = document.getElementById('subscriptionContent');
+        
+        if (data.is_premium && data.subscription) {
+            const daysLeft = data.subscription.days_left || 0;
+            let badge = '';
+            let alertMsg = '';
+            
+            if (daysLeft <= 3 && daysLeft > 0) {
+                badge = '<span class="danger-badge">⚠️ على وشك الانتهاء</span>';
+                alertMsg = '<div class="alert alert-danger">⚠️ تنبيه: اشتراكك على وشك الانتهاء! يرجى التجديد قريباً.</div>';
+            } else if (daysLeft <= 7 && daysLeft > 3) {
+                badge = '<span class="warning-badge">⚠️ ينتهي قريباً</span>';
+                alertMsg = '<div class="alert alert-warning">⏰ ملاحظة: اشتراكك ينتهي بعد أيام قليلة.</div>';
+            } else if (daysLeft > 0) {
+                badge = '<span class="success-badge">✅ نشط</span>';
+            } else {
+                badge = '<span class="danger-badge">❌ منتهي</span>';
+                alertMsg = '<div class="alert alert-danger">❌ اشتراكك منتهي! يرجى التجديد للمتابعة.</div>';
+            }
+            
+            const startDate = data.subscription.start_date ? new Date(data.subscription.start_date).toLocaleDateString('ar-EG') : 'غير محدد';
+            const endDate = data.subscription.end_date ? new Date(data.subscription.end_date).toLocaleDateString('ar-EG') : 'غير محدد';
+            
+            container.innerHTML = `
+                ${alertMsg}
+                <div style="background: linear-gradient(135deg, #667eea10, #764ba210); border-radius: 16px; padding: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                        <span>📅 تاريخ البداية:</span>
+                        <span><strong>${startDate}</strong></span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                        <span>⭐ خطتك:</span>
+                        <span><strong>${data.subscription.plan || 'مميز'}</strong></span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                        <span>📅 تاريخ الانتهاء:</span>
+                        <span>${endDate}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>⏰ الأيام المتبقية:</span>
+                        <span><strong>${daysLeft > 0 ? daysLeft : 'منتهي'}</strong> ${badge}</span>
+                    </div>
+                </div>
+                <div style="margin-top: 15px; background: #f0f0f0; border-radius: 12px; padding: 12px; text-align: center;">
+                    <span>📊 حصتك الشهرية من التوصيات: <strong>${data.gemini_limit || 0}</strong> توصية</span>
+                    <br>
+                    <span>🤖 استخدمت هذا الشهر: <strong>${data.gemini_uses || 0}</strong> توصية</span>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="fas fa-gem"></i> أنت حالياً في الخطة المجانية
+                </div>
+                <div style="background: linear-gradient(135deg, #667eea10, #764ba210); border-radius: 16px; padding: 15px;">
+                    <div style="text-align: center; margin-bottom: 10px;">
+                        📊 الحد اليومي: <strong>${data.free_limit || 2} تحليل/يوم</strong>
+                    </div>
+                    <div style="text-align: center; margin-top: 10px;">
+                        🤖 التوصيات غير متاحة للمستخدمين المجانيين
+                    </div>
+                </div>
+            `;
+        }
+    }
+</script>
