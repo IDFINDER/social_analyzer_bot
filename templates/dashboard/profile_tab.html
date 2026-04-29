@@ -1,4 +1,9 @@
 <div class="card">
+    <!-- 🔍 سطر DEBUG للتأكد من تحميل الملف الجديد -->
+    <div style="background: #667eea; color: white; padding: 8px; border-radius: 10px; margin-bottom: 10px; font-size: 12px; text-align: center;">
+        ✅ تم تحميل الإصدار الجديد من تبويب بياناتي - تاريخ التحديث: 29/04/2026
+    </div>
+    
     <h3><i class="fas fa-user-circle"></i> ملفي الشخصي</h3>
     
     <!-- صورة المستخدم + المعلومات الأساسية -->
@@ -123,6 +128,8 @@
     };
     
     function updateProfileTab(data) {
+        console.log('🔄 updateProfileTab called with data:', data);
+        
         // ========== 1. صورة المستخدم ==========
         const userAvatar = document.getElementById('userAvatar');
         if (data.user.photo_url) {
@@ -239,7 +246,7 @@
         const userLang = data.user.language_code || 'ar';
         document.getElementById('userLanguage').innerHTML = langNames[userLang] || userLang;
         
-        // ========== 7. الحسابات المسجلة (بدون تكرار @) ==========
+        // ========== 7. الحسابات المسجلة ==========
         const accountsList = document.getElementById('accountsList');
         let accountsHtml = '';
         let hasAnyAccount = false;
@@ -292,7 +299,10 @@
         
         // ========== 8. رابط صفحة البايو مع QR ==========
         const bioCard = document.getElementById('bioLinkCard');
+        console.log('Bio page data:', data.bio_page);
+        
         if (data.is_premium && data.bio_page) {
+            console.log('Showing bio card');
             bioCard.style.display = 'block';
             const bioUrl = data.bio_page.page_url || data.bio_page.url;
             const fullUrl = `https://social-analyzer-flask-2.onrender.com/bio/${bioUrl}`;
@@ -328,6 +338,7 @@
                 });
             }
         } else {
+            console.log('Hiding bio card - is_premium:', data.is_premium, 'bio_page:', data.bio_page);
             bioCard.style.display = 'none';
         }
         
@@ -335,7 +346,6 @@
         const achievementsList = document.getElementById('achievementsList');
         let achievements = [];
         
-        // تحقق من الإنجازات
         if (totalUses >= 1) achievements.push('first_analysis');
         if (totalUses >= 10) achievements.push('ten_analyses');
         if (totalUses >= 50) achievements.push('fifty_analyses');
