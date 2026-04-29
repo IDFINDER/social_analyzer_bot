@@ -83,6 +83,7 @@ SUPABASE_KEY = os.environ.get('SUPABASE_ANON_KEY')
 BOT_NAME = os.environ.get('BOT_NAME', 'social_analyzer')
 FREE_LIMIT = int(os.environ.get('FREE_LIMIT', '2'))
 RENDER_URL = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
+ADMIN_CHAT_ID = os.environ.get('ADMIN_CHAT_ID', '7850462368')  # 🆕 أضف هذا السطر
 
 if not TOKEN or not SUPABASE_URL or not SUPABASE_KEY:
     print("❌ خطأ: تأكد من تعيين المتغيرات المطلوبة")
