@@ -1382,7 +1382,7 @@ def dashboard():
     except:
         return "Invalid token", 401
     
-    return render_template('dashboard.html')
+    return render_template('base.html')
 
 # =================================================================================
 # القسم 21: تشغيل التطبيق
