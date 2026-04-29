@@ -38,21 +38,23 @@ else:
 # ========== دوال المستخدمين (قراءة فقط - supabase) ==========
 
 def get_or_create_user(user_id, first_name, username, language_code):
-    """جلب أو إنشاء مستخدم"""
+    """جلب أو إنشاء مستخدم - إرجاع (user, is_new)"""
     try:
         response = supabase.table('users').select('*').eq('user_id', user_id).execute()
         
         if response.data:
             user = response.data[0]
             logger.info(f"✅ مستخدم موجود مسبقاً: {user_id}")
+            # تحديث معلومات المستخدم إذا تغيرت
             if user.get('first_name') != first_name or user.get('username') != username:
                 supabase.table('users').update({
                     'first_name': first_name,
                     'username': username or '',
                     'language_code': language_code or ''
                 }).eq('user_id', user_id).execute()
-            return user
+            return user, False  # False = ليس جديداً
         
+        # مستخدم جديد
         new_user = {
             'user_id': user_id,
             'first_name': first_name,
@@ -62,11 +64,11 @@ def get_or_create_user(user_id, first_name, username, language_code):
         }
         response = supabase.table('users').insert(new_user).execute()
         logger.info(f"✅ تم إنشاء مستخدم جديد: {user_id}")
-        return response.data[0]
+        return response.data[0], True  # True = جديد
         
     except Exception as e:
         logger.error(f"Error in get_or_create_user: {e}")
-        return None
+        return None, False
 
 
 def get_user_info(user_id):
