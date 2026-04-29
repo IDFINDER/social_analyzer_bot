@@ -285,7 +285,7 @@ def save_theme():
 
 @app.route('/api/user_data', methods=['GET'])
 def get_user_data():
-    """API لجلب بيانات المستخدم"""
+    """API لجلب بيانات المستخدم (شاملة التوصيات واستخدامات Gemini)"""
     from datetime import datetime, date
     from utils.db import (
         get_user_info, get_user_social_accounts, 
@@ -313,18 +313,114 @@ def get_user_data():
     
     days_left = 0
     subscription = None
+    subscription_start_date = None
+    subscription_plan_name = None
     
-    if is_premium:
-        subscription = get_user_active_subscription(user_id)
-        if subscription and subscription.get('end_date'):
-            try:
-                end_date = datetime.strptime(subscription['end_date'], '%Y-%m-%d').date()
-                days_left = max(0, (end_date - date.today()).days)
-            except:
-                days_left = 0
+    # جلب الاشتراك النشط من user_subscriptions_social
+    try:
+        from utils.db import supabase
+        
+        # جلب الاشتراك النشط
+        sub_response = supabase.table('user_subscriptions_social')\
+            .select('*, subscription_plans_social(name_ar, name)')\
+            .eq('user_id', user_id)\
+            .eq('status', 'active')\
+            .order('created_at', desc=True)\
+            .limit(1)\
+            .execute()
+        
+        if sub_response.data:
+            sub = sub_response.data[0]
+            subscription_start_date = sub.get('start_date')
+            subscription_end_date = sub.get('end_date')
+            
+            if sub.get('subscription_plans_social'):
+                subscription_plan_name = sub['subscription_plans_social'].get('name_ar', 'مميز')
+            
+            # حساب الأيام المتبقية
+            if subscription_end_date:
+                try:
+                    end_date = datetime.strptime(subscription_end_date, '%Y-%m-%d').date()
+                    days_left = max(0, (end_date - date.today()).days)
+                except:
+                    days_left = 0
+    except Exception as e:
+        logger.error(f"Error fetching subscription: {e}")
     
     prices = get_all_prices()
     
+    # ========== 1. جلب عدد استخدامات Gemini من جدول gemini_usage ==========
+    gemini_uses = 0
+    gemini_limit = prices.get('gemini_monthly_limit', 20) if is_premium else prices.get('gemini_free_limit', 0)
+    
+    try:
+        from utils.db import supabase
+        current_month = datetime.now().strftime('%Y-%m')
+        
+        # جلب من جدول gemini_usage
+        gemini_response = supabase.table('gemini_usage')\
+            .select('monthly_recommendations, total_recommendations, last_use_month')\
+            .eq('user_id', user_id)\
+            .execute()
+        
+        if gemini_response.data:
+            # التحقق من الشهر الحالي
+            last_use_month = gemini_response.data[0].get('last_use_month', '')
+            if last_use_month == current_month:
+                gemini_uses = gemini_response.data[0].get('monthly_recommendations', 0)
+            else:
+                gemini_uses = 0  # شهر جديد، إعادة تعيين
+        else:
+            gemini_uses = 0
+            
+        logger.info(f"Gemini uses for user {user_id}: {gemini_uses}/{gemini_limit}")
+    except Exception as e:
+        logger.error(f"Error fetching gemini uses: {e}")
+        gemini_uses = 0
+    
+    # ========== 2. جلب الحد الشهري للتوصيات من user_gemini_limits ==========
+    try:
+        from utils.db import supabase
+        limit_response = supabase.table('user_gemini_limits')\
+            .select('monthly_limit')\
+            .eq('user_id', user_id)\
+            .execute()
+        
+        if limit_response.data:
+            gemini_limit = limit_response.data[0].get('monthly_limit', gemini_limit)
+        logger.info(f"Gemini limit for user {user_id}: {gemini_limit}")
+    except Exception as e:
+        logger.error(f"Error fetching gemini limit: {e}")
+    
+    # ========== 3. جلب آخر توصيات الذكاء الاصطناعي من recommendations_history ==========
+    recommendations = []
+    try:
+        from utils.db import supabase
+        recs_response = supabase.table('recommendations_history')\
+            .select('*')\
+            .eq('user_id', user_id)\
+            .order('created_at', desc=True)\
+            .limit(20)\
+            .execute()
+        
+        for rec in (recs_response.data or []):
+            recommendations.append({
+                'id': rec.get('id'),
+                'platform': rec.get('platform'),
+                'account_identifier': rec.get('account_identifier'),
+                'recommendation_summary': rec.get('recommendation_summary', '')[:300] if rec.get('recommendation_summary') else '',
+                'recommendation_text': rec.get('recommendation_text', ''),
+                'key_points': rec.get('key_points'),
+                'implemented': rec.get('implemented', False),
+                'created_at': rec.get('created_at')
+            })
+        
+        logger.info(f"Found {len(recommendations)} recommendations for user {user_id}")
+    except Exception as e:
+        logger.error(f"Error fetching recommendations: {e}")
+        recommendations = []
+    
+    # ========== 4. بناء Response البيانات ==========
     response_data = {
         'is_premium': is_premium,
         'user': {
@@ -340,25 +436,33 @@ def get_user_data():
             'tiktok_uses': usage.get('tiktok_uses', 0) if usage else 0,
             'facebook_uses': usage.get('facebook_uses', 0) if usage else 0,
         },
-        'free_limit': prices.get('free_limit', 2)
+        'free_limit': prices.get('free_limit', 2),
+        'gemini_limit': gemini_limit,
+        'gemini_uses': gemini_uses,
+        'recommendations': recommendations
     }
     
-    if is_premium and subscription:
+    # إضافة معلومات الاشتراك
+    if is_premium and subscription_start_date:
         response_data['subscription'] = {
-            'plan': subscription.get('subscription_plans_social', {}).get('name_ar', 'مميز'),
-            'end_date': subscription.get('end_date'),
+            'plan': subscription_plan_name or 'مميز',
+            'start_date': subscription_start_date,
+            'end_date': subscription_end_date if 'subscription_end_date' in dir() else None,
             'days_left': days_left
         }
     elif is_premium:
         response_data['subscription'] = {
             'plan': 'مميز',
+            'start_date': user_info.get('premium_until'),  # fallback
             'end_date': user_info.get('premium_until'),
             'days_left': days_left
         }
     else:
         response_data['subscription'] = {
             'plan': 'مجاني',
-            'free_limit': prices.get('free_limit', 2)
+            'start_date': None,
+            'end_date': None,
+            'days_left': 0
         }
     
     return jsonify(response_data)
