@@ -44,6 +44,23 @@
             font-size: 0.85rem;
         }
         .header-btn:hover { background: rgba(255,255,255,0.3); }
+        .stars-btn {
+            background: linear-gradient(135deg, #f6d365, #fda085);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        .stars-btn:hover { 
+            background: linear-gradient(135deg, #f6c050, #fd8f5c);
+            transform: translateY(-2px);
+        }
         .logout-btn {
             background: rgba(255,255,255,0.2);
             color: white;
@@ -348,6 +365,7 @@
                 <p>@Social_Media_tools_bot | إدارة المستخدمين | إحصائيات تفصيلية | نظام اشتراك مميز</p>
             </div>
             <div class="header-buttons">
+                <a href="/admin/stars-earnings" class="stars-btn">💰 إيرادات النجوم</a>
                 <a href="/admin-prices" class="header-btn">💰 تعديل الأسعار</a>
                 <a href="/notifications-history" class="header-btn">📋 سجل الإشعارات</a>
                 <a href="/admin/gemini-limits" class="header-btn">🤖 حدود التوصيات</a>
@@ -451,7 +469,7 @@
                                 {% else %}
                                 <span class="usage-badge" style="background: #6c757d;">غير متاح</span>
                                 {% endif %}
-                             </td>
+                              </td>
                             <td><span class="usage-badge">{{ user.daily_uses }}/{{ free_limit }}</span></td>
                             <td><span class="usage-badge">📊 {{ user.total_usage.youtube|default(0) + user.total_usage.instagram|default(0) + user.total_usage.tiktok|default(0) + user.total_usage.facebook|default(0) }}</span></td>
                             <td>
@@ -474,8 +492,8 @@
                                 </form>
                                 {% endif %}
                                 <button class="action-btn" onclick="openNotifyModal('user', '{{ user.user_id }}', '{{ user.first_name }}')">📨 رسالة</button>
-                             </td>
-                         </tr>
+                              </td>
+                          </tr>
                         {% endfor %}
                     </tbody>
                 </table>
