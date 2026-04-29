@@ -2615,14 +2615,16 @@ async def pre_checkout_callback(update: Update, context: ContextTypes.DEFAULT_TY
 # =================================================================================
 async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """فتح لوحة التحكم كـ WebApp"""
+    import time  # أضف هذا السطر في بداية الدالة
+    
     user_id = update.effective_user.id
     
     # إنشاء token آمن مشفر (بدون تخزين في الذاكرة)
     token = create_secure_token(user_id)
     
     # رابط الصفحة (استخدم رابط Flask الخاص بك)
-    RENDER_URL = os.environ.get('RENDER_URL', 'social-analyzer-flask-2.onrender.com')
-    webapp_url = f"https://{RENDER_URL}/dashboard?token={token}"
+    RENDER_URL = os.environ.get('RENDER_URL', 'social-analyzer-flask-2.onrender.com')  # غيّر إلى الرابط الجديد
+    webapp_url = f"https://{RENDER_URL}/dashboard?token={token}&v={int(time.time())}"  # أضف &v=
     
     keyboard = [[
         InlineKeyboardButton("📊 فتح لوحة التحكم", web_app=WebAppInfo(url=webapp_url))
