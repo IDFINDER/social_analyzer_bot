@@ -1177,6 +1177,62 @@ def gemini_limits_page():
         return f"حدث خطأ: {e}", 500
 
 # =================================================================================
+# القسم: إيرادات النجوم (Stars Earnings)
+# =================================================================================
+
+@app.route('/admin/stars-earnings')
+@login_required
+def stars_earnings():
+    """صفحة عرض إيرادات النجوم"""
+    try:
+        from utils.db import supabase
+        from datetime import datetime, timedelta
+        
+        # إحصائيات عامة
+        total_response = supabase.table('stars_earnings').select('amount', count='exact').execute()
+        total_earnings = sum([r['amount'] for r in (total_response.data or [])])
+        total_transactions = total_response.count if hasattr(total_response, 'count') else len(total_response.data or [])
+        
+        # إحصائيات اليوم
+        today = datetime.now().date().isoformat()
+        today_response = supabase.table('stars_earnings').select('amount').gte('payment_date', today).execute()
+        today_earnings = sum([r['amount'] for r in (today_response.data or [])])
+        today_transactions = len(today_response.data or [])
+        
+        # إحصائيات الشهر
+        first_day_of_month = datetime.now().date().replace(day=1).isoformat()
+        month_response = supabase.table('stars_earnings').select('amount').gte('payment_date', first_day_of_month).execute()
+        month_earnings = sum([r['amount'] for r in (month_response.data or [])])
+        month_transactions = len(month_response.data or [])
+        
+        # آخر 50 عملية
+        transactions_response = supabase.table('stars_earnings').select('*').order('payment_date', desc=True).limit(50).execute()
+        transactions = transactions_response.data or []
+        
+        # حساب قيمة الدولار (100 نجم = 2$ تقريباً)
+        dollar_rate = 0.02  # 1 نجم = 0.02 دولار
+        total_dollars = total_earnings * dollar_rate
+        today_dollars = today_earnings * dollar_rate
+        month_dollars = month_earnings * dollar_rate
+        
+        stats = {
+            'total_earnings': total_earnings,
+            'total_transactions': total_transactions,
+            'total_dollars': round(total_dollars, 2),
+            'today_earnings': today_earnings,
+            'today_transactions': today_transactions,
+            'today_dollars': round(today_dollars, 2),
+            'month_earnings': month_earnings,
+            'month_transactions': month_transactions,
+            'month_dollars': round(month_dollars, 2),
+        }
+        
+        return render_template('stars_earnings.html', stats=stats, transactions=transactions)
+    except Exception as e:
+        logger.error(f"Error in stars_earnings: {e}")
+        return f"حدث خطأ: {e}", 500
+
+# =================================================================================
 # القسم 20: صفحة لوحة التحكم للمستخدم (WebApp)
 # =================================================================================
 
