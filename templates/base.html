@@ -3,13 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <!-- ========== 🔒 منع التخزين المؤقت (Cache Control) ========== -->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <!-- =========================================================== -->
-    
     <title>لوحة التحكم - بوت تحليل الحسابات</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -361,18 +354,198 @@
         }
     }
     
+    // ========== دالة تحديث إحصائياتي (تم تصحيحها) ==========
+    function updateStatsUI(data) {
+        const stats = data.stats || {};
+        const total = stats.total_uses || 0;
+        
+        const statsGrid = document.getElementById('statsGrid');
+        if (statsGrid) {
+            statsGrid.innerHTML = `
+                <div class="stat-card"><div class="stat-number">${total}</div><div class="stat-label">📊 إجمالي</div></div>
+                <div class="stat-card"><div class="stat-number">${stats.youtube_uses || 0}</div><div class="stat-label">🎬 يوتيوب</div></div>
+                <div class="stat-card"><div class="stat-number">${stats.instagram_uses || 0}</div><div class="stat-label">📸 انستقرام</div></div>
+                <div class="stat-card"><div class="stat-number">${stats.tiktok_uses || 0}</div><div class="stat-label">🎵 تيك توك</div></div>
+                <div class="stat-card"><div class="stat-number">${stats.facebook_uses || 0}</div><div class="stat-label">📘 فيسبوك</div></div>
+                <div class="stat-card"><div class="stat-number">${data.gemini_uses || 0}</div><div class="stat-label">🤖 توصيات AI</div></div>
+            `;
+        }
+        
+        // رسم بياني للمنصات
+        const ctx = document.getElementById('platformChart');
+        if (ctx) {
+            if (window.platformChart && typeof window.platformChart.destroy === 'function') {
+                window.platformChart.destroy();
+            }
+            window.platformChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['🎬 يوتيوب', '📸 انستقرام', '🎵 تيك توك', '📘 فيسبوك'],
+                    datasets: [{
+                        label: 'عدد التحليلات',
+                        data: [stats.youtube_uses || 0, stats.instagram_uses || 0, stats.tiktok_uses || 0, stats.facebook_uses || 0],
+                        backgroundColor: ['#ff0000', '#e1306c', '#000000', '#1877f2'],
+                        borderRadius: 8
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
+            });
+        }
+        
+        // رسم بياني للتطور
+        const trendCtx = document.getElementById('trendChart');
+        if (trendCtx) {
+            if (window.trendChart && typeof window.trendChart.destroy === 'function') {
+                window.trendChart.destroy();
+            }
+            window.trendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['يوم 1', 'يوم 2', 'يوم 3', 'يوم 4', 'يوم 5', 'يوم 6', 'اليوم'],
+                    datasets: [{
+                        label: 'عدد التحليلات',
+                        data: [3, 5, 4, 7, 6, 8, total],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102,126,234,0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
+            });
+        }
+    }
+    
+    // ========== دالة تحديث اشتراكاتي ==========
+    function updateSubscriptionUI(data) {
+        const container = document.getElementById('subscriptionContent');
+        if (!container) return;
+        
+        if (data.is_premium && data.subscription) {
+            const daysLeft = data.subscription.days_left;
+            let badge = '';
+            let alertMsg = '';
+            
+            if (daysLeft <= 3 && daysLeft > 0) {
+                badge = '<span class="danger-badge">⚠️ على وشك الانتهاء</span>';
+                alertMsg = '<div class="alert alert-danger">⚠️ تنبيه: اشتراكك على وشك الانتهاء! يرجى التجديد قريباً.</div>';
+            } else if (daysLeft <= 7 && daysLeft > 3) {
+                badge = '<span class="warning-badge">⚠️ ينتهي قريباً</span>';
+                alertMsg = '<div class="alert alert-warning">⏰ ملاحظة: اشتراكك ينتهي بعد أيام قليلة.</div>';
+            } else if (daysLeft > 0) {
+                badge = '<span class="success-badge">✅ نشط</span>';
+            } else {
+                badge = '<span class="danger-badge">❌ منتهي</span>';
+                alertMsg = '<div class="alert alert-danger">❌ اشتراكك منتهي! يرجى التجديد للمتابعة.</div>';
+            }
+            
+            const startDate = data.subscription.start_date ? new Date(data.subscription.start_date).toLocaleDateString('ar-EG') : 'غير محدد';
+            const endDate = data.subscription.end_date ? new Date(data.subscription.end_date).toLocaleDateString('ar-EG') : 'غير محدد';
+            
+            container.innerHTML = `
+                ${alertMsg}
+                <div style="background: linear-gradient(135deg, #667eea10, #764ba210); border-radius: 16px; padding: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                        <span>📅 تاريخ البداية:</span>
+                        <span><strong>${startDate}</strong></span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                        <span>⭐ خطتك:</span>
+                        <span><strong>${data.subscription.plan || 'مميز'}</strong></span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                        <span>📅 تاريخ الانتهاء:</span>
+                        <span>${endDate}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>⏰ الأيام المتبقية:</span>
+                        <span><strong>${daysLeft > 0 ? daysLeft : 'منتهي'}</strong> ${badge}</span>
+                    </div>
+                </div>
+                <div style="margin-top: 15px; background: #f0f0f0; border-radius: 12px; padding: 12px; text-align: center;">
+                    <span>📊 حصتك الشهرية من التوصيات: <strong>${data.gemini_limit || 0}</strong> توصية</span>
+                    <br>
+                    <span>🤖 استخدمت هذا الشهر: <strong>${data.gemini_uses || 0}</strong> توصية</span>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <div class="alert alert-warning">
+                    <i class="fas fa-gem"></i> أنت حالياً في الخطة المجانية
+                </div>
+                <div style="background: linear-gradient(135deg, #667eea10, #764ba210); border-radius: 16px; padding: 15px;">
+                    <div style="text-align: center; margin-bottom: 10px;">
+                        📊 الحد اليومي: <strong>${data.free_limit || 2} تحليل/يوم</strong>
+                    </div>
+                    <div style="text-align: center; margin-top: 10px;">
+                        🤖 التوصيات غير متاحة للمستخدمين المجانيين
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    // ========== دالة تحديث توصياتي ==========
+    function updateRecommendationsUI(data) {
+        const container = document.getElementById('recommendationsList');
+        if (!container) return;
+        
+        const recommendations = data.recommendations || [];
+        
+        const platformColors = {
+            youtube: '#ff0000',
+            instagram: '#e1306c',
+            tiktok: '#000000',
+            facebook: '#1877f2'
+        };
+        
+        const platformNames = {
+            youtube: 'يوتيوب',
+            instagram: 'انستقرام',
+            tiktok: 'تيك توك',
+            facebook: 'فيسبوك'
+        };
+        
+        const platformIcons = {
+            youtube: 'fab fa-youtube',
+            instagram: 'fab fa-instagram',
+            tiktok: 'fab fa-tiktok',
+            facebook: 'fab fa-facebook-f'
+        };
+        
+        if (!recommendations.length) {
+            container.innerHTML = '<div style="text-align:center; padding:40px; color:#888;"><i class="fas fa-robot"></i> لا توجد توصيات حتى الآن</div>';
+            return;
+        }
+        
+        container.innerHTML = recommendations.map(rec => `
+            <div class="recommendation-card">
+                <span class="recommendation-platform" style="background: ${platformColors[rec.platform] || '#667eea'}; color: white;">
+                    <i class="${platformIcons[rec.platform] || 'fas fa-robot'}"></i>
+                    ${platformNames[rec.platform] || rec.platform}
+                </span>
+                <div><strong>@${rec.account_identifier || 'غير محدد'}</strong></div>
+                <div class="recommendation-text">${rec.recommendation_summary ? rec.recommendation_summary.substring(0, 150) + '...' : 'لا يوجد نص'}</div>
+                <div class="recommendation-meta">
+                    <span><i class="fas fa-calendar"></i> ${new Date(rec.created_at).toLocaleDateString('ar-EG')}</span>
+                    <button class="btn-view" onclick="showFullRecommendation(${JSON.stringify(rec.recommendation_text || rec.recommendation_summary).replace(/"/g, '&quot;')})">عرض التوصية كاملة</button>
+                </div>
+            </div>
+        `).join('');
+    }
+    
     function updateUI(data) {
         // تحديث تبويب بياناتي
         if (typeof updateProfileTab === 'function') updateProfileTab(data);
         
         // تحديث تبويب اشتراكاتي
-        if (typeof updateSubscriptionTab === 'function') updateSubscriptionTab(data);
+        if (typeof updateSubscriptionUI === 'function') updateSubscriptionUI(data);
         
         // تحديث تبويب إحصائياتي
-        if (typeof updateStatsTab === 'function') updateStatsTab(data);
+        if (typeof updateStatsUI === 'function') updateStatsUI(data);
         
         // تحديث تبويب توصياتي
-        if (typeof updateRecommendationsTab === 'function') updateRecommendationsTab(data);
+        if (typeof updateRecommendationsUI === 'function') updateRecommendationsUI(data);
     }
     
     function showFullRecommendation(text) {
@@ -395,8 +568,12 @@
         
         if (tabName === 'stats') {
             setTimeout(() => {
-                if (platformChart) platformChart.resize();
-                if (trendChart) trendChart.resize();
+                if (window.platformChart && typeof window.platformChart.resize === 'function') {
+                    window.platformChart.resize();
+                }
+                if (window.trendChart && typeof window.trendChart.resize === 'function') {
+                    window.trendChart.resize();
+                }
             }, 100);
         }
     }
