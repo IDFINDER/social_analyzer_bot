@@ -428,7 +428,6 @@ async def my_stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if is_premium:
         # جلب تفاصيل الاشتراك النشط
         try:
-            from utils.db import supabase
             subscription = None
             
             # جلب الاشتراك النشط من جدول user_subscriptions_social
