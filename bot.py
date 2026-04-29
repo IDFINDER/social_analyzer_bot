@@ -2599,7 +2599,8 @@ async def set_commands(application: Application):
             print(f"   /{cmd.command} - {cmd.description}")
             
     except Exception as e:
-        print(f"❌ خطأ في تعيين الأوامر: {e}")
+    logger.error(f"Error in set_commands: {e}")
+    print(f"❌ خطأ في تعيين الأوامر: {e}")  # احتفظ للـ console
 # =================================================================================
 # القسم 22: الدالة الرئيسية (Main Function)
 # =================================================================================
