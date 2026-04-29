@@ -104,7 +104,7 @@ def verify_token(token):
         user_id = int(user_id_str)
         timestamp = int(timestamp_str)
         
-        # صلاحية ساعة واحدة (3600 ثانية)
+        # صلاحية ساعة واحدة
         if time.time() - timestamp > 3600:
             return None
         
