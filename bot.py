@@ -2376,7 +2376,7 @@ async def star_subscription_callback(update: Update, context: ContextTypes.DEFAU
 
 
 async def successful_payment_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالج الدفع الناجح مع رسالة ترحيب محسنة"""
+    """معالج الدفع الناجح مع رسالة ترحيب محسنة وتسجيل الإيرادات"""
     message = update.message
     payment = message.successful_payment
     
@@ -2389,7 +2389,39 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
     
     from utils.db import get_star_prices_all, activate_extra_recs
     from utils.db import upgrade_user_to_premium, get_user_gemini_limit
+    from utils.db import supabase_admin, get_user_info
+    from datetime import datetime
     
+    # جلب معلومات المستخدم للتسجيل
+    user_info = get_user_info(user_id)
+    
+    # ========== تسجيل الإيرادات ==========
+    earning_data = {
+        'user_id': user_id,
+        'username': user_info.get('username', ''),
+        'first_name': user_info.get('first_name', ''),
+        'transaction_id': payment.telegram_payment_charge_id,
+        'amount': amount,
+        'status': 'completed',
+        'payment_date': datetime.now().isoformat()
+    }
+    
+    if payment_type == 'subscription':
+        plan_type = payload_data.get('plan_type')
+        earning_data['plan_type'] = plan_type
+        earning_data['extra_recs'] = None
+    elif payment_type == 'extra_recs':
+        extra_recs = payload_data.get('extra_recs')
+        earning_data['plan_type'] = None
+        earning_data['extra_recs'] = extra_recs
+    
+    try:
+        supabase_admin.table('stars_earnings').insert(earning_data).execute()
+        logger.info(f"💰 Earnings recorded for user {user_id}: {amount} stars")
+    except Exception as e:
+        logger.error(f"Failed to record earnings: {e}")
+    
+    # ========== معالجة الدفع حسب النوع ==========
     if payment_type == 'subscription':
         plan_type = payload_data.get('plan_type')
         plan_days = {
@@ -2411,7 +2443,6 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
         
         if success:
             # جلب معلومات المستخدم
-            user_info = get_user_info(user_id)
             gemini_limit = get_user_gemini_limit(user_id)
             
             await message.reply_text(
@@ -2467,7 +2498,6 @@ async def successful_payment_callback(update: Update, context: ContextTypes.DEFA
                 f"📩 يرجى التواصل مع المطور: @Alshabany_Ai",
                 parse_mode='HTML'
             )
-
 
 async def buy_stars_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """شرح طريقة شراء النجوم للمستخدم"""
