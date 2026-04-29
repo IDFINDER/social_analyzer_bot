@@ -296,13 +296,12 @@ def get_user_data():
     if not token:
         return jsonify({'error': 'Missing token'}), 401
     
-    # 🔧 استخراج user_id من التوكن (طريقة مبسطة مؤقتة)
-    try:
-        user_id = int(token.split(':')[0])
-    except:
-        return jsonify({'error': 'Invalid token'}), 401
+    # التحقق من صحة التوكن
+    user_id = verify_token(token)
+    if not user_id:
+        return jsonify({'error': 'Invalid or expired token'}), 401
     
-    # ✅ جلب معلومات المستخدم من قاعدة البيانات (هذا السطر كان مفقوداً!)
+    # جلب معلومات المستخدم من قاعدة البيانات
     user_info = get_user_info(user_id)
     if not user_info:
         return jsonify({'error': 'User not found'}), 404
