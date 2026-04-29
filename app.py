@@ -315,6 +315,7 @@ def get_user_data():
     subscription = None
     subscription_start_date = None
     subscription_plan_name = None
+    subscription_end_date = None  # تعريف المتغير مسبقاً
     
     # جلب الاشتراك النشط من user_subscriptions_social
     try:
@@ -420,13 +421,35 @@ def get_user_data():
         logger.error(f"Error fetching recommendations: {e}")
         recommendations = []
     
-    # ========== 4. بناء Response البيانات ==========
+    # ========== 4. جلب معلومات صفحة البايو (للمستخدمين المميزين) ==========
+    bio_page = None
+    try:
+        from utils.db import supabase
+        bio_response = supabase.table('bio_pages')\
+            .select('page_url, views_count, is_enabled')\
+            .eq('user_id', user_id)\
+            .eq('is_enabled', True)\
+            .execute()
+        
+        if bio_response.data:
+            bio_page = bio_response.data[0]
+        logger.info(f"Bio page for user {user_id}: {bio_page}")
+    except Exception as e:
+        logger.error(f"Error fetching bio page: {e}")
+        bio_page = None
+    
+    # ========== 5. بناء Response البيانات (مع الحقول الجديدة) ==========
     response_data = {
         'is_premium': is_premium,
         'user': {
             'first_name': user_info.get('first_name'),
             'username': user_info.get('username'),
-            'user_id': user_id
+            'user_id': user_id,
+            # ========== الحقول الجديدة لتبويب بياناتي ==========
+            'created_at': user_info.get('created_at'),           # تاريخ الانضمام
+            'language_code': user_info.get('language_code'),     # اللغة المفضلة
+            'last_activity': user_info.get('updated_at'),        # آخر نشاط
+            'photo_url': None                                     # صورة المستخدم (لا يوجد عمود حالياً)
         },
         'accounts': accounts,
         'stats': {
@@ -439,7 +462,8 @@ def get_user_data():
         'free_limit': prices.get('free_limit', 2),
         'gemini_limit': gemini_limit,
         'gemini_uses': gemini_uses,
-        'recommendations': recommendations
+        'recommendations': recommendations,
+        'bio_page': bio_page  # معلومات صفحة البايو (للQR code والمشاهدات)
     }
     
     # إضافة معلومات الاشتراك
@@ -447,13 +471,13 @@ def get_user_data():
         response_data['subscription'] = {
             'plan': subscription_plan_name or 'مميز',
             'start_date': subscription_start_date,
-            'end_date': subscription_end_date if 'subscription_end_date' in dir() else None,
+            'end_date': subscription_end_date,
             'days_left': days_left
         }
     elif is_premium:
         response_data['subscription'] = {
             'plan': 'مميز',
-            'start_date': user_info.get('premium_until'),  # fallback
+            'start_date': user_info.get('premium_until'),
             'end_date': user_info.get('premium_until'),
             'days_left': days_left
         }
