@@ -1,7 +1,7 @@
 <div class="card">
     <!-- 🔍 سطر DEBUG للتأكد من تحميل الملف الجديد -->
     <div style="background: #667eea; color: white; padding: 8px; border-radius: 10px; margin-bottom: 10px; font-size: 12px; text-align: center;">
-        ✅ تم تحميل الإصدار الجديد من تبويب بياناتي - تاريخ التحديث: 29/04/2026
+        ✅ تم تحميل الإصدار الجديد من تبويب بياناتي - تاريخ التحديث: 30/04/2026
     </div>
     
     <h3><i class="fas fa-user-circle"></i> ملفي الشخصي</h3>
@@ -106,6 +106,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script>
+    // ========== 🔍 سطور التشخيص (DEBUG) ==========
+    console.log("🟢 تم تحميل ملف profile_tab.html (الإصدار الجديد 30/04)");
+    alert("🔍 تم تحميل تبويب بياناتي - الإصدار الجديد!");
+    // ============================================
+    
     const platformInfo = {
         youtube: { name: 'يوتيوب', icon: 'fab fa-youtube', color: '#ff0000', baseUrl: 'https://youtube.com/@' },
         instagram: { name: 'انستقرام', icon: 'fab fa-instagram', color: '#e1306c', baseUrl: 'https://instagram.com/' },
@@ -128,7 +133,19 @@
     };
     
     function updateProfileTab(data) {
-        console.log('🔄 updateProfileTab called with data:', data);
+        // ========== 🔍 سطور التشخيص (DEBUG) ==========
+        console.log("🟢 تم استدعاء updateProfileTab");
+        console.log("📦 البيانات المستلمة:", data);
+        console.log("👤 اسم المستخدم:", data.user?.first_name);
+        console.log("📄 bio_page:", data.bio_page);
+        
+        // تنبيه منبثق للتأكد من وصول البيانات (سيظهر داخل Telegram Web App)
+        if (data && data.user) {
+            alert("✅ تم استلام البيانات بنجاح!\nالاسم: " + data.user.first_name + "\nمميز: " + (data.is_premium ? "نعم" : "لا"));
+        } else {
+            alert("❌ فشل في استلام البيانات!");
+        }
+        // ============================================
         
         // ========== 1. صورة المستخدم ==========
         const userAvatar = document.getElementById('userAvatar');
