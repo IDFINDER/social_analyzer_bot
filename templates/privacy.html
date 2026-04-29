@@ -7,98 +7,212 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            font-family: 'Segoe UI', 'Tahoma', Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 40px 20px;
         }
         .container {
-            max-width: 800px;
+            max-width: 850px;
             margin: 0 auto;
             background: white;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            border-radius: 24px;
+            padding: 45px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
         }
-        h1 { color: #667eea; margin-bottom: 20px; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
-        h2 { color: #2c3e50; margin: 25px 0 10px 0; font-size: 1.3rem; }
-        p { line-height: 1.7; color: #555; margin-bottom: 15px; }
-        ul { margin: 15px 0 15px 30px; color: #555; }
-        li { margin: 8px 0; }
-        .footer {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
+        h1 { 
+            color: #667eea; 
+            margin-bottom: 15px; 
+            border-bottom: 3px solid #667eea; 
+            padding-bottom: 15px;
+            font-size: 1.8rem;
+        }
+        .update-date {
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        h2 { 
+            color: #2c3e50; 
+            margin: 30px 0 15px 0; 
+            font-size: 1.25rem;
+            padding-right: 12px;
+            border-right: 3px solid #667eea;
+        }
+        p { 
+            line-height: 1.8; 
+            color: #4a5568; 
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+        ul { 
+            margin: 15px 0 15px 30px; 
+            color: #4a5568;
+        }
+        li { 
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+        .highlight {
+            background: #f0f4ff;
+            padding: 15px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border-right: 3px solid #667eea;
+        }
+        .contact-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 25px 0 15px;
+            justify-content: center;
+        }
+        .contact-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 40px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .contact-btn.developer {
+            background: #667eea;
+            color: white;
+        }
+        .contact-btn.developer:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+        .contact-btn.channel {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+        }
+        .contact-btn.channel:hover {
+            transform: translateY(-2px);
+        }
+        .footer-links {
+            margin-top: 35px;
+            padding-top: 25px;
+            border-top: 1px solid #e2e8f0;
             text-align: center;
-            font-size: 12px;
-            color: #999;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
         }
-        .back-link {
-            display: inline-block;
-            margin-top: 20px;
+        .footer-link {
             color: #667eea;
             text-decoration: none;
+            font-size: 13px;
+            transition: color 0.2s;
         }
-        .back-link:hover { text-decoration: underline; }
+        .footer-link:hover {
+            color: #5a67d8;
+            text-decoration: underline;
+        }
+        .copyright {
+            text-align: center;
+            margin-top: 25px;
+            font-size: 11px;
+            color: #a0aec0;
+        }
+        @media (max-width: 600px) {
+            .container { padding: 25px; }
+            h1 { font-size: 1.5rem; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🔐 سياسة الخصوصية</h1>
-        <p>آخر تحديث: <span id="currentDate"></span></p>
+        <div class="update-date">📅 آخر تحديث: <span id="currentDate"></span></div>
         
-        <h2>1. المعلومات التي نجمعها</h2>
-        <p>نحن لا نجمع أي معلومات شخصية حساسة. يتم تخزين المعلومات التالية فقط لتشغيل خدمة البوت:</p>
+        <div class="highlight">
+            <p style="margin-bottom: 0; font-size: 14px;">
+                نحن نلتزم بحماية خصوصيتك وسرية بياناتك. هذه السياسة توضح كيفية تعاملنا مع المعلومات.
+            </p>
+        </div>
+        
+        <h2>1. المعلومات التي يتم تخزينها</h2>
+        <p>لتشغيل خدمات البوت وتحسين تجربتك، نقوم بتخزين بعض المعلومات الأساسية:</p>
         <ul>
-            <li><strong>معرف المستخدم (User ID)</strong> - للتعرف عليك في النظام</li>
-            <li><strong>اسم المستخدم (Username)</strong> - لعرضه في صفحة البايو الخاصة بك</li>
-            <li><strong>الاسم الأول (First Name)</strong> - للترحيب بك في البوت</li>
-            <li><strong>روابط حسابات التواصل الاجتماعي</strong> - لعرضها في صفحة البايو الخاصة بك</li>
+            <li><strong>معرف المستخدم</strong> - للتعرف عليك وتقديم الخدمات المخصصة</li>
+            <li><strong>اسم المستخدم والاسم الأول</strong> - للترحيب بك وعرضه في صفحة البايو</li>
+            <li><strong>حسابات التواصل الاجتماعي</strong> - التي تختار تسجيلها لعرضها في صفحة البايو</li>
+            <li><strong>سجل التحليلات</strong> - لتتبع تطور حساباتك وتحسين التوصيات</li>
         </ul>
         
-        <h2>2. كيف نستخدم معلوماتك</h2>
-        <p>نستخدم المعلومات التي نجمعها للأغراض التالية:</p>
+        <h2>2. استخدام معلوماتك</h2>
+        <p>نستخدم المعلومات المخزنة للأغراض التالية فقط:</p>
         <ul>
             <li>تقديم خدمة تحليل حسابات التواصل الاجتماعي</li>
             <li>إنشاء وإدارة صفحة البايو الشخصية الخاصة بك</li>
+            <li>تقديم توصيات ذكاء اصطناعي مخصصة لتحسين قنواتك</li>
             <li>تحسين أداء البوت وتجربة المستخدم</li>
         </ul>
         
         <h2>3. مشاركة المعلومات</h2>
-        <p>نحن لا نبيع أو نشارك معلوماتك الشخصية مع أي طرف ثالث. جميع البيانات مخزنة بشكل آمن على خوادم Supabase.</p>
+        <p>نحن لا نبيع أو نشارك معلوماتك الشخصية مع أي طرف ثالث. يتم تخزين جميع البيانات بشكل آمن على خوادم Supabase مع تطبيق أعلى معايير الأمان.</p>
         
         <h2>4. حماية البيانات</h2>
-        <p>نحن نتخذ إجراءات أمنية مناسبة لحماية معلوماتك من الوصول غير المصرح به أو التعديل أو الإفصاح أو الإتلاف.</p>
+        <p>نحن نتخذ إجراءات أمنية صارمة لحماية معلوماتك، بما في ذلك:</p>
+        <ul>
+            <li>تشفير البيانات أثناء النقل والتخزين</li>
+            <li>سياسات التحكم في الوصول (RLS) على مستوى الصفوف</li>
+            <li>مراقبة مستمرة للأنظمة</li>
+        </ul>
         
-        <h2>5. ملفات تعريف الارتباط (Cookies)</h2>
-        <p>لا يستخدم موقعنا ملفات تعريف الارتباط لتتبع المستخدمين.</p>
-        
-        <h2>6. روابط الجهات الخارجية</h2>
-        <p>قد تحتوي صفحة البايو الخاصة بك على روابط إلى مواقع خارجية (مثل يوتيوب، انستقرام، فيسبوك، تيك توك). نحن لسنا مسؤولين عن ممارسات الخصوصية لتلك المواقع.</p>
-        
-        <h2>7. حقوقك</h2>
-        <p>لديك الحق في:</p>
+        <h2>5. صلاحية البيانات</h2>
+        <p>يمكنك في أي وقت:</p>
         <ul>
             <li>طلب نسخة من بياناتك المخزنة</li>
-            <li>طلب تعديل أو حذف بياناتك</li>
-            <li>إلغاء اشتراكك المميز في أي وقت</li>
+            <li>طلب حذف بياناتك بالكامل</li>
+            <li>إلغاء اشتراكك المميز</li>
+            <li>تعديل حساباتك المسجلة</li>
         </ul>
+        <p>للقيام بذلك، استخدم الأوامر المتاحة في البوت أو تواصل مع فريق الدعم.</p>
         
-        <h2>8. الاتصال بنا</h2>
-        <p>إذا كان لديك أي أسئلة حول سياسة الخصوصية هذه، يمكنك التواصل معنا عبر:</p>
-        <ul>
-            <li>تليجرام: <a href="https://t.me/E_Alshabany" target="_blank">@E_Alshabany</a></li>
-        </ul>
+        <h2>6. الخدمات الخارجية</h2>
+        <p>قد تحتوي صفحة البايو الخاصة بك على روابط إلى مواقع خارجية (يوتيوب، انستقرام، فيسبوك، تيك توك). نحن لسنا مسؤولين عن ممارسات الخصوصية أو محتوى تلك المواقع. ننصحك بمراجعة سياسات الخصوصية الخاصة بها.</p>
         
-        <div class="footer">
-    <p>© 2026 بوت تحليل الحسابات الاجتماعية - جميع الحقوق محفوظة</p>
-    <a href="/terms" class="back-link">📜 شروط الخدمة</a>
-    <a href="/" class="back-link" style="margin-right: 15px;">🏠 العودة إلى الرئيسية</a>
-</div>
+        <h2>7. خصوصية الأطفال</h2>
+        <p>خدماتنا موجهة للمستخدمين الذين تبلغ أعمارهم 13 عاماً أو أكثر. نحن لا نجمع عمداً معلومات شخصية من الأطفال دون سن 13 عاماً.</p>
+        
+        <h2>8. التغييرات على السياسة</h2>
+        <p>قد نقوم بتحديث سياسة الخصوصية هذه من وقت لآخر. سيتم إخطارك بأي تغييرات جوهرية عبر البوت أو من خلال قناة التحديثات. استمرارك في استخدام الخدمة بعد هذه التغييرات يعني موافقتك على السياسة المحدثة.</p>
+        
+        <div class="contact-buttons">
+            <a href="https://t.me/Alshabany_Ai" target="_blank" class="contact-btn developer">
+                <i class="fab fa-telegram"></i> 👨‍💻 المطور
+            </a>
+            <a href="https://t.me/Social_Media_Analysis" target="_blank" class="contact-btn channel">
+                <i class="fas fa-bullhorn"></i> 📢 قناة التحديثات
+            </a>
+        </div>
+        
+        <div class="footer-links">
+            <a href="/terms" class="footer-link">📜 شروط الخدمة</a>
+            <a href="/" class="footer-link">🏠 الصفحة الرئيسية</a>
+        </div>
+        
+        <div class="copyright">
+            © 2026 بوت تحليل الحسابات الاجتماعية - جميع الحقوق محفوظة
+        </div>
     </div>
     
     <script>
-        document.getElementById('currentDate').innerText = new Date().toLocaleDateString('ar-EG');
+        // تاريخ اليوم بالتنسيق العربي
+        const today = new Date();
+        const arabicMonths = ['يناير', 'فبراير', 'مارس', 'إبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+        const formattedDate = `${today.getDate()} ${arabicMonths[today.getMonth()]} ${today.getFullYear()}`;
+        document.getElementById('currentDate').innerText = formattedDate;
     </script>
+    
+    <!-- إضافة Font Awesome للأيقونات -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </body>
 </html>
