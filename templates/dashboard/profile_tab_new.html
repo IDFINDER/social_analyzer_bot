@@ -1,16 +1,8 @@
 <div class="card">
-    <!-- 🔍 سطر DEBUG للتأكد من تحميل الملف الجديد -->
-    <div style="background: #667eea; color: white; padding: 8px; border-radius: 10px; margin-bottom: 10px; font-size: 12px; text-align: center;">
-        ✅ تم تحميل الإصدار الجديد من تبويب بياناتي - تاريخ التحديث: 30/04/2026
-    </div>
-    
     <h3><i class="fas fa-user-circle"></i> ملفي الشخصي</h3>
     
-    <!-- صورة المستخدم + المعلومات الأساسية -->
+    <!-- المعلومات الأساسية (بدون صورة) -->
     <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
-        <div id="userAvatar" style="width: 70px; height: 70px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; color: white; font-size: 28px; font-weight: bold;">
-            ?
-        </div>
         <div style="flex: 1;">
             <div style="display: flex; justify-content: space-between; padding: 5px 0;">
                 <span>👤 الاسم:</span>
@@ -69,25 +61,17 @@
     </div>
 </div>
 
-<!-- رابط صفحة البايو مع QR Code -->
+<!-- رابط صفحة البايو (بدون QR Code) -->
 <div id="bioLinkCard" class="card" style="display: none;">
     <h3><i class="fas fa-link"></i> صفحتي الشخصية</h3>
     <div style="background: linear-gradient(135deg, #667eea10, #764ba210); border-radius: 16px; padding: 15px; text-align: center;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-            <div style="flex: 1;">
-                <div style="font-size: 13px; margin-bottom: 8px;">
-                    👁️ <span id="bioViews">0</span> مشاهدة
-                </div>
-                <a id="bioLink" href="#" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 10px 20px; border-radius: 30px; text-decoration: none; font-size: 14px;">
-                    <i class="fas fa-id-card"></i> صفحتي الشخصية
-                </a>
-                <p style="font-size: 10px; color: #888; margin-top: 8px;">اضغط للنسخ والمشاركة</p>
-            </div>
-            <div id="qrCodeContainer" style="text-align: center;">
-                <canvas id="qrCode" width="80" height="80" style="border-radius: 12px; background: white; padding: 5px;"></canvas>
-                <p style="font-size: 9px; color: #888;">📱 امسح للزيارة</p>
-            </div>
+        <div style="font-size: 13px; margin-bottom: 8px;">
+            👁️ <span id="bioViews">0</span> مشاهدة
         </div>
+        <a id="bioLink" href="#" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 10px 20px; border-radius: 30px; text-decoration: none; font-size: 14px;">
+            <i class="fas fa-id-card"></i> صفحتي الشخصية
+        </a>
+        <p style="font-size: 10px; color: #888; margin-top: 8px;">اضغط للنسخ والمشاركة</p>
     </div>
 </div>
 
@@ -104,13 +88,10 @@
     <div id="accountsList"></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<!-- مسافة فارغة أسفل الصفحة لظهور جميع المحتوى -->
+<div style="height: 80px;"></div>
+
 <script>
-    // ========== 🔍 سطور التشخيص (DEBUG) ==========
-    console.log("🟢 تم تحميل ملف profile_tab.html (الإصدار الجديد 30/04)");
-    alert("🔍 تم تحميل تبويب بياناتي - الإصدار الجديد!");
-    // ============================================
-    
     const platformInfo = {
         youtube: { name: 'يوتيوب', icon: 'fab fa-youtube', color: '#ff0000', baseUrl: 'https://youtube.com/@' },
         instagram: { name: 'انستقرام', icon: 'fab fa-instagram', color: '#e1306c', baseUrl: 'https://instagram.com/' },
@@ -119,7 +100,6 @@
     };
     
     const platformOrder = ['youtube', 'instagram', 'tiktok', 'facebook'];
-    let qr = null;
     
     // أيقونات الإنجازات
     const achievementsConfig = {
@@ -133,30 +113,7 @@
     };
     
     function updateProfileTab(data) {
-        // ========== 🔍 سطور التشخيص (DEBUG) ==========
-        console.log("🟢 تم استدعاء updateProfileTab");
-        console.log("📦 البيانات المستلمة:", data);
-        console.log("👤 اسم المستخدم:", data.user?.first_name);
-        console.log("📄 bio_page:", data.bio_page);
-        
-        // تنبيه منبثق للتأكد من وصول البيانات (سيظهر داخل Telegram Web App)
-        if (data && data.user) {
-            alert("✅ تم استلام البيانات بنجاح!\nالاسم: " + data.user.first_name + "\nمميز: " + (data.is_premium ? "نعم" : "لا"));
-        } else {
-            alert("❌ فشل في استلام البيانات!");
-        }
-        // ============================================
-        
-        // ========== 1. صورة المستخدم ==========
-        const userAvatar = document.getElementById('userAvatar');
-        if (data.user.photo_url) {
-            userAvatar.innerHTML = `<img src="${data.user.photo_url}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
-        } else {
-            const firstLetter = (data.user.first_name || '?').charAt(0).toUpperCase();
-            userAvatar.innerHTML = firstLetter;
-        }
-        
-        // ========== 2. المعلومات الأساسية ==========
+        // ========== المعلومات الأساسية ==========
         document.getElementById('userName').innerText = data.user.first_name || '-';
         document.getElementById('userHandle').innerText = data.user.username ? `@${data.user.username}` : '-';
         
@@ -168,7 +125,7 @@
             statusSpan.innerHTML = '<span class="warning-badge">🎁 مجاني</span>';
         }
         
-        // ========== 3. إحصائيات سريعة ==========
+        // ========== إحصائيات سريعة ==========
         const totalUses = data.stats?.total_uses || 0;
         const totalGeminiUses = data.gemini_uses || 0;
         document.getElementById('totalAnalyses').innerHTML = totalUses;
@@ -190,7 +147,7 @@
             document.getElementById('lastActive').innerHTML = 'غير محدد';
         }
         
-        // ========== 4. نسبة إكمال الملف ==========
+        // ========== نسبة إكمال الملف ==========
         const accounts = data.accounts || {};
         let completedAccounts = 0;
         let totalAccounts = platformOrder.length;
@@ -224,7 +181,7 @@
         }
         document.getElementById('completionMessage').innerHTML = completionMessage;
         
-        // ========== 5. تنبيهات الحسابات ==========
+        // ========== تنبيهات الحسابات ==========
         const accountAlerts = document.getElementById('accountAlerts');
         let alertsHtml = '';
         
@@ -246,7 +203,7 @@
             accountAlerts.innerHTML = '<div style="background: #d4edda; border-right: 3px solid #28a745; padding: 8px; border-radius: 10px; font-size: 12px;"><i class="fas fa-check-circle" style="color: #28a745;"></i> جميع حساباتك مسجلة! ✅</div>';
         }
         
-        // ========== 6. تاريخ الانضمام واللغة ==========
+        // ========== تاريخ الانضمام واللغة ==========
         if (data.user.created_at) {
             const joinDate = new Date(data.user.created_at).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
             document.getElementById('joinDate').innerHTML = joinDate;
@@ -263,7 +220,7 @@
         const userLang = data.user.language_code || 'ar';
         document.getElementById('userLanguage').innerHTML = langNames[userLang] || userLang;
         
-        // ========== 7. الحسابات المسجلة ==========
+        // ========== الحسابات المسجلة ==========
         const accountsList = document.getElementById('accountsList');
         let accountsHtml = '';
         let hasAnyAccount = false;
@@ -314,12 +271,10 @@
         }
         accountsList.innerHTML = accountsHtml;
         
-        // ========== 8. رابط صفحة البايو مع QR ==========
+        // ========== رابط صفحة البايو ==========
         const bioCard = document.getElementById('bioLinkCard');
-        console.log('Bio page data:', data.bio_page);
         
         if (data.is_premium && data.bio_page) {
-            console.log('Showing bio card');
             bioCard.style.display = 'block';
             const bioUrl = data.bio_page.page_url || data.bio_page.url;
             const fullUrl = `https://social-analyzer-flask-2.onrender.com/bio/${bioUrl}`;
@@ -340,26 +295,11 @@
             // عدد المشاهدات
             const viewsCount = data.bio_page.views_count || 0;
             document.getElementById('bioViews').innerHTML = viewsCount;
-            
-            // إنشاء QR Code
-            const qrContainer = document.getElementById('qrCode');
-            if (qrContainer) {
-                if (qr) qr.clear();
-                new QRCode(qrContainer, {
-                    text: fullUrl,
-                    width: 80,
-                    height: 80,
-                    colorDark: "#000000",
-                    colorLight: "#ffffff",
-                    correctLevel: QRCode.CorrectLevel.H
-                });
-            }
         } else {
-            console.log('Hiding bio card - is_premium:', data.is_premium, 'bio_page:', data.bio_page);
             bioCard.style.display = 'none';
         }
         
-        // ========== 9. إنجازات المستخدم ==========
+        // ========== إنجازات المستخدم ==========
         const achievementsList = document.getElementById('achievementsList');
         let achievements = [];
         
@@ -392,10 +332,5 @@
     .account-item a:hover {
         opacity: 0.8;
         text-decoration: underline !important;
-    }
-    #qrCode canvas {
-        border-radius: 12px;
-        background: white;
-        padding: 5px;
     }
 </style>
