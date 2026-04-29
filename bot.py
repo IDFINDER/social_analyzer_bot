@@ -2590,6 +2590,7 @@ async def set_commands(application: Application):
             BotCommand(command="premium", description="الاشتراك المميز"),
             BotCommand(command="mydata", description="عرض بياناتي المسجلة"),
             BotCommand(command="edit", description="تعديل بياناتي"),
+            BotCommand(command="dashboard", description="📊 لوحة التحكم"),
         ]
         
         await application.bot.set_my_commands(commands)
@@ -2599,8 +2600,8 @@ async def set_commands(application: Application):
             print(f"   /{cmd.command} - {cmd.description}")
             
     except Exception as e:
-    logger.error(f"Error in set_commands: {e}")
-    print(f"❌ خطأ في تعيين الأوامر: {e}")  # احتفظ للـ console
+        logger.error(f"Error in set_commands: {e}")
+        print(f"❌ خطأ في تعيين الأوامر: {e}")
 # =================================================================================
 # القسم 22: الدالة الرئيسية (Main Function)
 # =================================================================================
