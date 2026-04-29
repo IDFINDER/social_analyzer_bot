@@ -30,7 +30,8 @@ from utils.db import (
     get_bio_page, create_or_update_bio_page, disable_bio_page, get_bio_page_by_page_url, increment_bio_views,
     update_bio_theme, update_bio_text, update_bio_avatar, add_custom_link, remove_custom_link,
     get_user_gemini_limit, set_user_gemini_limit,
-    get_user_active_subscription  # 🔴 أضف هذا السطر
+    supabase, get_all_prices,  # 🔴 أضف هذا السطر
+    get_user_active_subscription # 🔴 أضف هذا السطر
 )
 from utils.username_checker import check_username_availability, format_check_result
 from utils.youtube_analyzer import get_channel_details, format_channel_report
@@ -81,7 +82,6 @@ SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_KEY = os.environ.get('SUPABASE_ANON_KEY')
 BOT_NAME_ENV = os.environ.get('BOT_NAME', 'social_analyzer')
 FREE_LIMIT = int(os.environ.get('FREE_LIMIT', '2'))
-HUB_BOT_URL = os.environ.get('HUB_BOT_URL', 'https://t.me/SocMed_tools_bot')
 ADMIN_CHAT_ID = os.environ.get('ADMIN_CHAT_ID', '7850462368')
 RENDER_URL = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
 
@@ -147,12 +147,6 @@ def get_analysis_keyboard():
         keyboard.append(row_buttons)
     return InlineKeyboardMarkup(keyboard)
 
-def get_premium_keyboard():
-    """لوحة الاشتراك المميز"""
-    keyboard = InlineKeyboardMarkup([[
-        InlineKeyboardButton("💎 اشتراك مميز - 10$ مدى الحياة", web_app=WebAppInfo(url=f"https://{RENDER_URL}/payment"))
-    ]])
-    return keyboard
 
 # =================================================================================
 # القسم 6: أوامر البوت - التسجيل (Registration Commands)
@@ -200,7 +194,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # مستخدم جديد - بدء التسجيل مع رسالة ترحيب ديناميكية
         
         # جلب الإعدادات الديناميكية من قاعدة البيانات
-        from utils.db import get_all_prices
+        
         
         prices = get_all_prices()
         
