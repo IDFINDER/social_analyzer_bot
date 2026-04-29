@@ -2647,21 +2647,19 @@ async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def set_commands(application: Application):
     """تحديد قائمة الأوامر التي تظهر في القائمة الجانبية"""
-    from telegram import BotCommand, BotCommandScopeDefault
-    
     try:
         # حذف الأوامر القديمة
         await application.bot.delete_my_commands()
         
-        # تعيين الأوامر الجديدة
+        # تعيين الأوامر الجديدة مع الرموز التعبيرية
         commands = [
-            BotCommand(command="start", description="بدء الاستخدام والتسجيل"),
-            BotCommand(command="help", description="عرض المساعدة"),
-            BotCommand(command="mystats", description="عرض إحصائياتي الشخصية"),
-            BotCommand(command="premium", description="الاشتراك المميز"),
-            BotCommand(command="mydata", description="عرض بياناتي المسجلة"),
-            BotCommand(command="edit", description="تعديل بياناتي"),
-            BotCommand(command="dashboard", description="📊 لوحة التحكم"),
+            BotCommand(command="start", description="🚀 بدء الاستخدام والتسجيل"),
+            BotCommand(command="help", description="❓ عرض المساعدة"),
+            BotCommand(command="mystats", description="📊 إحصائياتي الشخصية"),
+            BotCommand(command="premium", description="💎 الاشتراك المميز"),
+            BotCommand(command="mydata", description="📝 عرض بياناتي المسجلة"),
+            BotCommand(command="edit", description="✏️ تعديل بياناتي"),
+            BotCommand(command="dashboard", description="📱 لوحة التحكم"),
         ]
         
         await application.bot.set_my_commands(commands)
