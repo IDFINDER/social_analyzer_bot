@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إيرادات النجوم - لوحة التحكم</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        .header {
+            background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .header h1 { font-size: 1.5rem; }
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 10px;
+            text-decoration: none;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-3px); }
+        .stat-number { font-size: 2rem; font-weight: bold; color: #f6d365; }
+        .stat-label { color: #6c757d; font-size: 0.8rem; margin-top: 5px; }
+        .stat-sub { font-size: 0.75rem; color: #999; margin-top: 5px; }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f6d365;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px 10px;
+            text-align: center;
+            border-bottom: 1px solid #e9ecef;
+        }
+        th {
+            background: #f8f9fa;
+            color: #495057;
+            font-weight: 600;
+        }
+        tr:hover { background: #f8f9fa; }
+        
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            display: inline-block;
+        }
+        .badge-subscription { background: #28a745; color: white; }
+        .badge-extra_recs { background: #17a2b8; color: white; }
+        
+        @media (max-width: 768px) {
+            th, td { font-size: 0.7rem; padding: 8px 5px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>💰 إيرادات نجوم Telegram</h1>
+                <p style="font-size: 0.8rem;">جميع المدفوعات التي تمت عبر نجوم Telegram</p>
+            </div>
+            <a href="/admin/dashboard" class="back-btn">🔙 العودة للوحة التحكم</a>
+        </div>
+        
+        <!-- بطاقات الإحصائيات -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.total_earnings }}</div>
+                <div class="stat-label">⭐ إجمالي النجوم</div>
+                <div class="stat-sub">≈ ${{ stats.total_dollars }} دولار</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.total_transactions }}</div>
+                <div class="stat-label">📊 إجمالي المعاملات</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.today_earnings }}</div>
+                <div class="stat-label">⭐ اليوم</div>
+                <div class="stat-sub">≈ ${{ stats.today_dollars }} دولار</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.today_transactions }}</div>
+                <div class="stat-label">📊 معاملات اليوم</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.month_earnings }}</div>
+                <div class="stat-label">⭐ هذا الشهر</div>
+                <div class="stat-sub">≈ ${{ stats.month_dollars }} دولار</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.month_transactions }}</div>
+                <div class="stat-label">📊 معاملات الشهر</div>
+            </div>
+        </div>
+        
+        <!-- آخر المعاملات -->
+        <div class="card">
+            <h2>📋 آخر المعاملات</h2>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>التاريخ</th>
+                            <th>المستخدم</th>
+                            <th>المعرف</th>
+                            <th>النجوم</th>
+                            <th>المنتج</th>
+                            <th>معرف المعاملة</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in transactions %}
+                        <tr>
+                            <td>{{ t.payment_date[:19].replace('T', ' ') }}</td>
+                            <td>{{ t.first_name or '-' }}</td>
+                            <td>@{{ t.username or '-' }}</td>
+                            <td><strong>{{ t.amount }}</strong> ⭐</td>
+                            <td>
+                                {% if t.plan_type %}
+                                    <span class="badge badge-subscription">📅 {{ t.plan_type }}</span>
+                                {% elif t.extra_recs %}
+                                    <span class="badge badge-extra_recs">🤖 +{{ t.extra_recs }} توصية</span>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td><small>{{ t.transaction_id[:16] }}...</small></td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" style="text-align:center; padding:40px;">💰 لا توجد معاملات حتى الآن</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>💡 معلومات عن إيرادات النجوم</h2>
+            <ul style="margin-right: 20px; line-height: 1.8;">
+                <li>⭐ 100 نجم ≈ 2 دولار أمريكي</li>
+                <li>💰 يمكن تحويل النجوم إلى عملة TON عبر Fragment</li>
+                <li>📊 يتم تحديث الإيرادات تلقائياً عند كل عملية شراء</li>
+                <li>🔒 جميع المعاملات مسجلة بشكل آمن</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
