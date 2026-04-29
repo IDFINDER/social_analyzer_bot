@@ -1,5 +1,42 @@
 <div class="card">
-    <h3><i class="fas fa-robot"></i> آخر توصيات الذكاء الاصطناعي</h3>
+    <h3><i class="fas fa-robot"></i> توصيات الذكاء الاصطناعي</h3>
+    
+    <!-- سطر توضيحي للمستخدم -->
+    <p style="font-size: 12px; color: #888; margin-bottom: 10px; background: #f0f0f0; padding: 8px 12px; border-radius: 10px;">
+        💡 <strong>ملاحظة:</strong> يمكنك تثبيت التوصيات المهمة (📌)، والبحث بينها (🔍)، وترتيبها حسب التاريخ (📅).
+    </p>
+    
+    <!-- إحصائيات سريعة -->
+    <div id="recStats" style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+        <div style="background: linear-gradient(135deg, #667eea20, #764ba220); border-radius: 12px; padding: 8px 12px; text-align: center; flex: 1;">
+            <div id="totalRecs" style="font-size: 18px; font-weight: bold; color: #667eea;">0</div>
+            <div style="font-size: 10px; color: #888;">إجمالي التوصيات</div>
+        </div>
+        <div style="background: linear-gradient(135deg, #48bb7820, #38a16920); border-radius: 12px; padding: 8px 12px; text-align: center; flex: 1;">
+            <div id="pinnedRecs" style="font-size: 18px; font-weight: bold; color: #48bb78;">0</div>
+            <div style="font-size: 10px; color: #888;">توصيات مثبتة</div>
+        </div>
+        <div style="background: linear-gradient(135deg, #ed893620, #dd6b2020); border-radius: 12px; padding: 8px 12px; text-align: center; flex: 1;">
+            <div id="remainingRecs" style="font-size: 18px; font-weight: bold; color: #ed8936;">0</div>
+            <div style="font-size: 10px; color: #888;">توصيات متاحة</div>
+        </div>
+    </div>
+    
+    <!-- شريط البحث والترتيب -->
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+        <div style="flex: 2; position: relative;">
+            <i class="fas fa-search" style="position: absolute; right: 12px; top: 12px; color: #aaa;"></i>
+            <input type="text" id="searchRecsInput" placeholder="🔍 بحث في التوصيات حسب المنصة، الحساب، أو النص..." 
+                   style="width: 100%; padding: 10px 35px 10px 12px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 13px;">
+        </div>
+        <div style="flex: 1;">
+            <select id="sortRecsSelect" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 12px; background: white;">
+                <option value="newest">📅 الأحدث ← الأقدم</option>
+                <option value="oldest">📅 الأقدم ← الأحدث</option>
+            </select>
+        </div>
+    </div>
+    
     <div id="recommendationsList"></div>
 </div>
 
@@ -7,9 +44,132 @@
 <div style="height: 80px;"></div>
 
 <script>
-    function updateRecommendationsTab(data) {
+    // تخزين البيانات محلياً للتثبيت والبحث والترتيب
+    let allRecommendations = [];
+    let pinnedRecommendations = [];
+    
+    // تحميل التوصيات المثبتة من localStorage
+    function loadPinnedRecs() {
+        const saved = localStorage.getItem('pinnedRecs');
+        if (saved) {
+            pinnedRecommendations = JSON.parse(saved);
+        } else {
+            pinnedRecommendations = [];
+        }
+    }
+    
+    // حفظ التوصيات المثبتة
+    function savePinnedRecs() {
+        localStorage.setItem('pinnedRecs', JSON.stringify(pinnedRecommendations));
+    }
+    
+    // تثبيت/إلغاء تثبيت توصية
+    function togglePinRec(recId, event) {
+        event.stopPropagation();
+        
+        const index = pinnedRecommendations.indexOf(recId);
+        if (index === -1) {
+            pinnedRecommendations.push(recId);
+        } else {
+            pinnedRecommendations.splice(index, 1);
+        }
+        savePinnedRecs();
+        
+        displayRecommendations();
+        updateRecStats();
+    }
+    
+    // تحديث إحصائيات التوصيات
+    function updateRecStats() {
+        const total = allRecommendations.length;
+        const pinned = pinnedRecommendations.length;
+        
+        document.getElementById('totalRecs').innerHTML = total;
+        document.getElementById('pinnedRecs').innerHTML = pinned;
+        
+        if (window.userData && window.userData.gemini_limit) {
+            const remaining = Math.max(0, window.userData.gemini_limit - (window.userData.gemini_uses || 0));
+            document.getElementById('remainingRecs').innerHTML = remaining;
+            document.getElementById('remainingRecs').parentElement.style.display = 'flex';
+        } else {
+            document.getElementById('remainingRecs').parentElement.style.display = 'none';
+        }
+    }
+    
+    // تنظيف النص التوصية
+    function formatRecommendationText(text, rec) {
+        if (!text) return '<div style="color: #888;">لا يوجد نص للتوصية</div>';
+        
+        let formatted = text;
+        
+        // إزالة الأسطر الغير مرغوب فيها
+        formatted = formatted.replace(/📊 \*\*المتبقي اليوم:.*?\*\*/g, '');
+        formatted = formatted.replace(/💎 \*\*مستوى التوصية:.*?\*\*/g, '');
+        formatted = formatted.replace(/━━━━━━━━━━━━━━━━━━━━━━/g, '');
+        
+        // إزالة رأس الملف النصي إذا وجد
+        formatted = formatted.replace(/╔══════════════════════════════════════╗[\s\S]*?╚══════════════════════════════════════╝\n*/g, '');
+        formatted = formatted.replace(/📺 القناة:.*?\n/g, '');
+        formatted = formatted.replace(/📅 تاريخ التحليل:.*?\n/g, '');
+        formatted = formatted.replace(/🆔 معرف التوصية:.*?\n/g, '');
+        formatted = formatted.replace(/━━━━━━━━━━━━━━━━━━━━━━\n📊 \*\*ملخص سريع:\*\*\n/g, '');
+        formatted = formatted.replace(/• المشتركين:.*?\n/g, '');
+        formatted = formatted.replace(/• المشاهدات:.*?\n/g, '');
+        formatted = formatted.replace(/• النمو منذ آخر تحليل:.*?\n/g, '');
+        formatted = formatted.replace(/━━━━━━━━━━━━━━━━━━━━━━\n💡 \*\*التوصيات المفصلة:\*\*\n/g, '');
+        formatted = formatted.replace(/━━━━━━━━━━━━━━━━━━━━━━\n📌 \*\*كيف تستفيد من هذه التوصيات؟\*\*[\s\S]*$/g, '');
+        
+        // تنظيف الأسطر الفارغة المتكررة
+        formatted = formatted.replace(/\n\s*\n\s*\n/g, '\n\n');
+        formatted = formatted.replace(/^\s+|\s+$/g, '');
+        
+        // تحويل النص إلى HTML
+        return formatted
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\n/g, '<br>')
+            .replace(/🔴|🟠|🟡|🟢|🔵|🟣|⚪|🟤/g, match => `<span style="font-size: 1.1em;">${match}</span>`);
+    }
+    
+    // عرض التوصيات مع الترتيب والبحث
+    function displayRecommendations() {
         const container = document.getElementById('recommendationsList');
-        const recommendations = data.recommendations || [];
+        const searchTerm = document.getElementById('searchRecsInput')?.value.toLowerCase() || '';
+        const sortOrder = document.getElementById('sortRecsSelect')?.value || 'newest';
+        
+        // فصل التوصيات المثبتة عن العادية
+        let pinned = [];
+        let unpinned = [];
+        
+        for (const rec of allRecommendations) {
+            if (pinnedRecommendations.includes(rec.id)) {
+                pinned.push(rec);
+            } else {
+                unpinned.push(rec);
+            }
+        }
+        
+        // ترتيب حسب التاريخ
+        const sortByDate = (a, b) => {
+            const dateA = new Date(a.created_at);
+            const dateB = new Date(b.created_at);
+            return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+        };
+        
+        pinned.sort(sortByDate);
+        unpinned.sort(sortByDate);
+        
+        // دمج المثبتة أولاً
+        let filtered = [...pinned, ...unpinned];
+        
+        // تطبيق البحث
+        if (searchTerm) {
+            filtered = filtered.filter(rec => {
+                const platformMatch = (rec.platform || '').toLowerCase().includes(searchTerm);
+                const accountMatch = (rec.account_identifier || '').toLowerCase().includes(searchTerm);
+                const textMatch = (rec.recommendation_text || rec.recommendation_summary || '').toLowerCase().includes(searchTerm);
+                return platformMatch || accountMatch || textMatch;
+            });
+        }
         
         const platformColors = {
             youtube: '#ff0000',
@@ -32,60 +192,83 @@
             facebook: 'fab fa-facebook-f'
         };
         
-        if (!recommendations.length) {
+        if (!filtered.length) {
             container.innerHTML = `
                 <div style="text-align:center; padding:60px 20px; color:#888;">
-                    <i class="fas fa-robot" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
-                    <p>لا توجد توصيات حتى الآن</p>
-                    <p style="font-size: 12px; margin-top: 10px;">قم بتحليل قناتك واستخدم توصيات الذكاء الاصطناعي</p>
+                    <i class="fas fa-search" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
+                    <p>لا توجد توصيات مطابقة للبحث</p>
+                    <p style="font-size: 12px; margin-top: 10px;">جرب كلمات بحث مختلفة</p>
                 </div>
             `;
             return;
         }
         
-        container.innerHTML = recommendations.map(rec => {
-            // تنظيف النص من الأسطر الغير مرغوب فيها
-            let fullText = rec.recommendation_text || rec.recommendation_summary || '';
-            
-            // إزالة الأسطر التي تحتوي على "المتبقي اليوم" و "مستوى التوصية"
-            fullText = fullText.replace(/📊 \*\*المتبقي اليوم:.*?\*\*/g, '');
-            fullText = fullText.replace(/💎 \*\*مستوى التوصية:.*?\*\*/g, '');
-            fullText = fullText.replace(/━━━━━━━━━━━━━━━━━━━━━━/g, '');
-            
-            // تنظيف الأسطر الفارغة المتكررة
-            fullText = fullText.replace(/\n\s*\n\s*\n/g, '\n\n');
-            
-            // تحويل النص إلى HTML مع الاحتفاظ بالتنسيق
-            let formattedText = fullText
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // **نص** → <strong>نص</strong>
-                .replace(/\n/g, '<br>')                           // الأسطر الجديدة
-                .replace(/^\s+|\s+$/g, '');                        // إزالة المسافات الزائدة
+        container.innerHTML = filtered.map(rec => {
+            // استخدام النص الكامل إذا كان موجوداً، وإلا استخدم الملخص
+            const fullText = rec.recommendation_text || rec.recommendation_summary || '';
+            const isPinned = pinnedRecommendations.includes(rec.id);
             
             return `
-                <div class="recommendation-card">
+                <div class="recommendation-card" data-recid="${rec.id}">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
-                        <span class="recommendation-platform" style="background: ${platformColors[rec.platform] || '#667eea'}; color: white;">
-                            <i class="${platformIcons[rec.platform] || 'fas fa-robot'}"></i>
-                            ${platformNames[rec.platform] || rec.platform}
-                        </span>
-                        <span style="font-size: 11px; color: #888;">
-                            <i class="fas fa-calendar"></i> ${new Date(rec.created_at).toLocaleDateString('ar-EG')}
-                        </span>
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <span class="recommendation-platform" style="background: ${platformColors[rec.platform] || '#667eea'}; color: white;">
+                                <i class="${platformIcons[rec.platform] || 'fas fa-robot'}"></i>
+                                ${platformNames[rec.platform] || rec.platform}
+                            </span>
+                            <span style="font-size: 11px; color: #888;">
+                                <i class="fas fa-calendar"></i> ${new Date(rec.created_at).toLocaleDateString('ar-EG')}
+                            </span>
+                            ${isPinned ? '<span style="background: #f6d365; color: #333; padding: 2px 8px; border-radius: 12px; font-size: 10px;"><i class="fas fa-thumbtack"></i> مثبتة</span>' : ''}
+                        </div>
+                        <button class="pin-btn ${isPinned ? 'pinned' : ''}" onclick="togglePinRec(${rec.id}, event)">
+                            <i class="fas fa-thumbtack" style="transform: ${isPinned ? 'rotate(45deg)' : 'none'}"></i>
+                            ${isPinned ? 'إلغاء التثبيت' : 'تثبيت'}
+                        </button>
                     </div>
                     <div style="margin-bottom: 8px;">
                         <strong><i class="fas fa-at"></i> الحساب:</strong> @${rec.account_identifier || 'غير محدد'}
                     </div>
                     <div class="recommendation-text-full" style="font-size: 13px; line-height: 1.6; color: #2d3748; background: #f8f9fa; border-radius: 12px; padding: 12px; margin: 10px 0; max-height: 300px; overflow-y: auto;">
-                        ${formattedText}
+                        ${formatRecommendationText(fullText, rec)}
                     </div>
                     <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
-                        <button class="btn-view" onclick="showFullRecommendation(${JSON.stringify(fullText).replace(/"/g, '&quot;')})">
+                        <button class="btn-view" onclick="showFullRecommendation(${JSON.stringify(formatRecommendationText(fullText, rec)).replace(/"/g, '&quot;')})">
                             <i class="fas fa-expand"></i> عرض التفاصيل الكاملة
                         </button>
                     </div>
                 </div>
             `;
         }).join('');
+    }
+    
+    // إعداد مستمعي الأحداث للبحث والترتيب
+    function setupEventListeners() {
+        const searchInput = document.getElementById('searchRecsInput');
+        const sortSelect = document.getElementById('sortRecsSelect');
+        
+        if (searchInput) {
+            searchInput.addEventListener('input', () => displayRecommendations());
+        }
+        if (sortSelect) {
+            sortSelect.addEventListener('change', () => displayRecommendations());
+        }
+    }
+    
+    // تحديث التوصيات الرئيسية
+    function updateRecommendationsTab(data) {
+        window.userData = data;
+        allRecommendations = data.recommendations || [];
+        
+        allRecommendations = allRecommendations.map((rec, index) => {
+            if (!rec.id) rec.id = index + 1;
+            return rec;
+        });
+        
+        loadPinnedRecs();
+        updateRecStats();
+        setupEventListeners();
+        displayRecommendations();
     }
 </script>
 
@@ -111,6 +294,29 @@
         border-radius: 20px;
         font-size: 11px;
         font-weight: bold;
+    }
+    
+    .pin-btn {
+        background: transparent;
+        border: 1px solid #e2e8f0;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        color: #888;
+    }
+    
+    .pin-btn:hover {
+        background: #f6d36520;
+        border-color: #f6d365;
+        color: #f6d365;
+    }
+    
+    .pin-btn.pinned {
+        background: #f6d36520;
+        border-color: #f6d365;
+        color: #f6d365;
     }
     
     .recommendation-text-full {
@@ -146,5 +352,16 @@
     .btn-view:hover {
         transform: scale(1.02);
         opacity: 0.9;
+    }
+    
+    #searchRecsInput:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+    }
+    
+    #sortRecsSelect:focus {
+        outline: none;
+        border-color: var(--primary);
     }
 </style>
