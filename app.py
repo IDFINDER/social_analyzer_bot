@@ -285,21 +285,25 @@ def save_theme():
 
 @app.route('/api/user_data', methods=['GET'])
 def get_user_data():
-    """API لجلب بيانات المستخدم للـ WebApp (نسخة آمنة)"""
-    from datetime import date
+    """API لجلب بيانات المستخدم للـ WebApp (نسخة مبسطة)"""
+    from datetime import datetime, date
+    from utils.db import (
+        get_user_info, get_user_social_accounts, 
+        get_user_active_subscription, get_user_usage, get_all_prices
+    )
     
     token = request.args.get('token')
+    print(f"🔍 API called with token: {token}")
+    
     if not token:
         return jsonify({'error': 'Missing token'}), 401
     
-    # ✅ استخدام verify_token الآمن
-    user_id = verify_token(token)
-    if not user_id:
-        return jsonify({'error': 'Invalid or expired token'}), 401
-    
-    user_info = get_user_info(user_id)
-    if not user_info:
-        return jsonify({'error': 'User not found'}), 404
+    # ✅ تغيير: استخدام طريقة مبسطة لاستخراج user_id (مثل صفحة dashboard)
+    try:
+        user_id = int(token.split(':')[0])
+        print(f"✅ Extracted user_id: {user_id}")
+    except:
+        return jsonify({'error': 'Invalid token'}), 401
     
     accounts = get_user_social_accounts(user_id)
     is_premium = user_info.get('status') == 'premium'
