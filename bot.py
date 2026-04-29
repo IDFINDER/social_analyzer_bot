@@ -2340,10 +2340,7 @@ async def star_subscription_callback(update: Update, context: ContextTypes.DEFAU
         )
 
 
-async def pre_checkout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالج التحقق من الدفع"""
-    query = update.pre_checkout_query
-    await query.answer(ok=True)
+
 
 
 async def successful_payment_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -2552,74 +2549,7 @@ async def pre_checkout_callback(update: Update, context: ContextTypes.DEFAULT_TY
         await query.answer(ok=False, error_message="حدث خطأ، يرجى المحاولة مرة أخرى")
 
 
-async def successful_payment_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالج الدفع الناجح - تفعيل الاشتراك"""
-    message = update.message
-    payment = message.successful_payment
-    user_id = message.from_user.id
-    
-    import json
-    payload_data = json.loads(payment.invoice_payload)
-    
-    logger.info(f"✅ Successful payment from user {user_id}: {payment.total_amount} stars")
-    
-    # التحقق من نوع الدفع
-    if payload_data.get('type') == 'subscription':
-        plan_type = payload_data.get('plan_type')
-        
-        plan_days = {
-            'monthly': 30,
-            'half_yearly': 180,
-            'yearly': 365,
-            'lifetime': 36500
-        }
-        
-        from utils.db import upgrade_user_to_premium
-        success = upgrade_user_to_premium(user_id, plan_days.get(plan_type, 30))
-        
-        plan_names = {
-            'monthly': 'شهري',
-            'half_yearly': 'نصف سنوي',
-            'yearly': 'سنوي',
-            'lifetime': 'مدى الحياة'
-        }
-        plan_name = plan_names.get(plan_type, plan_type)
-        
-        if success:
-            await message.reply_text(
-                f"✅ <b>تم تفعيل اشتراكك {plan_name} بنجاح!</b>\n\n"
-                f"⭐ تم خصم {payment.total_amount} نجم من رصيدك\n\n"
-                f"شكراً لثقتك! 🙏",
-                parse_mode='HTML'
-            )
-        else:
-            await message.reply_text(
-                f"❌ حدث خطأ في تفعيل الاشتراك {plan_name}\n\n"
-                f"📩 يرجى التواصل مع المطور: @Alshabany_Ai",
-                parse_mode='HTML'
-            )
-    
-    elif payload_data.get('type') == 'extra_recs':
-        extra_recs = payload_data.get('extra_recs')
-        
-        from utils.db import activate_extra_recs, get_user_gemini_limit
-        success = activate_extra_recs(user_id, extra_recs)
-        
-        if success:
-            new_limit = get_user_gemini_limit(user_id)
-            await message.reply_text(
-                f"✅ <b>تم إضافة {extra_recs} توصيات إضافية!</b>\n\n"
-                f"⭐ تم خصم {payment.total_amount} نجم من رصيدك\n"
-                f"📊 حصتك الجديدة: {new_limit} توصية شهرياً\n\n"
-                f"شكراً لثقتك! 🙏",
-                parse_mode='HTML'
-            )
-        else:
-            await message.reply_text(
-                f"❌ حدث خطأ في إضافة التوصيات\n\n"
-                f"📩 يرجى التواصل مع المطور: @Alshabany_Ai",
-                parse_mode='HTML'
-            )
+
 # =================================================================================
 async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """فتح لوحة التحكم كـ WebApp"""
