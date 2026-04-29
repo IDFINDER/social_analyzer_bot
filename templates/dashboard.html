@@ -89,31 +89,6 @@
             font-size: 1.1rem;
         }
         
-        .platform-btn {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-            padding: 12px 16px;
-            margin: 8px 0;
-            border: none;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s;
-            color: white;
-        }
-        
-        .platform-btn:hover { transform: translateX(-5px); filter: brightness(1.05); }
-        .platform-btn i { font-size: 20px; }
-        
-        .btn-youtube { background: var(--youtube); }
-        .btn-instagram { background: var(--instagram); }
-        .btn-tiktok { background: var(--tiktok); }
-        .btn-facebook { background: var(--facebook); }
-        .btn-primary { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
-        
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -170,6 +145,7 @@
         .nav-item:nth-child(2).active-nav { color: #48bb78; background: rgba(72,187,120,0.15); }
         .nav-item:nth-child(3).active-nav { color: #ed8936; background: rgba(237,137,54,0.15); }
         .nav-item:nth-child(4).active-nav { color: #e53e3e; background: rgba(229,62,62,0.15); }
+        .nav-item:nth-child(5).active-nav { color: #9b59b6; background: rgba(155,89,182,0.15); }
         
         .alert { padding: 12px; border-radius: 12px; margin-bottom: 15px; text-align: center; }
         .alert-warning { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
@@ -195,11 +171,81 @@
             margin-left: 12px;
         }
         
+        /* تنسيق بطاقات التوصيات */
+        .recommendation-card {
+            background: linear-gradient(135deg, #667eea08, #764ba208);
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-right: 4px solid var(--primary);
+        }
+        
+        .recommendation-platform {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .recommendation-text {
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text);
+            max-height: 100px;
+            overflow-y: auto;
+            margin: 8px 0;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+        
+        .recommendation-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: var(--text-light);
+            margin-top: 8px;
+        }
+        
+        .btn-view {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            max-width: 90%;
+            max-height: 80%;
+            overflow-y: auto;
+            padding: 20px;
+            margin: 20px;
+        }
+        
         @media (max-width: 480px) {
             .container { padding: 12px; }
             .stats-grid { gap: 8px; }
             .stat-number { font-size: 18px; }
-            .platform-btn { padding: 10px 12px; font-size: 12px; }
         }
     </style>
 </head>
@@ -232,19 +278,11 @@
             <div class="card">
                 <h3><i class="fas fa-link"></i> حساباتي المسجلة</h3>
                 <div id="accountsList"></div>
-                <button class="platform-btn btn-primary" onclick="openAddAccount()">
-                    <span><i class="fas fa-plus"></i> إضافة حساب جديد</span>
-                    <i class="fas fa-arrow-left"></i>
-                </button>
             </div>
         </div>
         
         <div id="subscriptionTab" class="tab-content">
             <div id="subscriptionContent"></div>
-            <button class="platform-btn btn-primary" onclick="openUpgrade()">
-                <span><i class="fas fa-gem"></i> ترقية / تجديد الاشتراك</span>
-                <i class="fas fa-arrow-left"></i>
-            </button>
         </div>
         
         <div id="statsTab" class="tab-content">
@@ -262,6 +300,13 @@
                     <canvas id="trendChart"></canvas>
                 </div>
                 <p style="font-size: 11px; color: #888; text-align: center; margin-top: 10px;">آخر 7 أيام</p>
+            </div>
+        </div>
+        
+        <div id="recommendationsTab" class="tab-content">
+            <div class="card">
+                <h3><i class="fas fa-robot"></i> آخر توصيات الذكاء الاصطناعي</h3>
+                <div id="recommendationsList"></div>
             </div>
         </div>
         
@@ -297,9 +342,21 @@
         <div class="nav-item" onclick="showTab('stats')">
             <i class="fas fa-chart-line"></i><span>إحصائياتي</span>
         </div>
+        <div class="nav-item" onclick="showTab('recommendations')">
+            <i class="fas fa-robot"></i><span>توصياتي</span>
+        </div>
         <div class="nav-item" onclick="showTab('info')">
             <i class="fas fa-question-circle"></i><span>تعليمات</span>
         </div>
+    </div>
+</div>
+
+<!-- نافذة عرض التوصية كاملة -->
+<div id="recommendationModal" class="modal" onclick="closeModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h3 style="color: #667eea; margin-bottom: 15px;">📋 توصية كاملة</h3>
+        <div id="modalRecommendationText" style="white-space: pre-wrap; line-height: 1.6; max-height: 60vh; overflow-y: auto;"></div>
+        <button onclick="closeModal()" style="margin-top: 15px; background: #667eea; color: white; border: none; padding: 10px; border-radius: 10px; width: 100%;">إغلاق</button>
     </div>
 </div>
 
@@ -314,14 +371,6 @@
     
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
-    
-    function openAddAccount() {
-        tg.openTelegramLink('https://t.me/Social_Media_tools_bot?start=edit');
-    }
-    
-    function openUpgrade() {
-        tg.openTelegramLink('https://t.me/Social_Media_tools_bot?start=premium');
-    }
     
     if (!token) {
         document.getElementById('loadingScreen').innerHTML = '<div class="loading-screen" style="background:#e53e3e;"><div class="loading-text">❌ رابط غير صالح</div></div>';
@@ -364,6 +413,7 @@
             statusSpan.innerHTML = '<span class="warning-badge">🎁 مجاني</span>';
         }
         
+        // عرض الحسابات المسجلة
         const accountsList = document.getElementById('accountsList');
         const platformInfo = {
             youtube: { name: 'YouTube', icon: 'fab fa-youtube', color: '#ff0000' },
@@ -392,6 +442,7 @@
         
         updateSubscriptionUI(data);
         updateStatsUI(data);
+        updateRecommendationsUI(data);
     }
     
     function updateSubscriptionUI(data) {
@@ -412,7 +463,9 @@
                 badge = '<span class="success-badge">✅ نشط</span>';
             }
             
+            // تاريخ البداية من subscription.start_date
             const startDate = data.subscription.start_date ? new Date(data.subscription.start_date).toLocaleDateString('ar-EG') : 'غير محدد';
+            const endDate = data.subscription.end_date ? new Date(data.subscription.end_date).toLocaleDateString('ar-EG') : 'غير محدد';
             
             container.innerHTML = `
                 ${alertMsg}
@@ -423,16 +476,19 @@
                     </div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
                         <span>⭐ خطتك:</span>
-                        <span><strong>${data.subscription.plan}</strong></span>
+                        <span><strong>${data.subscription.plan || 'مميز'}</strong></span>
                     </div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                        <span>📅 تنتهي في:</span>
-                        <span>${data.subscription.end_date || 'غير محدد'}</span>
+                        <span>📅 تاريخ الانتهاء:</span>
+                        <span>${endDate}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between;">
                         <span>⏰ الأيام المتبقية:</span>
                         <span><strong>${daysLeft > 0 ? daysLeft : 'منتهي'}</strong> ${badge}</span>
                     </div>
+                </div>
+                <div style="margin-top: 15px; background: #f0f0f0; border-radius: 12px; padding: 12px; text-align: center;">
+                    <span>📊 حصتك الشهرية من التوصيات: <strong>${data.gemini_limit || 0}</strong> توصية</span>
                 </div>
             `;
         } else {
@@ -442,7 +498,7 @@
                 </div>
                 <div style="background: linear-gradient(135deg, #667eea10, #764ba210); border-radius: 16px; padding: 15px;">
                     <div style="text-align: center; margin-bottom: 10px;">
-                        📊 الحد اليومي: <strong>${data.free_limit} تحليل/يوم</strong>
+                        📊 الحد اليومي: <strong>${data.free_limit || 2} تحليل/يوم</strong>
                     </div>
                 </div>
             `;
@@ -460,7 +516,7 @@
             <div class="stat-card"><div class="stat-number">${stats.instagram_uses || 0}</div><div class="stat-label">📸 انستقرام</div></div>
             <div class="stat-card"><div class="stat-number">${stats.tiktok_uses || 0}</div><div class="stat-label">🎵 تيك توك</div></div>
             <div class="stat-card"><div class="stat-number">${stats.facebook_uses || 0}</div><div class="stat-label">📘 فيسبوك</div></div>
-            <div class="stat-card"><div class="stat-number">${stats.gemini_uses || 0}</div><div class="stat-label">🤖 توصيات AI</div></div>
+            <div class="stat-card"><div class="stat-number">${data.gemini_uses || 0}</div><div class="stat-label">🤖 توصيات AI</div></div>
         `;
         
         const ctx = document.getElementById('platformChart').getContext('2d');
@@ -498,6 +554,49 @@
             },
             options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
         });
+    }
+    
+    function updateRecommendationsUI(data) {
+        const container = document.getElementById('recommendationsList');
+        const recommendations = data.recommendations || [];
+        
+        if (!recommendations.length) {
+            container.innerHTML = '<div style="text-align:center; padding:40px; color:#888;"><i class="fas fa-robot"></i> لا توجد توصيات حتى الآن</div>';
+            return;
+        }
+        
+        const platformColors = {
+            youtube: '#ff0000',
+            instagram: '#e1306c',
+            tiktok: '#000000',
+            facebook: '#1877f2'
+        };
+        
+        container.innerHTML = recommendations.map(rec => `
+            <div class="recommendation-card">
+                <span class="recommendation-platform" style="background: ${platformColors[rec.platform] || '#667eea'}; color: white;">
+                    <i class="fab fa-${rec.platform === 'youtube' ? 'youtube' : rec.platform === 'instagram' ? 'instagram' : rec.platform === 'tiktok' ? 'tiktok' : 'facebook-f'}"></i>
+                    ${rec.platform === 'youtube' ? 'يوتيوب' : rec.platform === 'instagram' ? 'انستقرام' : rec.platform === 'tiktok' ? 'تيك توك' : 'فيسبوك'}
+                </span>
+                <div><strong>@${rec.account_identifier || 'غير محدد'}</strong></div>
+                <div class="recommendation-text">${rec.recommendation_summary ? rec.recommendation_summary.substring(0, 150) + '...' : 'لا يوجد نص'}</div>
+                <div class="recommendation-meta">
+                    <span><i class="fas fa-calendar"></i> ${new Date(rec.created_at).toLocaleDateString('ar-EG')}</span>
+                    <button class="btn-view" onclick="showFullRecommendation(${JSON.stringify(rec.recommendation_text || rec.recommendation_summary).replace(/"/g, '&quot;')})">عرض التوصية كاملة</button>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    function showFullRecommendation(text) {
+        const modal = document.getElementById('recommendationModal');
+        const modalText = document.getElementById('modalRecommendationText');
+        modalText.innerHTML = text.replace(/\n/g, '<br>');
+        modal.style.display = 'flex';
+    }
+    
+    function closeModal() {
+        document.getElementById('recommendationModal').style.display = 'none';
     }
     
     function showTab(tabName) {
