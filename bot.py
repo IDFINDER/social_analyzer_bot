@@ -19,6 +19,8 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 from flask import Flask, request, render_template, jsonify
 from telegram.ext import PreCheckoutQueryHandler
 from utils.helpers import create_secure_token
+from utils.snapchat_auth import get_auth_url, get_token
+from utils.snapchat_analyzer import format_snapchat_report
 
 # إضافة مجلد utils إلى المسار
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
