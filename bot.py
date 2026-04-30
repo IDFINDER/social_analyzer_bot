@@ -1855,6 +1855,8 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer("🎵 هذه الميزة قيد التطوير حالياً", show_alert=True)
     elif data == "analyze_facebook":
         await query.answer("📘 هذه الميزة قيد التطوير حالياً", show_alert=True)
+    elif data == "analyze_snapchat":
+        await analyze_snapchat_command(update, context, query)
     
     # ========== 🆕 معالج زر فحص اليوزرنيم مرة أخرى ==========
     elif data == "username_check_again":
