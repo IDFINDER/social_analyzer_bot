@@ -19,7 +19,6 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 from flask import Flask, request, render_template, jsonify
 from telegram.ext import PreCheckoutQueryHandler
 from utils.helpers import create_secure_token
-from utils.telegram_analytics_helper import calculate_channel_stats
 
 # إضافة مجلد utils إلى المسار
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
