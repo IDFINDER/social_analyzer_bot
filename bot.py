@@ -1274,14 +1274,25 @@ async def edit_data_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_info = get_user_info(user_id)
     is_premium = user_info['status'] == 'premium' if user_info else False
     
-    all_platforms = ['youtube', 'instagram', 'tiktok', 'facebook']
+    # ✅ أضف 'snapchat' هنا
+    all_platforms = ['youtube', 'instagram', 'tiktok', 'facebook', 'snapchat']
     keyboard = []
     
+    # قاموس لأسماء المنصات بالعربية
+    platform_names = {
+        'youtube': 'يوتيوب',
+        'instagram': 'انستقرام',
+        'tiktok': 'تيك توك',
+        'facebook': 'فيسبوك',
+        'snapchat': 'سناب شات'
+    }
+    
     for platform in all_platforms:
+        display_name = platform_names.get(platform, platform.capitalize())
         if platform in accounts:
-            keyboard.append([InlineKeyboardButton(f"✏️ تعديل {platform.capitalize()} ✅", callback_data=f"edit_{platform}")])
+            keyboard.append([InlineKeyboardButton(f"✏️ تعديل {display_name} ✅", callback_data=f"edit_{platform}")])
         else:
-            keyboard.append([InlineKeyboardButton(f"➕ إضافة {platform.capitalize()}", callback_data=f"add_{platform}")])
+            keyboard.append([InlineKeyboardButton(f"➕ إضافة {display_name}", callback_data=f"add_{platform}")])
     
     keyboard.append([InlineKeyboardButton(
         f"✏️ تعديل اسم العرض (الحالي: {user_info.get('first_name', 'غير محدد')[:20]})",
