@@ -18,6 +18,9 @@ from datetime import datetime, timedelta
 from functools import wraps
 from urllib.parse import urlencode
 from flask import Flask, render_template, request, jsonify, send_from_directory, session, redirect, url_for, render_template_string
+import aiohttp
+import asyncio
+from utils.snapchat_auth import save_token
 
 # استيراد دوال قاعدة البيانات
 from utils.db import (
@@ -171,6 +174,112 @@ def payment_page():
     except Exception as e:
         logger.error(f"Payment page error: {e}")
         return f"Error loading payment page: {e}", 500
+
+# =================================================================================
+# القسم: مصادقة Snapchat OAuth
+# =================================================================================
+
+@app.route('/snapchat/callback')
+def snapchat_callback():
+    """معالج إعادة التوجيه بعد مصادقة Snapchat"""
+    code = request.args.get('code')
+    user_id = request.args.get('state')
+    
+    if not code or not user_id:
+        return "Missing code or user_id", 400
+    
+    # تبادل الـ code للحصول على access_token
+    async def exchange_code():
+        async with aiohttp.ClientSession() as session:
+            async with session.post('https://accounts.snapchat.com/login/oauth2/access_token', data={
+                'grant_type': 'authorization_code',
+                'code': code,
+                'redirect_uri': os.environ.get('SNAPCHAT_REDIRECT_URI', 'https://social-analyzer-flask-2.onrender.com/snapchat/callback'),
+                'client_id': os.environ.get('SNAPCHAT_CLIENT_ID'),
+                'client_secret': os.environ.get('SNAPCHAT_CLIENT_SECRET')
+            }) as response:
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    logger.error(f"Token exchange failed: {await response.text()}")
+                    return None
+    
+    # تشغيل الدالة غير المتزامنة
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    token_data = loop.run_until_complete(exchange_code())
+    loop.close()
+    
+    if not token_data:
+        return "Failed to exchange code", 500
+    
+    # حفظ التوكن
+    save_token(int(user_id), token_data)
+    
+    # إعلام المستخدم عبر البوت
+    TOKEN = os.environ.get('TELEGRAM_TOKEN')
+    try:
+        import requests
+        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", json={
+            'chat_id': user_id,
+            'text': "✅ تم تفعيل تحليل Snapchat بنجاح!\n\n📸 يمكنك الآن استخدام زر 'تحليل سناب شات' لتحليل حسابك.",
+            'parse_mode': 'HTML'
+        })
+    except Exception as e:
+        logger.error(f"Failed to notify user: {e}")
+    
+    # صفحة نجاح HTML تغلق تلقائياً
+    return """
+    <!DOCTYPE html>
+    <html dir="rtl" lang="ar">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>تم التفعيل بنجاح</title>
+        <style>
+            *{margin:0;padding:0;box-sizing:border-box;}
+            body{
+                font-family:'Segoe UI',sans-serif;
+                background:linear-gradient(135deg,#667eea,#764ba2);
+                min-height:100vh;
+                display:flex;
+                justify-content:center;
+                align-items:center;
+                padding:20px;
+            }
+            .card{
+                background:white;
+                border-radius:24px;
+                padding:40px;
+                text-align:center;
+                max-width:400px;
+                box-shadow:0 20px 40px rgba(0,0,0,0.2);
+            }
+            .icon{font-size:64px;margin-bottom:20px;}
+            h1{color:#2c3e50;margin-bottom:10px;}
+            p{color:#666;line-height:1.6;}
+            .btn{
+                display:inline-block;
+                background:#667eea;
+                color:white;
+                padding:12px 24px;
+                border-radius:30px;
+                text-decoration:none;
+                margin-top:20px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="icon">✅</div>
+            <h1>تم التفعيل بنجاح!</h1>
+            <p>يمكنك الآن العودة إلى البوت واستخدام ميزة تحليل Snapchat.</p>
+            <a href="https://t.me/Social_Media_tools_bot" class="btn">🚀 العودة إلى البوت</a>
+        </div>
+        <script>setTimeout(() => { window.location.href = 'https://t.me/Social_Media_tools_bot'; }, 3000);</script>
+    </body>
+    </html>
+    """
 
 # =================================================================================
 # القسم 7: صفحة البايو الشخصية
