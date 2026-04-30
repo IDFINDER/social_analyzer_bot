@@ -153,6 +153,8 @@ def get_analysis_keyboard():
         for text in row:
             if "يوتيوب" in text:
                 row_buttons.append(InlineKeyboardButton(text, callback_data="analyze_youtube"))
+            elif "سناب شات" in text:
+                row_buttons.append(InlineKeyboardButton(text, callback_data="analyze_snapchat"))
             elif "انستقرام" in text:
                 row_buttons.append(InlineKeyboardButton(text, callback_data="analyze_instagram"))
             elif "تيك توك" in text:
