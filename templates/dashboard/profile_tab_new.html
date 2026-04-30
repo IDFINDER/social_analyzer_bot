@@ -92,14 +92,17 @@
 <div style="height: 80px;"></div>
 
 <script>
+    // ========== معلومات المنصات (مع إضافة سناب شات) ==========
     const platformInfo = {
         youtube: { name: 'يوتيوب', icon: 'fab fa-youtube', color: '#ff0000', baseUrl: 'https://youtube.com/@' },
         instagram: { name: 'انستقرام', icon: 'fab fa-instagram', color: '#e1306c', baseUrl: 'https://instagram.com/' },
         tiktok: { name: 'تيك توك', icon: 'fab fa-tiktok', color: '#000000', baseUrl: 'https://tiktok.com/@' },
-        facebook: { name: 'فيسبوك', icon: 'fab fa-facebook-f', color: '#1877f2', baseUrl: 'https://facebook.com/' }
+        facebook: { name: 'فيسبوك', icon: 'fab fa-facebook-f', color: '#1877f2', baseUrl: 'https://facebook.com/' },
+        snapchat: { name: 'سناب شات', icon: 'fab fa-snapchat', color: '#fffc00', baseUrl: 'https://snapchat.com/add/' }
     };
     
-    const platformOrder = ['youtube', 'instagram', 'tiktok', 'facebook'];
+    // ترتيب عرض المنصات (مع إضافة snapchat)
+    const platformOrder = ['youtube', 'instagram', 'tiktok', 'facebook', 'snapchat'];
     
     // أيقونات الإنجازات
     const achievementsConfig = {
@@ -220,7 +223,7 @@
         const userLang = data.user.language_code || 'ar';
         document.getElementById('userLanguage').innerHTML = langNames[userLang] || userLang;
         
-        // ========== الحسابات المسجلة ==========
+        // ========== الحسابات المسجلة (مع إضافة سناب شات) ==========
         const accountsList = document.getElementById('accountsList');
         let accountsHtml = '';
         let hasAnyAccount = false;
