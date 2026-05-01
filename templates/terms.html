@@ -7,90 +7,236 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            font-family: 'Segoe UI', 'Tahoma', Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 40px 20px;
         }
         .container {
-            max-width: 800px;
+            max-width: 850px;
             margin: 0 auto;
             background: white;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            border-radius: 24px;
+            padding: 45px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
         }
-        h1 { color: #667eea; margin-bottom: 20px; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
-        h2 { color: #2c3e50; margin: 25px 0 10px 0; font-size: 1.3rem; }
-        p { line-height: 1.7; color: #555; margin-bottom: 15px; }
-        ul { margin: 15px 0 15px 30px; color: #555; }
-        li { margin: 8px 0; }
-        .footer {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
+        h1 { 
+            color: #667eea; 
+            margin-bottom: 15px; 
+            border-bottom: 3px solid #667eea; 
+            padding-bottom: 15px;
+            font-size: 1.8rem;
+        }
+        .update-date {
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        h2 { 
+            color: #2c3e50; 
+            margin: 30px 0 15px 0; 
+            font-size: 1.25rem;
+            padding-right: 12px;
+            border-right: 3px solid #667eea;
+        }
+        h3 {
+            color: #4a5568;
+            margin: 20px 0 10px 0;
+            font-size: 1.1rem;
+            padding-right: 10px;
+            border-right: 2px solid #fffc00;
+        }
+        p { 
+            line-height: 1.8; 
+            color: #4a5568; 
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+        ul { 
+            margin: 15px 0 15px 30px; 
+            color: #4a5568;
+        }
+        li { 
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+        .highlight {
+            background: #f0f4ff;
+            padding: 15px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border-right: 3px solid #667eea;
+        }
+        .snapchat-box {
+            background: #fff8e7;
+            padding: 15px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border-right: 3px solid #fffc00;
+        }
+        .contact-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 25px 0 15px;
+            justify-content: center;
+        }
+        .contact-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 40px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .contact-btn.developer {
+            background: #667eea;
+            color: white;
+        }
+        .contact-btn.developer:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+        .contact-btn.channel {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+        }
+        .contact-btn.channel:hover {
+            transform: translateY(-2px);
+        }
+        .footer-links {
+            margin-top: 35px;
+            padding-top: 25px;
+            border-top: 1px solid #e2e8f0;
             text-align: center;
-            font-size: 12px;
-            color: #999;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
         }
-        .back-link {
-            display: inline-block;
-            margin-top: 20px;
+        .footer-link {
             color: #667eea;
             text-decoration: none;
+            font-size: 13px;
+            transition: color 0.2s;
+        }
+        .footer-link:hover {
+            color: #5a67d8;
+            text-decoration: underline;
+        }
+        .copyright {
+            text-align: center;
+            margin-top: 25px;
+            font-size: 11px;
+            color: #a0aec0;
+        }
+        @media (max-width: 600px) {
+            .container { padding: 25px; }
+            h1 { font-size: 1.5rem; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>📜 شروط الخدمة</h1>
-        <p>آخر تحديث: <span id="currentDate"></span></p>
+        <div class="update-date">📅 آخر تحديث: <span id="currentDate"></span></div>
+        
+        <div class="highlight">
+            <p style="margin-bottom: 0; font-size: 14px;">
+                باستخدامك لبوت Social Media Analyzer، فإنك توافق على الالتزام بشروط الخدمة هذه.
+            </p>
+        </div>
 
         <h2>1. قبول الشروط</h2>
         <p>باستخدامك لبوت Social Media Analyzer، فإنك توافق على الالتزام بشروط الخدمة هذه. إذا كنت لا توافق على أي جزء من هذه الشروط، يرجى عدم استخدام البوت.</p>
 
         <h2>2. وصف الخدمة</h2>
-        <p>يقدم البوت خدمات تحليل حسابات التواصل الاجتماعي (يوتيوب، تيك توك، انستقرام، فيسبوك) بما في ذلك:
+        <p>يقدم البوت خدمات تحليل حسابات التواصل الاجتماعي (يوتيوب، تيك توك، انستقرام، فيسبوك، سناب شات) بما في ذلك:</p>
         <ul>
-            <li>تحليل قنوات يوتيوب (المشتركين، الفيديوهات، المشاهدات)</li>
-            <li>تحليل حسابات تيك توك (الملف الشخصي، الإحصائيات، الفيديوهات)</li>
-            <li>إنشاء صفحة بايو شخصية للمستخدمين المميزين</li>
+            <li>📺 <strong>تحليل قنوات يوتيوب</strong> (المشتركين، الفيديوهات، المشاهدات، أوقات النشر)</li>
+            <li>📸 <strong>تحليل حسابات سناب شات</strong> (المتابعين، مشاهدات القصص، معدلات التفاعل) - عبر Snapchat Kit API</li>
+            <li>🎵 <strong>تحليل حسابات تيك توك</strong> (الملف الشخصي، الإحصائيات، الفيديوهات) - قيد التطوير</li>
+            <li>📘 <strong>تحليل حسابات فيسبوك</strong> - قيد التطوير</li>
+            <li>📷 <strong>تحليل حسابات انستقرام</strong> - قيد التطوير</li>
+            <li>📄 <strong>إنشاء صفحة بايو شخصية</strong> للمستخدمين المميزين</li>
         </ul>
-        </p>
 
-        <h2>3. حسابات المستخدمين</h2>
+        <h2>3. تكامل سناب شات (Snapchat Kit)</h2>
+        <div class="snapchat-box">
+            <p><strong>📸 شروط خاصة باستخدام ميزة سناب شات:</strong></p>
+            <ul>
+                <li>ميزة تحليل سناب شات تتطلب موافقة صريحة منك عبر OAuth 2.0</li>
+                <li>نحن نحصل فقط على البيانات العامة للملف الشخصي وإحصائيات الأداء الأساسية</li>
+                <li><strong>لا نصل أبداً إلى:</strong> الرسائل الخاصة، المحادثات، أو المحتوى غير العام</li>
+                <li>يمكنك إلغاء صلاحية التطبيق في أي وقت من إعدادات سناب شات</li>
+                <li>نلتزم بسياسات واستخدامات Snapchat Kit API</li>
+            </ul>
+        </div>
+
+        <h2>4. حسابات المستخدمين</h2>
         <p>أنت مسؤول عن الحفاظ على سرية بيانات حسابك في تلجرام. جميع الأنشطة التي تحدث عبر حسابك هي مسؤوليتك وحدك.</p>
 
-        <h2>4. الاستخدام المقبول</h2>
-        <p>أنت توافق على استخدام البوت فقط للأغراض القانونية وبما يتوافق مع قوانين بلدك. لا يجوز استخدام البوت لنشر محتوى غير قانوني أو ضار.</p>
+        <h2>5. الاستخدام المقبول</h2>
+        <p>أنت توافق على استخدام البوت فقط للأغراض القانونية وبما يتوافق مع قوانين بلدك. لا يجوز استخدام البوت لنشر محتوى غير قانوني أو ضار، أو محاولة استخراج البيانات بطرق غير مصرح بها.</p>
 
-        <h2>5. حدود المسؤولية</h2>
-        <p>لن يكون مطور البوت مسؤولاً عن أي أضرار مباشرة أو غير مباشرة ناتجة عن استخدام أو عدم القدرة على استخدام البوت.</p>
+        <h2>6. حدود المسؤولية</h2>
+        <p>لن يكون مطور البوت مسؤولاً عن أي أضرار مباشرة أو غير مباشرة ناتجة عن استخدام أو عدم القدرة على استخدام البوت، بما في ذلك فقدان البيانات أو الأرباح.</p>
 
-        <h2>6. التعديلات على الخدمة</h2>
-        <p>نحتفظ بالحق في تعديل أو إيقاف الخدمة في أي وقت دون إشعار مسبق.</p>
-
-        <h2>7. التعديلات على الشروط</h2>
-        <p>قد نقوم بتحديث شروط الخدمة هذه من وقت لآخر. سنقوم بإخطارك بأي تغييرات جوهرية عبر البوت.</p>
-
-        <h2>8. قانون التحكيم</h2>
-        <p>تخضع هذه الشروط وتفسر وفقًا لقوانين الجمهورية اليمنية.</p>
-
-        <h2>9. اتصل بنا</h2>
-        <p>إذا كان لديك أي أسئلة حول شروط الخدمة، يمكنك التواصل معنا عبر:
+        <h2>7. خدمات الطرف الثالث</h2>
+        <p>يعتمد البوت على واجهات برمجة تطبيقات (APIs) من:</p>
         <ul>
-            <li>تليجرام: <a href="https://t.me/E_Alshabany" target="_blank">@E_Alshabany</a></li>
+            <li><strong>Google YouTube API v3</strong> - لتحليل قنوات يوتيوب</li>
+            <li><strong>Snapchat Kit API</strong> - لتحليل حسابات سناب شات</li>
+            <li><strong>Google Gemini API</strong> - لتوصيات الذكاء الاصطناعي</li>
         </ul>
-        </p>
+        <p>أنت توافق على الالتزام بشروط استخدام هذه الخدمات عند استخدام البوت.</p>
 
-        <div class="footer">
-            <p>© 2026 بوت تحليل الحسابات الاجتماعية - جميع الحقوق محفوظة</p>
-            <a href="/privacy" class="back-link">🔐 سياسة الخصوصية</a>
-            <a href="/" class="back-link" style="margin-right: 15px;">🏠 العودة إلى الرئيسية</a>
+        <h2>8. التعديلات على الخدمة</h2>
+        <p>نحتفظ بالحق في تعديل أو إيقاف الخدمة في أي وقت دون إشعار مسبق. سنبذل جهداً معقولاً لإخطار المستخدمين بأي تغييرات جوهرية.</p>
+
+        <h2>9. التعديلات على الشروط</h2>
+        <p>قد نقوم بتحديث شروط الخدمة هذه من وقت لآخر. سنقوم بإخطارك بأي تغييرات جوهرية عبر البوت أو عبر قناة التحديثات. استمرار استخدامك للبوت بعد التغييرات يعني موافقتك على الشروط المحدثة.</p>
+
+        <h2>10. إنهاء الخدمة</h2>
+        <p>نحتفظ بالحق في إنهاء أو تعليق وصولك إلى البوت فوراً، دون إشعار مسبق، لأي سبب كان، بما في ذلك انتهاك شروط الخدمة.</p>
+
+        <h2>11. قانون التحكيم</h2>
+        <p>تخضع هذه الشروط وتفسر وفقًا لقوانين الجمهورية اليمنية. يتم حل أي نزاعات من خلال محاكم صنعاء.</p>
+
+        <h2>12. اتصل بنا</h2>
+        <p>إذا كان لديك أي أسئلة حول شروط الخدمة، يمكنك التواصل معنا عبر:</p>
+        
+        <div class="contact-buttons">
+            <a href="https://t.me/Alshabany_Ai" target="_blank" class="contact-btn developer">
+                <i class="fab fa-telegram"></i> 👨‍💻 المطور
+            </a>
+            <a href="https://t.me/Social_Media_Analysis" target="_blank" class="contact-btn channel">
+                <i class="fas fa-bullhorn"></i> 📢 قناة التحديثات
+            </a>
+        </div>
+
+        <div class="footer-links">
+            <a href="/privacy" class="footer-link">🔐 سياسة الخصوصية</a>
+        </div>
+        
+        <div class="copyright">
+            © 2026 بوت تحليل الحسابات الاجتماعية - جميع الحقوق محفوظة
         </div>
     </div>
+    
     <script>
-        document.getElementById('currentDate').innerText = new Date().toLocaleDateString('ar-EG');
+        // تاريخ اليوم بالتنسيق العربي
+        const today = new Date();
+        const arabicMonths = ['يناير', 'فبراير', 'مارس', 'إبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+        const formattedDate = `${today.getDate()} ${arabicMonths[today.getMonth()]} ${today.getFullYear()}`;
+        document.getElementById('currentDate').innerText = formattedDate;
     </script>
+    
+    <!-- إضافة Font Awesome للأيقونات -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </body>
 </html>
