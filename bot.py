@@ -1377,7 +1377,6 @@ async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE)
     save_user_account(user_id, platform, new_identifier)
     context.user_data.pop('adding_platform', None)
     
-    # أسماء المنصات الجميلة للعرض
     platform_names = {
         'youtube': 'يوتيوب',
         'instagram': 'انستقرام',
@@ -1398,7 +1397,7 @@ async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE)
         display_name = user_info.get('first_name', 'مستخدم')
         create_or_update_bio_page(user_id, display_name, formatted_accounts)
     
-    # ✅ إرسال رسالة التأكيد مع أزرار
+    # ✅ رسالة التأكيد + زرين
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("✏️ العودة إلى التعديلات", callback_data="edit_data")],
         [InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="main_menu")]
@@ -1407,11 +1406,10 @@ async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await update.message.reply_text(
         f"✅ <b>تم إضافة حساب {platform_display} بنجاح!</b>\n\n"
         f"📌 المعرف: {escape_html(new_identifier)}\n\n"
-        f"💡 اختر ما تريد القيام به:",
+        f"💡 اختر ما تريد:",
         parse_mode='HTML',
         reply_markup=keyboard
     )
-
 async def edit_display_name_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """بدء عملية تعديل اسم العرض"""
     query = update.callback_query
@@ -1460,7 +1458,7 @@ async def handle_display_name_edit(update: Update, context: ContextTypes.DEFAULT
                 formatted_accounts[platform] = {'account_identifier': acc['account_identifier']}
             create_or_update_bio_page(user_id, new_name, formatted_accounts)
         
-        # ✅ إرسال رسالة التأكيد مع أزرار
+        # ✅ رسالة التأكيد + زرين
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("✏️ العودة إلى التعديلات", callback_data="edit_data")],
             [InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="main_menu")]
@@ -1469,7 +1467,7 @@ async def handle_display_name_edit(update: Update, context: ContextTypes.DEFAULT
         await update.message.reply_text(
             f"✅ <b>تم تحديث اسم العرض بنجاح!</b>\n\n"
             f"👤 الاسم الجديد: {escape_html(new_name)}\n\n"
-            f"💡 اختر ما تريد القيام به:",
+            f"💡 اختر ما تريد:",
             parse_mode='HTML',
             reply_markup=keyboard
         )
