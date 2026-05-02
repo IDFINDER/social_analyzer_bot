@@ -280,7 +280,7 @@
         if (data.is_premium && data.bio_page) {
             bioCard.style.display = 'block';
             const bioUrl = data.bio_page.page_url || data.bio_page.url;
-            const fullUrl = `https://social-analyzer-flask-2.onrender.com/bio/${bioUrl}`;
+            const fullUrl = `https://social-analyzer-flask.onrender.com/bio/${bioUrl}`;
             const bioLink = document.getElementById('bioLink');
             bioLink.href = fullUrl;
             
