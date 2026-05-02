@@ -2062,15 +2062,15 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await bio_delete_page(update, context)
     
     # ========== استدعاء دالة تعديل البيانات ==========
-    elif data == "edit_data":
+elif data == "edit_data":
     # استدعاء دالة تعديل البيانات - تعرض أزرار جميع المنصات
     user_id = query.from_user.id
     user_info = get_user_info(user_id)
     is_premium = user_info['status'] == 'premium' if user_info else False
-    
+
     all_platforms = ['youtube', 'instagram', 'tiktok', 'facebook', 'snapchat']
     keyboard = []
-    
+
     platform_names = {
         'youtube': 'يوتيوب',
         'instagram': 'انستقرام',
@@ -2078,7 +2078,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         'facebook': 'فيسبوك',
         'snapchat': 'سناب شات'
     }
-    
+
     platform_icons = {
         'youtube': '🎬',
         'instagram': '📸',
