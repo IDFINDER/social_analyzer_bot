@@ -2075,7 +2075,57 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "bio_delete_page":
         await bio_delete_page(update, context)
     
+    # ----- استدعاء دالة تعديل البيانات -----
+    
+    elif data == "edit_data":
+    # استدعاء دالة تعديل البيانات
+    user_id = query.from_user.id
+    user_info = get_user_info(user_id)
+    is_premium = user_info['status'] == 'premium' if user_info else False
+    
+    all_platforms = ['youtube', 'instagram', 'tiktok', 'facebook', 'snapchat']
+    keyboard = []
+    
+    platform_names = {
+        'youtube': 'يوتيوب',
+        'instagram': 'انستقرام',
+        'tiktok': 'تيك توك',
+        'facebook': 'فيسبوك',
+        'snapchat': 'سناب شات'
+    }
+    
+    platform_icons = {
+        'youtube': '🎬',
+        'instagram': '📸',
+        'tiktok': '🎵',
+        'facebook': '📘',
+        'snapchat': '👻'
+    }
+    
+    accounts = get_user_social_accounts(user_id)
+    
+    for platform in all_platforms:
+        display_name = platform_names.get(platform, platform.capitalize())
+        icon = platform_icons.get(platform, '🔗')
+        if platform in accounts:
+            keyboard.append([InlineKeyboardButton(f"{icon} ✏️ تعديل {display_name} ✅", callback_data=f"edit_{platform}")])
+        else:
+            keyboard.append([InlineKeyboardButton(f"{icon} ➕ إضافة {display_name}", callback_data=f"add_{platform}")])
+    
+    keyboard.append([InlineKeyboardButton(
+        f"✏️ تعديل اسم العرض (الحالي: {user_info.get('first_name', 'غير محدد')[:20]})",
+        callback_data="edit_display_name"
+    )])
+    
+    if is_premium:
+        keyboard.append([InlineKeyboardButton("⚙️ إعدادات صفحة البايو", callback_data="bio_settings")])
+    
+    keyboard.append([InlineKeyboardButton(Buttons.CONFIRM_BUTTONS["main_menu"], callback_data="main_menu")])
+    
+    await query.edit_message_text(AccountMessages.EDIT_DATA_INTRO, parse_mode='HTML', reply_markup=InlineKeyboardMarkup(keyboard))
+    
     # ----- أزرار إدارة صفحة البايو (القديمة) -----
+    
     elif data == "bio_change_theme":
         keyboard = [
             [InlineKeyboardButton("☀️ فاتح", callback_data="bio_set_theme_default")],
