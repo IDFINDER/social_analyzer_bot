@@ -194,7 +194,7 @@ def snapchat_callback():
             async with session.post('https://accounts.snapchat.com/login/oauth2/access_token', data={
                 'grant_type': 'authorization_code',
                 'code': code,
-                'redirect_uri': os.environ.get('SNAPCHAT_REDIRECT_URI', 'https://social-analyzer-flask-2.onrender.com/snapchat/callback'),
+                'redirect_uri': os.environ.get('SNAPCHAT_REDIRECT_URI', 'https://social-analyzer-flask.onrender.com/snapchat/callback'),
                 'client_id': os.environ.get('SNAPCHAT_CLIENT_ID'),
                 'client_secret': os.environ.get('SNAPCHAT_CLIENT_SECRET')
             }) as response:
