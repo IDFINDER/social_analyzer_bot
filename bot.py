@@ -2700,7 +2700,7 @@ async def dashboard_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     token = create_secure_token(user_id)
     
     # رابط الصفحة (استخدم رابط Flask الخاص بك)
-    RENDER_URL = os.environ.get('RENDER_URL', 'social-analyzer-flask-2.onrender.com')  # غيّر إلى الرابط الجديد
+    RENDER_URL = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')  # غيّر إلى الرابط الجديد
     webapp_url = f"https://{RENDER_URL}/dashboard?token={token}&v={int(time.time())}"  # أضف &v=
     
     keyboard = [[
