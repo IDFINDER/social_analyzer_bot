@@ -1315,18 +1315,41 @@ async def handle_edit_account(update: Update, context: ContextTypes.DEFAULT_TYPE
     user_id = update.effective_user.id
     new_identifier = update.message.text.strip()
     
+    # حذف الحساب القديم أولاً
     delete_user_account(user_id, platform)
+    
+    # حفظ الحساب الجديد
     save_user_account(user_id, platform, new_identifier)
     
+    # تنظيف حالة التعديل
     context.user_data.pop('editing_platform', None)
     
+    # جلب معلومات المستخدم لإعداد الرسالة
     user_info = get_user_info(user_id)
     is_premium = user_info['status'] == 'premium' if user_info else False
     
+    # أسماء المنصات الجميلة للعرض
+    platform_names = {
+        'youtube': 'يوتيوب',
+        'instagram': 'انستقرام',
+        'tiktok': 'تيك توك',
+        'facebook': 'فيسبوك',
+        'snapchat': 'سناب شات'
+    }
+    platform_display = platform_names.get(platform, platform.capitalize())
+    
+    # ✅ إرسال رسالة التأكيد مع أزرار
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("✏️ العودة إلى التعديلات", callback_data="edit_data")],
+        [InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="main_menu")]
+    ])
+    
     await update.message.reply_text(
-        AccountMessages.SUCCESS_ACCOUNT_UPDATED.format(platform=platform.capitalize(), identifier=escape_html(new_identifier)),
+        f"✅ <b>تم تحديث حساب {platform_display} بنجاح!</b>\n\n"
+        f"📌 المعرف الجديد: {escape_html(new_identifier)}\n\n"
+        f"💡 اختر ما تريد القيام به:",
         parse_mode='HTML',
-        reply_markup=get_main_keyboard(is_premium)
+        reply_markup=keyboard
     )
 
 # =================================================================================
@@ -1361,6 +1384,16 @@ async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE)
     save_user_account(user_id, platform, new_identifier)
     context.user_data.pop('adding_platform', None)
     
+    # أسماء المنصات الجميلة للعرض
+    platform_names = {
+        'youtube': 'يوتيوب',
+        'instagram': 'انستقرام',
+        'tiktok': 'تيك توك',
+        'facebook': 'فيسبوك',
+        'snapchat': 'سناب شات'
+    }
+    platform_display = platform_names.get(platform, platform.capitalize())
+    
     user_info = get_user_info(user_id)
     is_premium = user_info['status'] == 'premium' if user_info else False
     
@@ -1372,10 +1405,18 @@ async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE)
         display_name = user_info.get('first_name', 'مستخدم')
         create_or_update_bio_page(user_id, display_name, formatted_accounts)
     
+    # ✅ إرسال رسالة التأكيد مع أزرار
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("✏️ العودة إلى التعديلات", callback_data="edit_data")],
+        [InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="main_menu")]
+    ])
+    
     await update.message.reply_text(
-        AccountMessages.SUCCESS_ACCOUNT_ADDED.format(platform=platform.capitalize(), identifier=escape_html(new_identifier)),
+        f"✅ <b>تم إضافة حساب {platform_display} بنجاح!</b>\n\n"
+        f"📌 المعرف: {escape_html(new_identifier)}\n\n"
+        f"💡 اختر ما تريد القيام به:",
         parse_mode='HTML',
-        reply_markup=get_main_keyboard(is_premium)
+        reply_markup=keyboard
     )
 
 async def edit_display_name_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1426,17 +1467,18 @@ async def handle_display_name_edit(update: Update, context: ContextTypes.DEFAULT
                 formatted_accounts[platform] = {'account_identifier': acc['account_identifier']}
             create_or_update_bio_page(user_id, new_name, formatted_accounts)
         
-        await update.message.reply_text(
-            AccountMessages.SUCCESS_NAME_UPDATED.format(new_name=escape_html(new_name)),
-            parse_mode='HTML'
-        )
+        # ✅ إرسال رسالة التأكيد مع أزرار
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("✏️ العودة إلى التعديلات", callback_data="edit_data")],
+            [InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="main_menu")]
+        ])
         
-        user_info = get_user_info(user_id)
-        is_premium = user_info['status'] == 'premium' if user_info else False
         await update.message.reply_text(
-            "🏠 <b>القائمة الرئيسية</b>\n\nاختر ما تريد:",
+            f"✅ <b>تم تحديث اسم العرض بنجاح!</b>\n\n"
+            f"👤 الاسم الجديد: {escape_html(new_name)}\n\n"
+            f"💡 اختر ما تريد القيام به:",
             parse_mode='HTML',
-            reply_markup=get_main_keyboard(is_premium)
+            reply_markup=keyboard
         )
     else:
         await update.message.reply_text(Errors.GENERIC_ERROR)
@@ -1799,38 +1841,50 @@ async def confirm_delete_account(update: Update, context: ContextTypes.DEFAULT_T
     user_id = query.from_user.id
     platform = query.data.split('_')[2]
     
+    # حذف الحساب
     deletion_success = delete_user_account(user_id, platform)
     
     if not deletion_success:
         await query.edit_message_text(Errors.GENERIC_ERROR, parse_mode='HTML')
         return
     
+    # أسماء المنصات الجميلة للعرض
+    platform_names = {
+        'youtube': 'يوتيوب',
+        'instagram': 'انستقرام',
+        'tiktok': 'تيك توك',
+        'facebook': 'فيسبوك',
+        'snapchat': 'سناب شات'
+    }
+    platform_display = platform_names.get(platform, platform.capitalize())
+    
+    # تحديث صفحة البايو للمستخدمين المميزين
     user_info = get_user_info(user_id)
-    all_accounts = get_user_social_accounts(user_id)
-    
-    formatted_accounts = {}
-    for plat, acc in all_accounts.items():
-        formatted_accounts[plat] = {
-            'account_identifier': acc['account_identifier']
-        }
-    
-    display_name = user_info.get('first_name', 'مستخدم')
-    create_or_update_bio_page(user_id, display_name, formatted_accounts)
-    
-    context.user_data.pop('deleting_platform', None)
-    
     is_premium = user_info['status'] == 'premium' if user_info else False
     
-    await query.edit_message_text(
-        AccountMessages.SUCCESS_ACCOUNT_DELETED.format(platform=platform.capitalize()),
-        parse_mode='HTML'
-    )
+    if is_premium:
+        accounts = get_user_social_accounts(user_id)
+        formatted_accounts = {}
+        for plat, acc in accounts.items():
+            formatted_accounts[plat] = {'account_identifier': acc['account_identifier']}
+        display_name = user_info.get('first_name', 'مستخدم')
+        create_or_update_bio_page(user_id, display_name, formatted_accounts)
     
-    await asyncio.sleep(2)
-    await query.message.reply_text(
-        "🏠 <b>القائمة الرئيسية</b>\n\nاختر ما تريد:",
+    # تنظيف حالة الحذف
+    context.user_data.pop('deleting_platform', None)
+    
+    # ✅ إرسال رسالة التأكيد مع أزرار
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("✏️ العودة إلى التعديلات", callback_data="edit_data")],
+        [InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="main_menu")]
+    ])
+    
+    await query.edit_message_text(
+        f"✅ <b>تم حذف حساب {platform_display} بنجاح!</b>\n\n"
+        f"📌 تم إزالة الحساب من بياناتك ومن صفحة البايو الخاصة بك.\n\n"
+        f"💡 اختر ما تريد القيام به:",
         parse_mode='HTML',
-        reply_markup=get_main_keyboard(is_premium)
+        reply_markup=keyboard
     )
 
 async def cancel_delete_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
