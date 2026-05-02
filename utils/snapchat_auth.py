@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 # متغيرات البيئة - تأكد من إضافتها في Render
 SNAPCHAT_CLIENT_ID = os.environ.get('SNAPCHAT_CLIENT_ID')
 SNAPCHAT_CLIENT_SECRET = os.environ.get('SNAPCHAT_CLIENT_SECRET')
-SNAPCHAT_REDIRECT_URI = os.environ.get('SNAPCHAT_REDIRECT_URI', 'https://social-analyzer-flask-2.onrender.com/snapchat/callback')
+SNAPCHAT_REDIRECT_URI = os.environ.get('SNAPCHAT_REDIRECT_URI', 'https://social-analyzer-flask.onrender.com/snapchat/callback')
 
 def get_auth_url(user_id):
     """إنشاء رابط مصادقة Snapchat"""
