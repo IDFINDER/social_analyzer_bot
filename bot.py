@@ -1319,9 +1319,6 @@ async def handle_edit_account(update: Update, context: ContextTypes.DEFAULT_TYPE
     save_user_account(user_id, platform, new_identifier)
     context.user_data.pop('editing_platform', None)
     
-    user_info = get_user_info(user_id)
-    is_premium = user_info['status'] == 'premium' if user_info else False
-    
     platform_names = {
         'youtube': 'يوتيوب',
         'instagram': 'انستقرام',
@@ -1331,19 +1328,15 @@ async def handle_edit_account(update: Update, context: ContextTypes.DEFAULT_TYPE
     }
     platform_display = platform_names.get(platform, platform.capitalize())
     
-    # ✅ رسالة التأكيد + زرين
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("✏️ العودة إلى التعديلات", callback_data="edit_data")],
-        [InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="main_menu")]
-    ])
-    
+    # ✅ فقط رسالة التأكيد
     await update.message.reply_text(
         f"✅ <b>تم تحديث حساب {platform_display} بنجاح!</b>\n\n"
-        f"📌 المعرف الجديد: {escape_html(new_identifier)}\n\n"
-        f"💡 اختر ما تريد:",
-        parse_mode='HTML',
-        reply_markup=keyboard
+        f"📌 المعرف الجديد: {escape_html(new_identifier)}",
+        parse_mode='HTML'
     )
+    
+    # ✅ بعد رسالة التأكيد، تظهر أزرار المنصات مباشرة
+    await edit_data_command(update, context)
 
 # =================================================================================
 # القسم 13: دوال إضافة حسابات جديدة وتعديل الاسم
@@ -1397,19 +1390,15 @@ async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE)
         display_name = user_info.get('first_name', 'مستخدم')
         create_or_update_bio_page(user_id, display_name, formatted_accounts)
     
-    # ✅ رسالة التأكيد + زرين
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("✏️ العودة إلى التعديلات", callback_data="edit_data")],
-        [InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="main_menu")]
-    ])
-    
+    # ✅ فقط رسالة التأكيد
     await update.message.reply_text(
         f"✅ <b>تم إضافة حساب {platform_display} بنجاح!</b>\n\n"
-        f"📌 المعرف: {escape_html(new_identifier)}\n\n"
-        f"💡 اختر ما تريد:",
-        parse_mode='HTML',
-        reply_markup=keyboard
+        f"📌 المعرف: {escape_html(new_identifier)}",
+        parse_mode='HTML'
     )
+    
+    # ✅ بعد رسالة التأكيد، تظهر أزرار المنصات مباشرة
+    await edit_data_command(update, context)
 async def edit_display_name_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """بدء عملية تعديل اسم العرض"""
     query = update.callback_query
@@ -1458,19 +1447,15 @@ async def handle_display_name_edit(update: Update, context: ContextTypes.DEFAULT
                 formatted_accounts[platform] = {'account_identifier': acc['account_identifier']}
             create_or_update_bio_page(user_id, new_name, formatted_accounts)
         
-        # ✅ رسالة التأكيد + زرين
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("✏️ العودة إلى التعديلات", callback_data="edit_data")],
-            [InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="main_menu")]
-        ])
-        
+        # ✅ فقط رسالة التأكيد
         await update.message.reply_text(
             f"✅ <b>تم تحديث اسم العرض بنجاح!</b>\n\n"
-            f"👤 الاسم الجديد: {escape_html(new_name)}\n\n"
-            f"💡 اختر ما تريد:",
-            parse_mode='HTML',
-            reply_markup=keyboard
+            f"👤 الاسم الجديد: {escape_html(new_name)}",
+            parse_mode='HTML'
         )
+        
+        # ✅ بعد رسالة التأكيد، تظهر أزرار المنصات مباشرة
+        await edit_data_command(update, context)
     else:
         await update.message.reply_text(Errors.GENERIC_ERROR)
 
@@ -1859,18 +1844,61 @@ async def confirm_delete_account(update: Update, context: ContextTypes.DEFAULT_T
     
     context.user_data.pop('deleting_platform', None)
     
-    # ✅ رسالة التأكيد + زرين
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("✏️ العودة إلى التعديلات", callback_data="edit_data")],
-        [InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="main_menu")]
-    ])
-    
+    # ✅ فقط رسالة التأكيد
     await query.edit_message_text(
         f"✅ <b>تم حذف حساب {platform_display} بنجاح!</b>\n\n"
-        f"📌 تم إزالة الحساب من بياناتك ومن صفحة البايو الخاصة بك.\n\n"
-        f"💡 اختر ما تريد:",
+        f"📌 تم إزالة الحساب من بياناتك ومن صفحة البايو الخاصة بك.",
+        parse_mode='HTML'
+    )
+    
+    # ✅ بعد رسالة التأكيد، تظهر أزرار المنصات مباشرة
+    # نحتاج إلى إرسال أزرار المنصات في رسالة جديدة
+    user_info = get_user_info(user_id)
+    is_premium = user_info['status'] == 'premium' if user_info else False
+    
+    all_platforms = ['youtube', 'instagram', 'tiktok', 'facebook', 'snapchat']
+    keyboard = []
+    
+    platform_names = {
+        'youtube': 'يوتيوب',
+        'instagram': 'انستقرام',
+        'tiktok': 'تيك توك',
+        'facebook': 'فيسبوك',
+        'snapchat': 'سناب شات'
+    }
+    
+    platform_icons = {
+        'youtube': '🎬',
+        'instagram': '📸',
+        'tiktok': '🎵',
+        'facebook': '📘',
+        'snapchat': '👻'
+    }
+    
+    accounts = get_user_social_accounts(user_id)
+    
+    for platform in all_platforms:
+        display_name = platform_names.get(platform, platform.capitalize())
+        icon = platform_icons.get(platform, '🔗')
+        if platform in accounts:
+            keyboard.append([InlineKeyboardButton(f"{icon} ✏️ تعديل {display_name} ✅", callback_data=f"edit_{platform}")])
+        else:
+            keyboard.append([InlineKeyboardButton(f"{icon} ➕ إضافة {display_name}", callback_data=f"add_{platform}")])
+    
+    keyboard.append([InlineKeyboardButton(
+        f"✏️ تعديل اسم العرض (الحالي: {user_info.get('first_name', 'غير محدد')[:20]})",
+        callback_data="edit_display_name"
+    )])
+    
+    if is_premium:
+        keyboard.append([InlineKeyboardButton("⚙️ إعدادات صفحة البايو", callback_data="bio_settings")])
+    
+    keyboard.append([InlineKeyboardButton(Buttons.CONFIRM_BUTTONS["main_menu"], callback_data="main_menu")])
+    
+    await query.message.reply_text(
+        AccountMessages.EDIT_DATA_INTRO,
         parse_mode='HTML',
-        reply_markup=keyboard
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 async def cancel_delete_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
