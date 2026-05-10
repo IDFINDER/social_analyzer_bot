@@ -11,13 +11,17 @@
     <div class="chart-container">
         <canvas id="trendChart"></canvas>
     </div>
-    <p style="font-size: 11px; color: #888; text-align: center; margin-top: 10px;">📅 آخر 7 أيام</p>
+    <p style="font-size: 11px; color: var(--text-light, #888); text-align: center; margin-top: 10px;">📅 آخر 7 أيام</p>
 </div>
 
 <!-- مساحة فارغة أسفل الصفحة -->
 <div style="height: 80px;"></div>
 
 <script>
+    // متغيرات للرسوم البيانية لتحديثها عند تغيير الوضع
+    let platformChartInstance = null;
+    let trendChartInstance = null;
+    
     function updateStatsTab(data) {
         const stats = data.stats || {};
         const total = stats.total_uses || 0;
@@ -49,27 +53,39 @@
                 <div class="stat-label">📘 فيسبوك</div>
             </div>
             <div class="stat-card">
+                <div class="stat-number">${stats.snapchat_uses || 0}</div>
+                <div class="stat-label">👻 سناب شات</div>
+            </div>
+            <div class="stat-card">
                 <div class="stat-number">${totalGeminiUses}</div>
                 <div class="stat-label">🤖 توصيات AI</div>
             </div>
         `;
         
-        // ========== الرسم البياني للمنصات ==========
+        // ========== الرسم البياني للمنصات (مع إضافة سناب شات) ==========
         const ctx = document.getElementById('platformChart');
         if (ctx) {
-            const existingChart = Chart.getChart(ctx);
-            if (existingChart) {
-                existingChart.destroy();
+            // تدمير الرسم البياني السابق إذا وجد
+            if (platformChartInstance) {
+                platformChartInstance.destroy();
             }
             
-            new Chart(ctx, {
+            platformChartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: ['🎬 يوتيوب', '📸 انستقرام', '🎵 تيك توك', '📘 فيسبوك'],
+                    labels: ['🎬 يوتيوب', '📸 انستقرام', '🎵 تيك توك', '📘 فيسبوك', '👻 سناب شات'],
                     datasets: [{
                         label: 'عدد التحليلات',
-                        data: [stats.youtube_uses || 0, stats.instagram_uses || 0, stats.tiktok_uses || 0, stats.facebook_uses || 0],
-                        backgroundColor: ['#ff0000', '#e1306c', '#000000', '#1877f2'],
+                        data: [
+                            stats.youtube_uses || 0, 
+                            stats.instagram_uses || 0, 
+                            stats.tiktok_uses || 0, 
+                            stats.facebook_uses || 0,
+                            stats.snapchat_uses || 0
+                        ],
+                        backgroundColor: ['#ff0000', '#e1306c', '#000000', '#1877f2', '#fffc00'],
+                        borderColor: ['#ff0000', '#e1306c', '#333333', '#1877f2', '#ffdd00'],
+                        borderWidth: 1,
                         borderRadius: 8,
                         barPercentage: 0.7,
                         categoryPercentage: 0.8
@@ -81,7 +97,10 @@
                     plugins: {
                         legend: {
                             position: 'bottom',
-                            labels: { font: { size: 10 } }
+                            labels: { 
+                                font: { size: 10 },
+                                color: getComputedStyle(document.body).getPropertyValue('--text') || '#2d3748'
+                            }
                         },
                         tooltip: {
                             callbacks: {
@@ -97,12 +116,25 @@
                             title: {
                                 display: true,
                                 text: 'عدد التحليلات',
-                                font: { size: 10 }
+                                font: { size: 10 },
+                                color: getComputedStyle(document.body).getPropertyValue('--text-light') || '#718096'
                             },
-                            ticks: { font: { size: 9 } }
+                            ticks: { 
+                                font: { size: 9 },
+                                color: getComputedStyle(document.body).getPropertyValue('--text') || '#2d3748'
+                            },
+                            grid: {
+                                color: getComputedStyle(document.body).getPropertyValue('--border') || '#e2e8f0'
+                            }
                         },
                         x: {
-                            ticks: { font: { size: 9 } }
+                            ticks: { 
+                                font: { size: 9 },
+                                color: getComputedStyle(document.body).getPropertyValue('--text') || '#2d3748'
+                            },
+                            grid: {
+                                color: getComputedStyle(document.body).getPropertyValue('--border') || '#e2e8f0'
+                            }
                         }
                     }
                 }
@@ -112,12 +144,12 @@
         // ========== الرسم البياني للتطور ==========
         const trendCtx = document.getElementById('trendChart');
         if (trendCtx) {
-            const existingTrendChart = Chart.getChart(trendCtx);
-            if (existingTrendChart) {
-                existingTrendChart.destroy();
+            // تدمير الرسم البياني السابق إذا وجد
+            if (trendChartInstance) {
+                trendChartInstance.destroy();
             }
             
-            // بيانات حقيقية لتطور التحليلات (يمكن أن تكون من API لاحقاً)
+            // بيانات تطور التحليلات
             const dailyData = [
                 stats.day1_uses || 0,
                 stats.day2_uses || 0,
@@ -128,7 +160,7 @@
                 total
             ];
             
-            new Chart(trendCtx, {
+            trendChartInstance = new Chart(trendCtx, {
                 type: 'line',
                 data: {
                     labels: ['يوم 1', 'يوم 2', 'يوم 3', 'يوم 4', 'يوم 5', 'يوم 6', 'اليوم'],
@@ -153,7 +185,10 @@
                     plugins: {
                         legend: {
                             position: 'bottom',
-                            labels: { font: { size: 10 } }
+                            labels: { 
+                                font: { size: 10 },
+                                color: getComputedStyle(document.body).getPropertyValue('--text') || '#2d3748'
+                            }
                         },
                         tooltip: {
                             callbacks: {
@@ -169,25 +204,105 @@
                             title: {
                                 display: true,
                                 text: 'عدد التحليلات',
-                                font: { size: 10 }
+                                font: { size: 10 },
+                                color: getComputedStyle(document.body).getPropertyValue('--text-light') || '#718096'
                             },
-                            ticks: { font: { size: 9 } }
+                            ticks: { 
+                                font: { size: 9 },
+                                color: getComputedStyle(document.body).getPropertyValue('--text') || '#2d3748'
+                            },
+                            grid: {
+                                color: getComputedStyle(document.body).getPropertyValue('--border') || '#e2e8f0'
+                            }
                         },
                         x: {
-                            ticks: { font: { size: 9 } }
+                            ticks: { 
+                                font: { size: 9 },
+                                color: getComputedStyle(document.body).getPropertyValue('--text') || '#2d3748'
+                            },
+                            grid: {
+                                color: getComputedStyle(document.body).getPropertyValue('--border') || '#e2e8f0'
+                            }
                         }
                     }
                 }
             });
         }
     }
+    
+    // ========== دالة تحديث ألوان الرسوم البيانية عند تغيير الوضع ==========
+    function updateChartsTheme() {
+        if (platformChartInstance) {
+            const textColor = getComputedStyle(document.body).getPropertyValue('--text') || '#2d3748';
+            const textLightColor = getComputedStyle(document.body).getPropertyValue('--text-light') || '#718096';
+            const borderColor = getComputedStyle(document.body).getPropertyValue('--border') || '#e2e8f0';
+            
+            platformChartInstance.options.plugins.legend.labels.color = textColor;
+            platformChartInstance.options.scales.y.ticks.color = textColor;
+            platformChartInstance.options.scales.x.ticks.color = textColor;
+            platformChartInstance.options.scales.y.title.color = textLightColor;
+            platformChartInstance.options.scales.y.grid.color = borderColor;
+            platformChartInstance.options.scales.x.grid.color = borderColor;
+            platformChartInstance.update();
+        }
+        
+        if (trendChartInstance) {
+            const textColor = getComputedStyle(document.body).getPropertyValue('--text') || '#2d3748';
+            const textLightColor = getComputedStyle(document.body).getPropertyValue('--text-light') || '#718096';
+            const borderColor = getComputedStyle(document.body).getPropertyValue('--border') || '#e2e8f0';
+            
+            trendChartInstance.options.plugins.legend.labels.color = textColor;
+            trendChartInstance.options.scales.y.ticks.color = textColor;
+            trendChartInstance.options.scales.x.ticks.color = textColor;
+            trendChartInstance.options.scales.y.title.color = textLightColor;
+            trendChartInstance.options.scales.y.grid.color = borderColor;
+            trendChartInstance.options.scales.x.grid.color = borderColor;
+            trendChartInstance.update();
+        }
+    }
+    
+    // استماع لتغيير الوضع المظلم
+    if (window.MutationObserver) {
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.attributeName === 'class') {
+                    setTimeout(updateChartsTheme, 100);
+                }
+            });
+        });
+        observer.observe(document.body, { attributes: true });
+    }
+    
+    // تحديث الألوان عند تحميل الصفحة
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(updateChartsTheme, 200);
+    });
 </script>
 
 <style>
     /* تحسينات إضافية للتبويب */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    
+    @media (max-width: 480px) {
+        .stats-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+    }
+    
     .stats-grid .stat-card {
         transition: all 0.3s ease;
         cursor: default;
+        background: linear-gradient(135deg, var(--hover-bg, #f8f9fa), var(--card-bg, #ffffff));
+        border-radius: 16px;
+        padding: 12px 8px;
+        text-align: center;
+        border: 1px solid var(--border, #e2e8f0);
     }
     
     .stats-grid .stat-card:hover {
@@ -195,8 +310,34 @@
         box-shadow: 0 8px 20px rgba(0,0,0,0.1);
     }
     
+    .stats-grid .stat-number {
+        font-size: 20px;
+        font-weight: bold;
+        color: var(--primary, #667eea);
+    }
+    
+    .stats-grid .stat-label {
+        font-size: 10px;
+        color: var(--text-light, #888);
+        margin-top: 5px;
+    }
+    
     .chart-container canvas {
         max-height: 220px;
         width: 100%;
+    }
+    
+    /* دعم الوضع المظلم للرسوم البيانية */
+    body.dark .stats-grid .stat-card {
+        background: linear-gradient(135deg, #1a202c, #2d3748);
+        border-color: #4a5568;
+    }
+    
+    body.dark .stats-grid .stat-number {
+        color: #9b59b6;
+    }
+    
+    body.dark .stats-grid .stat-label {
+        color: #a0aec0;
     }
 </style>

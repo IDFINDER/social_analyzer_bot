@@ -1,8 +1,25 @@
-google-api-python-client==2.190.0
+# ========== المكتبات الأساسية ==========
 python-telegram-bot==22.6
-requests==2.31.0
 flask==3.0.0
-supabase>=2.0.0
+flask-cors==4.0.0
 gunicorn==21.2.0
+requests==2.31.0
 aiohttp==3.9.0
+
+# ========== قاعدة البيانات ==========
+supabase>=2.0.0
+pgvector==0.2.1
+psycopg2-binary==2.9.9
+
+# ========== Google APIs ==========
+google-api-python-client==2.190.0
 google-auth==2.29.0
+google-generativeai==0.8.3
+
+# ========== معالجة البيانات ==========
+numpy==1.26.4
+python-dotenv==1.0.1
+
+# ========== أدوات إضافية ==========
+beautifulsoup4==4.12.3
+lxml==5.1.0

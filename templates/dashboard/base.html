@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>لوحة التحكم - بوت تحليل الحسابات</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <!-- أيقونات Font Awesome - مصادر متعددة للحماية من فشل التحميل -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://use.fontawesome.com">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.0.0/css/all.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css">
+    
+    <!-- Fallback للأيقونات في حالة فشل Font Awesome -->
+    <style>
+        /* أيقونات احتياطية باستخدام Unicode و SVG */
+        .fa, .fas, .far, .fab {
+            font-family: 'Font Awesome 6 Free', 'Font Awesome 6 Brands', 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
+        }
+        
+        /* أيقونات المنصات - ألوان ثابتة تضمن الظهور */
+        .platform-icon-youtube { color: #ff0000 !important; }
+        .platform-icon-instagram { color: #e1306c !important; }
+        .platform-icon-tiktok { color: #000000 !important; }
+        .platform-icon-facebook { color: #1877f2 !important; }
+        .platform-icon-snapchat { color: #fffc00 !important; text-shadow: 0 0 2px #000; }
+        
+        /* Fallback للأيقونات عند فشل Font Awesome */
+        .no-fa .fab, .no-fa .fas {
+            display: inline-block;
+            min-width: 20px;
+            text-align: center;
+        }
+        
+        /* أيقونات احتياطية باستخدام ::before */
+        .icon-youtube-fallback::before { content: "📺"; }
+        .icon-instagram-fallback::before { content: "📸"; }
+        .icon-tiktok-fallback::before { content: "🎵"; }
+        .icon-facebook-fallback::before { content: "📘"; }
+        .icon-snapchat-fallback::before { content: "👻"; }
+        .icon-robot-fallback::before { content: "🤖"; }
+        .icon-sun-fallback::before { content: "☀️"; }
+        .icon-moon-fallback::before { content: "🌙"; }
+    </style>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* ========== متغيرات الألوان ========== */
+        :root {
+            --youtube: #ff0000;
+            --instagram: #e1306c;
+            --tiktok: #000000;
+            --facebook: #1877f2;
+            --snapchat: #fffc00;
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success: #48bb78;
+            --warning: #ed8936;
+            --danger: #e53e3e;
+            --dark: #1a1a2e;
+            --light: #f5f7fa;
+            --text: #2d3748;
+            --text-light: #718096;
+            --border: #e2e8f0;
+            --card-bg: #ffffff;
+            --navbar-bg: #ffffff;
+            --modal-bg: #ffffff;
+            --input-bg: #ffffff;
+            --hover-bg: #f8f9fa;
+            --shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        
+        /* ========== الوضع المظلم ========== */
+        body.dark {
+            --light: #1a202c;
+            --text: #f7fafc;
+            --text-light: #a0aec0;
+            --border: #2d3748;
+            --card-bg: #2d3748;
+            --navbar-bg: #2d3748;
+            --modal-bg: #2d3748;
+            --input-bg: #1a202c;
+            --hover-bg: #374151;
+            --shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        body {
+            font-family: 'Segoe UI', 'Tahoma', Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--light) 0%, #e2e8f0 100%);
+            margin: 0;
+            padding: 0;
+            color: var(--text);
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        
+        body.dark {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        
+        /* ========== إصلاح مشكلة عرض الأيقونات ========== */
+        .fab, .fas, .far {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-style: normal;
+        }
+        
+        /* تأكد من ظهور أيقونات المنصات بألوانها */
+        .fa-youtube, .fab.fa-youtube { color: #ff0000 !important; }
+        .fa-instagram, .fab.fa-instagram { color: #e1306c !important; }
+        .fa-tiktok, .fab.fa-tiktok { color: #000000 !important; }
+        body.dark .fa-tiktok, body.dark .fab.fa-tiktok { color: #ffffff !important; }
+        .fa-facebook-f, .fab.fa-facebook-f { color: #1877f2 !important; }
+        .fa-snapchat, .fab.fa-snapchat { color: #fffc00 !important; text-shadow: 0 0 1px #000; }
+        
+        /* أزرار التعديل والحذف */
+        .btn-edit, .btn-delete, .btn-add {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            cursor: pointer;
+            border: none;
+            margin: 0 3px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+        }
+        
+        .btn-edit {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        
+        .btn-delete {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn-add {
+            background: linear-gradient(135deg, var(--success), #2f9e5a);
+            color: white;
+        }
+        
+        .btn-edit:hover, .btn-delete:hover, .btn-add:hover {
+            transform: translateY(-1px);
+            opacity: 0.9;
+        }
+        
+        /* زر تبديل الوضع المظلم */
+        .theme-toggle-btn {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow);
+            color: white;
+        }
+        
+        .theme-toggle-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .theme-toggle-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+            transition: opacity 0.5s ease;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .loading-text { color: white; margin-top: 15px; font-size: 14px; }
+        
+        .container { padding: 16px; padding-bottom: 80px; max-width: 500px; margin: 0 auto; }
+        
+        .tab-content { display: none; animation: fadeInUp 0.4s ease-out; }
+        .tab-content.active { display: block; }
+        
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 18px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+        
+        .card h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: var(--primary);
+            border-right: 4px solid var(--primary);
+            padding-right: 12px;
+            font-size: 1.1rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, var(--hover-bg), var(--card-bg));
+            border-radius: 16px;
+            padding: 12px 8px;
+            text-align: center;
+            border: 1px solid var(--border);
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover { transform: translateY(-3px); }
+        .stat-number { font-size: 22px; font-weight: bold; color: var(--primary); }
+        .stat-label { font-size: 10px; color: var(--text-light); margin-top: 5px; }
+        
+        .warning-badge { background: var(--warning); color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; display: inline-block; }
+        .danger-badge { background: var(--danger); color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; display: inline-block; }
+        .success-badge { background: var(--success); color: white; padding: 4px 10px; border-radius: 20px; font-size: 11px; display: inline-block; }
+        
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--navbar-bg);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0 12px;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+            border-top: 1px solid var(--border);
+            z-index: 100;
+        }
+        
+        .nav-item {
+            text-align: center;
+            color: var(--text-light);
+            cursor: pointer;
+            flex: 1;
+            transition: all 0.2s;
+            padding: 8px 0;
+            border-radius: 12px;
+            font-weight: bold;
+        }
+        
+        .nav-item i { font-size: 24px; display: inline-block; }
+        .nav-item span { display: block; font-size: 12px; margin-top: 4px; font-weight: bold; }
+        
+        .nav-item:nth-child(1).active-nav { color: #667eea; background: rgba(102,126,234,0.15); }
+        .nav-item:nth-child(2).active-nav { color: #48bb78; background: rgba(72,187,120,0.15); }
+        .nav-item:nth-child(3).active-nav { color: #ed8936; background: rgba(237,137,54,0.15); }
+        .nav-item:nth-child(4).active-nav { color: #e53e3e; background: rgba(229,62,62,0.15); }
+        .nav-item:nth-child(5).active-nav { color: #9b59b6; background: rgba(155,89,182,0.15); }
+        
+        .alert { padding: 12px; border-radius: 12px; margin-bottom: 15px; text-align: center; }
+        .alert-warning { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+        .alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        
+        body.dark .alert-warning { background: rgba(237,137,54,0.2); color: #fbbf24; border-color: #f59e0b; }
+        body.dark .alert-danger { background: rgba(229,62,62,0.2); color: #f87171; border-color: #ef4444; }
+        body.dark .alert-success { background: rgba(72,187,120,0.2); color: #34d399; border-color: #10b981; }
+        
+        .chart-container { position: relative; height: 200px; margin-top: 15px; }
+        
+        .account-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .account-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 12px;
+        }
+        
+        .recommendation-card {
+            background: linear-gradient(135deg, var(--primary)08, var(--secondary)08);
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-right: 4px solid var(--primary);
+            background: var(--card-bg);
+        }
+        
+        .recommendation-platform {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .recommendation-text {
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text);
+            max-height: 100px;
+            overflow-y: auto;
+            margin: 8px 0;
+            padding: 8px;
+            background: var(--hover-bg);
+            border-radius: 12px;
+        }
+        
+        .recommendation-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: var(--text-light);
+            margin-top: 8px;
+        }
+        
+        .btn-view {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: var(--modal-bg);
+            border-radius: 20px;
+            max-width: 90%;
+            max-height: 80%;
+            overflow-y: auto;
+            padding: 20px;
+            margin: 20px;
+            color: var(--text);
+        }
+        
+        @media (max-width: 480px) {
+            .container { padding: 12px; }
+            .stats-grid { gap: 8px; }
+            .stat-number { font-size: 18px; }
+        }
+        
+        /* ========== الزر العائم Floating Action Button (قابل للسحب) ========== */
+        .fab-help {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 28px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            cursor: grab;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3), 0 0 0 3px rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 998;
+            transition: all 0.2s ease;
+            font-size: 24px;
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+            user-select: none;
+            touch-action: none;
+        }
+        
+        .fab-help:active {
+            cursor: grabbing;
+            transform: scale(0.97);
+        }
+        
+        .fab-help::before {
+            content: '';
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            right: -4px;
+            bottom: -4px;
+            border-radius: 32px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .fab-help:hover::before {
+            opacity: 0.5;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.5; }
+            70% { transform: scale(1.1); opacity: 0; }
+            100% { transform: scale(1.1); opacity: 0; }
+        }
+        
+        /* ========== نافذة الذكاء الاصطناعي AI Chat Modal ========== */
+        .ai-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1100;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .ai-modal-content {
+            background: var(--modal-bg);
+            border-radius: 28px;
+            width: 90%;
+            max-width: 380px;
+            height: 520px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideUp 0.3s ease;
+            position: relative;
+        }
+        
+        @media (max-height: 700px) {
+            .ai-modal-content { height: 460px; }
+        }
+        
+        @media (max-height: 600px) {
+            .ai-modal-content { height: 420px; }
+        }
+        
+        .ai-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 12px 16px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .ai-header h4 { margin: 0; font-size: 1rem; }
+        .ai-header h4 i { margin-left: 8px; }
+        
+        .ai-header-buttons { display: flex; gap: 8px; }
+        
+        .icon-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        
+        .icon-btn:hover { background: rgba(255,255,255,0.3); }
+        
+        .close-ai {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .chat-quick-stats {
+            background: var(--hover-bg);
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        
+        .chat-quick-stats span { color: var(--text-light); }
+        .chat-quick-stats i { margin-left: 4px; color: var(--primary); }
+        
+        .stat-badge-premium { color: #f59e0b !important; }
+        .stat-badge-free { color: #10b981 !important; }
+        
+        .ai-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            background: var(--hover-bg);
+            min-height: 0;
+        }
+        
+        .ai-messages::-webkit-scrollbar { width: 4px; }
+        .ai-messages::-webkit-scrollbar-track { background: var(--border); border-radius: 4px; }
+        .ai-messages::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 4px; }
+        
+        .message { margin-bottom: 12px; display: flex; }
+        .message.user { justify-content: flex-end; }
+        .message.bot { justify-content: flex-start; }
+        
+        .message-bubble {
+            max-width: 80%;
+            padding: 8px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            line-height: 1.45;
+            word-wrap: break-word;
+        }
+        
+        .message.user .message-bubble {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-bottom-left-radius: 3px;
+        }
+        
+        .message.bot .message-bubble {
+            background: var(--card-bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-bottom-right-radius: 3px;
+        }
+        
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 8px 12px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            width: fit-content;
+        }
+        
+        .typing-indicator span {
+            width: 6px;
+            height: 6px;
+            background: #cbd5e0;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+        
+        .typing-indicator span:nth-child(1) { animation-delay: 0s; }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+            30% { transform: translateY(-8px); opacity: 1; }
+        }
+        
+        .quick-questions {
+            padding: 8px 12px;
+            background: var(--hover-bg);
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            gap: 8px;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        
+        .quick-questions::-webkit-scrollbar { height: 2px; }
+        
+        .quick-q {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--primary);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        
+        .quick-q:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .ai-input-area {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid var(--border);
+            background: var(--card-bg);
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        
+        .ai-input-area input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 25px;
+            outline: none;
+            font-size: 13px;
+            transition: border 0.2s;
+            background: var(--input-bg);
+            color: var(--text);
+        }
+        
+        .ai-input-area input:focus { border-color: #667eea; }
+        
+        .ai-input-area button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .ai-input-area button:hover { transform: scale(1.05); }
+        .ai-input-area button:active { transform: scale(0.95); }
+        
+        .footer-btn {
+            padding: 8px 12px;
+            border-top: 1px solid var(--border);
+            background: var(--hover-bg);
+            flex-shrink: 0;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .help-btn {
+            flex: 1;
+            padding: 8px;
+            background: rgba(102,126,234,0.1);
+            border: 1px solid var(--border);
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--primary);
+            transition: all 0.2s;
+        }
+        
+        .help-btn:hover {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-color: transparent;
+        }
+        
+        .guide-btn {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            border: none;
+        }
+        
+        .guide-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        
+        /* نافذة المساعدة السريعة */
+        .quick-help-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 1200;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .quick-help-content {
+            background: var(--modal-bg);
+            border-radius: 28px;
+            width: 90%;
+            max-width: 380px;
+            max-height: 80%;
+            overflow-y: auto;
+            padding: 0;
+            animation: slideUp 0.3s ease;
+        }
+        
+        .quick-help-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 15px 20px;
+            border-radius: 28px 28px 0 0;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+        }
+        
+        .quick-help-header h3 { margin: 0; font-size: 1.1rem; }
+        
+        .close-quick-help {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 22px;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .quick-help-body { padding: 20px; }
+        
+        .faq-item {
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+        
+        .faq-question {
+            font-weight: bold;
+            color: var(--text);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+        }
+        
+        .faq-question i { transition: transform 0.3s; color: #667eea; }
+        .faq-question.active i { transform: rotate(180deg); }
+        
+        .faq-answer {
+            display: none;
+            padding-top: 8px;
+            padding-right: 15px;
+            font-size: 12px;
+            color: var(--text-light);
+            line-height: 1.5;
+        }
+        
+        .faq-answer.show { display: block; }
+        
+        .quick-help-footer {
+            padding: 15px 20px;
+            border-top: 1px solid var(--border);
+            background: var(--hover-bg);
+            border-radius: 0 0 28px 28px;
+        }
+        
+        .btn-full-guide {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .text-center { text-align: center; }
+        .mt-4 { margin-top: 16px; }
+    </style>
+</head>
+<body>
+
+<div id="loadingScreen" class="loading-screen">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">جاري تحميل لوحة التحكم...</div>
+</div>
+
+<div id="mainContent" style="display: none;">
+    <div class="container">
+        <div id="profileTab" class="tab-content active">
+            {% include 'dashboard/profile_tab_new.html' %}
+        </div>
+        
+        <div id="subscriptionTab" class="tab-content">
+            {% include 'dashboard/subscription_tab.html' %}
+        </div>
+        
+        <div id="statsTab" class="tab-content">
+            {% include 'dashboard/stats_tab.html' %}
+        </div>
+        
+        <div id="recommendationsTab" class="tab-content">
+            {% include 'dashboard/recommendations_tab.html' %}
+        </div>
+        
+        <div id="infoTab" class="tab-content">
+            {% include 'dashboard/info_tab.html' %}
+        </div>
+    </div>
+    
+    <div class="nav-bar">
+        <div class="nav-item active-nav" onclick="showTab('profile', this)">
+            <i class="fas fa-id-card"></i><span>بياناتي</span>
+        </div>
+        <div class="nav-item" onclick="showTab('subscription', this)">
+            <i class="fas fa-gem"></i><span>اشتراكاتي</span>
+        </div>
+        <div class="nav-item" onclick="showTab('stats', this)">
+            <i class="fas fa-chart-line"></i><span>إحصائياتي</span>
+        </div>
+        <div class="nav-item" onclick="showTab('recommendations', this)">
+            <i class="fas fa-robot"></i><span>توصياتي</span>
+        </div>
+        <div class="nav-item" onclick="showTab('info', this)">
+            <i class="fas fa-question-circle"></i><span>تعليمات</span>
+        </div>
+    </div>
+</div>
+
+<div id="recommendationModal" class="modal" onclick="closeModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h3 style="color: var(--primary); margin-bottom: 15px;">📋 توصية كاملة</h3>
+        <div id="modalRecommendationText" style="white-space: pre-wrap; line-height: 1.6; max-height: 60vh; overflow-y: auto;"></div>
+        <button onclick="closeModal()" style="margin-top: 15px; background: var(--primary); color: white; border: none; padding: 10px; border-radius: 10px; width: 100%; cursor: pointer;">إغلاق</button>
+    </div>
+</div>
+
+<!-- ========== نافذة المساعدة السريعة ========== -->
+<div id="quickHelpModal" class="quick-help-modal" onclick="closeQuickHelp()">
+    <div class="quick-help-content" onclick="event.stopPropagation()">
+        <div class="quick-help-header">
+            <h3><i class="fas fa-question-circle"></i> أسئلة سريعة</h3>
+            <button class="close-quick-help" onclick="closeQuickHelp()">&times;</button>
+        </div>
+        <div class="quick-help-body">
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleQuickFAQ(this)">
+                    <span>❓ كيف أحلل قناة يوتيوب؟</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">يمكنك تحليل قناة يوتيوب عبر إضافة حسابك في تبويب "بياناتي" ثم الضغط على زر "تحليل" في تبويب "اشتراكاتي".</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleQuickFAQ(this)">
+                    <span>❓ ما هي حصتي اليومية؟</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">المستخدم المجاني: 10 أسئلة/يوم للمساعد الذكي و 2 تحليل/يوم. المستخدم المميز: 50 سؤال/يوم وتحليلات غير محدودة.</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleQuickFAQ(this)">
+                    <span>❓ كيف أحصل على توصيات AI؟</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">التوصيات متاحة للمستخدمين المميزين فقط. بعد تحليل قناتك، اضغط على زر "🤖 توصيات AI".</div>
+            </div>
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleQuickFAQ(this)">
+                    <span>❓ كيف أضيف حساباً جديداً؟</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="faq-answer">اذهب إلى تبويب "بياناتي" ← "الحسابات المسجلة" ← اضغط "إضافة حساب جديد".</div>
+            </div>
+        </div>
+        <div class="quick-help-footer">
+            <button class="btn-full-guide" onclick="goToFullGuide()">
+                <i class="fas fa-book-open"></i> الدليل الكامل
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ========== الزر العائم ========== -->
+<button class="fab-help" id="fabHelpBtn">
+    <i class="fas fa-robot"></i>
+</button>
+
+<!-- ========== نافذة المساعد الذكي ========== -->
+<div id="aiModal" class="ai-modal" onclick="closeAIModal()">
+    <div class="ai-modal-content" onclick="event.stopPropagation()">
+        <div class="ai-header">
+            <h4><i class="fas fa-robot"></i> المساعد الذكي 🤖</h4>
+            <div class="ai-header-buttons">
+                <button class="icon-btn" onclick="openQuickHelp()" title="مساعدة سريعة">
+                    <i class="fas fa-question-circle"></i>
+                </button>
+                <button class="icon-btn close-ai" onclick="closeAIModal()">&times;</button>
+            </div>
+        </div>
+        
+        <div class="chat-quick-stats" id="chatQuickStats">
+            <span><i class="fas fa-chart-line"></i> <span id="todayQuestions">0</span>/<span id="dailyLimit">10</span> اليوم</span>
+            <span><i class="fas fa-star"></i> <span id="userPlanBadge" class="stat-badge-free">🎁 مجاني</span></span>
+        </div>
+        
+        <div class="ai-messages" id="aiMessages">
+            <div class="message bot">
+                <div class="message-bubble">
+                    👋 مرحباً! أنا المساعد الذكي للبوت.<br>
+                    يمكنني مساعدتك في:<br>
+                    📊 • شرح كيفية استخدام البوت<br>
+                    ❓ • الإجابة عن أسئلتك<br>
+                    🎯 • تقديم نصائح مخصصة<br>
+                    💡 • مساعدتك في تحسين حساباتك<br><br>
+                    اسألني أي شيء!
+                </div>
+            </div>
+        </div>
+        
+        <div class="quick-questions">
+            <span class="quick-q" onclick="sendQuickQuestion('كيف أحلل قناة يوتيوب؟')">🎬 تحليل يوتيوب</span>
+            <span class="quick-q" onclick="sendQuickQuestion('ما هي خطط الاشتراك؟')">⭐ خطط الاشتراك</span>
+            <span class="quick-q" onclick="sendQuickQuestion('ما هي حصتي اليومية؟')">📊 حصتي اليومية</span>
+            <span class="quick-q" onclick="sendQuickQuestion('كيف أحصل على توصيات AI؟')">🤖 التوصيات</span>
+        </div>
+        
+        <div class="ai-input-area">
+            <input type="text" id="aiInput" placeholder="اكتب سؤالك هنا..." onkeypress="handleAIKeyPress(event)">
+            <button onclick="sendAIMessage()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+        
+        <div class="footer-btn">
+            <button class="help-btn" onclick="openQuickHelp()">
+                <i class="fas fa-question-circle"></i> أسئلة سريعة
+            </button>
+            <button class="help-btn guide-btn" onclick="goToInfoTab()">
+                <i class="fas fa-book-open"></i> الدليل الكامل
+            </button>
+        </div>
+    </div>
+</div>
+    
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    tg.ready();
+    
+    let platformChart = null;
+    let trendChart = null;
+    let userData = null;
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    
+    let userPermissions = {
+        is_premium: {{ user_is_premium|tojson }},
+        daily_remaining: {{ user_daily_remaining|tojson }},
+        gemini_remaining: {{ user_gemini_remaining|tojson }},
+        gemini_limit: {{ user_gemini_limit|tojson }},
+        gemini_used: {{ user_gemini_used|tojson }},
+        free_limit: {{ user_free_limit|tojson }},
+        has_youtube: {{ has_youtube_account|tojson }}
+    };
+    
+    // ========== الوضع المظلم ==========
+    function initTheme() {
+        const savedTheme = localStorage.getItem('theme_mode');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark');
+        }
+        updateThemeToggleButton();
+    }
+    
+    function updateThemeToggleButton() {
+        const toggleBtn = document.getElementById('themeToggleBtn');
+        if (toggleBtn) {
+            const isDark = document.body.classList.contains('dark');
+            toggleBtn.innerHTML = isDark ? '☀️' : '🌙';
+            toggleBtn.title = isDark ? 'الوضع الفاتح' : 'الوضع المظلم';
+        }
+    }
+    
+    async function toggleTheme() {
+        const isDark = document.body.classList.contains('dark');
+        const newTheme = isDark ? 'light' : 'dark';
+        
+        if (newTheme === 'dark') {
+            document.body.classList.add('dark');
+        } else {
+            document.body.classList.remove('dark');
+        }
+        
+        localStorage.setItem('theme_mode', newTheme);
+        updateThemeToggleButton();
+        
+        // حفظ التفضيل في قاعدة البيانات
+        try {
+            await fetch('/api/save_theme_preference', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token, theme: newTheme })
+            });
+        } catch(e) { console.error('Error saving theme:', e); }
+        
+        // تحديث الرسوم البيانية
+        setTimeout(() => {
+            if (window.platformChart) window.platformChart.update();
+            if (window.trendChart) window.trendChart.update();
+        }, 100);
+    }
+    
+    // ========== إصلاح مشكلة الأيقونات ==========
+    function fixIcons() {
+        // التحقق مما إذا كانت Font Awesome قد تحمّلت بشكل صحيح
+        const testIcon = document.createElement('i');
+        testIcon.className = 'fas fa-home';
+        testIcon.style.display = 'none';
+        document.body.appendChild(testIcon);
+        const computedStyle = window.getComputedStyle(testIcon);
+        const hasFontAwesome = computedStyle.fontFamily && computedStyle.fontFamily.includes('Font Awesome');
+        document.body.removeChild(testIcon);
+        
+        if (!hasFontAwesome) {
+            console.log('Font Awesome not loaded, applying fallback');
+            document.body.classList.add('no-fa');
+        }
+    }
+    
+    if (!token) {
+        document.getElementById('loadingScreen').innerHTML = '<div class="loading-screen" style="background:#e53e3e;"><div class="loading-text">❌ رابط غير صالح</div></div>';
+    }
+    
+    async function refreshPermissions() {
+        try {
+            const response = await fetch(`/api/user_permissions?token=${encodeURIComponent(token)}`);
+            const result = await response.json();
+            if (result.success) {
+                userPermissions = {
+                    is_premium: result.is_premium,
+                    daily_remaining: result.daily_remaining,
+                    gemini_remaining: result.gemini_remaining,
+                    gemini_limit: result.gemini_limit,
+                    gemini_used: result.gemini_used,
+                    free_limit: result.free_limit,
+                    has_youtube: result.has_youtube_account
+                };
+                updateUIBasedOnPermissions();
+                loadChatStats();
+            }
+        } catch (error) {
+            console.error('Error refreshing permissions:', error);
+        }
+    }
+    
+    function updateUIBasedOnPermissions() {
+        const premiumElements = document.querySelectorAll('.premium-only');
+        const freeElements = document.querySelectorAll('.free-only');
+        
+        if (userPermissions.is_premium) {
+            premiumElements.forEach(el => el.style.display = 'block');
+            freeElements.forEach(el => el.style.display = 'none');
+        } else {
+            premiumElements.forEach(el => el.style.display = 'none');
+            freeElements.forEach(el => el.style.display = 'block');
+        }
+        
+        const dailyRemainingEl = document.getElementById('dailyRemaining');
+        if (dailyRemainingEl && !userPermissions.is_premium) {
+            dailyRemainingEl.innerHTML = userPermissions.daily_remaining;
+        }
+        
+        const geminiRemainingEl = document.getElementById('geminiRemaining');
+        if (geminiRemainingEl && userPermissions.is_premium) {
+            geminiRemainingEl.innerHTML = `${userPermissions.gemini_remaining}/${userPermissions.gemini_limit}`;
+        }
+    }
+    
+    async function loadUserData() {
+        try {
+            const apiUrl = `/api/user_data?token=${encodeURIComponent(token)}`;
+            const response = await fetch(apiUrl);
+            
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            userData = await response.json();
+            updateUI(userData);
+            
+            document.getElementById('loadingScreen').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('loadingScreen').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+            }, 300);
+        } catch (error) {
+            document.getElementById('loadingScreen').innerHTML = `
+                <div class="loading-screen" style="background:#e53e3e;">
+                    <div class="loading-text">❌ فشل تحميل البيانات</div>
+                    <div class="loading-text">${error.message}</div>
+                    <button onclick="location.reload()" style="margin-top:20px; background:white; color:#e53e3e; border:none; padding:10px 20px; border-radius:10px; cursor:pointer;">إعادة المحاولة</button>
+                </div>
+            `;
+        }
+    }
+    
+    function updateStatsUI(data) {
+        const stats = data.stats || {};
+        const total = stats.total_uses || 0;
+        
+        const statsGrid = document.getElementById('statsGrid');
+        if (statsGrid) {
+            statsGrid.innerHTML = `
+                <div class="stat-card"><div class="stat-number">${total}</div><div class="stat-label">📊 إجمالي</div></div>
+                <div class="stat-card"><div class="stat-number">${stats.youtube_uses || 0}</div><div class="stat-label">🎬 يوتيوب</div></div>
+                <div class="stat-card"><div class="stat-number">${stats.instagram_uses || 0}</div><div class="stat-label">📸 انستقرام</div></div>
+                <div class="stat-card"><div class="stat-number">${stats.tiktok_uses || 0}</div><div class="stat-label">🎵 تيك توك</div></div>
+                <div class="stat-card"><div class="stat-number">${stats.facebook_uses || 0}</div><div class="stat-label">📘 فيسبوك</div></div>
+                <div class="stat-card"><div class="stat-number">${data.gemini_uses || 0}</div><div class="stat-label">🤖 توصيات AI</div></div>
+            `;
+        }
+        
+        const ctx = document.getElementById('platformChart');
+        if (ctx) {
+            if (window.platformChart && typeof window.platformChart.destroy === 'function') {
+                window.platformChart.destroy();
+            }
+            window.platformChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['🎬 يوتيوب', '📸 انستقرام', '🎵 تيك توك', '📘 فيسبوك'],
+                    datasets: [{
+                        label: 'عدد التحليلات',
+                        data: [stats.youtube_uses || 0, stats.instagram_uses || 0, stats.tiktok_uses || 0, stats.facebook_uses || 0],
+                        backgroundColor: ['#ff0000', '#e1306c', '#000000', '#1877f2'],
+                        borderRadius: 8
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
+            });
+        }
+        
+        const trendCtx = document.getElementById('trendChart');
+        if (trendCtx) {
+            if (window.trendChart && typeof window.trendChart.destroy === 'function') {
+                window.trendChart.destroy();
+            }
+            window.trendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['يوم 1', 'يوم 2', 'يوم 3', 'يوم 4', 'يوم 5', 'يوم 6', 'اليوم'],
+                    datasets: [{
+                        label: 'عدد التحليلات',
+                        data: [3, 5, 4, 7, 6, 8, total],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102,126,234,0.1)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
+            });
+        }
+    }
+    
+    function formatNumberShort(num) {
+        if (!num && num !== 0) return '0';
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+        return num.toString();
+    }
+    
+    function showToast(message, isError = false) {
+        let toast = document.getElementById('toastMessage');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'toastMessage';
+            toast.style.cssText = 'position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #28a745; color: white; padding: 12px 24px; border-radius: 30px; font-size: 14px; z-index: 1002; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2); text-align: center; min-width: 200px;';
+            document.body.appendChild(toast);
+        }
+        toast.textContent = message;
+        toast.style.background = isError ? '#dc3545' : '#28a745';
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 4000);
+    }
+    
+    function updateSubscriptionUI(data) {
+        const container = document.getElementById('subscriptionContent');
+        if (!container) return;
+        
+        if (data.is_premium && data.subscription) {
+            const daysLeft = data.subscription.days_left;
+            let badge = '';
+            let alertMsg = '';
+            
+            if (daysLeft <= 3 && daysLeft > 0) {
+                badge = '<span class="danger-badge">⚠️ على وشك الانتهاء</span>';
+                alertMsg = '<div class="alert alert-danger">⚠️ تنبيه: اشتراكك على وشك الانتهاء! يرجى التجديد قريباً.</div>';
+            } else if (daysLeft <= 7 && daysLeft > 3) {
+                badge = '<span class="warning-badge">⚠️ ينتهي قريباً</span>';
+                alertMsg = '<div class="alert alert-warning">⏰ ملاحظة: اشتراكك ينتهي بعد أيام قليلة.</div>';
+            } else if (daysLeft > 0) {
+                badge = '<span class="success-badge">✅ نشط</span>';
+            } else {
+                badge = '<span class="danger-badge">❌ منتهي</span>';
+                alertMsg = '<div class="alert alert-danger">❌ اشتراكك منتهي! يرجى التجديد للمتابعة.</div>';
+            }
+            
+            const startDate = data.subscription.start_date ? new Date(data.subscription.start_date).toLocaleDateString('ar-EG') : 'غير محدد';
+            const endDate = data.subscription.end_date ? new Date(data.subscription.end_date).toLocaleDateString('ar-EG') : 'غير محدد';
+            
+            container.innerHTML = `
+                ${alertMsg}
+                <div style="background: linear-gradient(135deg, var(--primary)10, var(--secondary)10); border-radius: 16px; padding: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;"><span>📅 تاريخ البداية:</span><span><strong>${startDate}</strong></span></div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;"><span>⭐ خطتك:</span><span><strong>${data.subscription.plan || 'مميز'}</strong> ${badge}</span></div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;"><span>📅 تاريخ الانتهاء:</span><span>${endDate}</span></div>
+                    <div style="display: flex; justify-content: space-between;"><span>⏰ الأيام المتبقية:</span><span><strong>${daysLeft > 0 ? daysLeft : 'منتهي'}</strong></span></div>
+                </div>
+                <div style="margin-top: 15px; background: var(--hover-bg); border-radius: 12px; padding: 12px; text-align: center;">
+                    <span>📊 حصتك الشهرية من التوصيات: <strong>${data.gemini_limit || 0}</strong> توصية</span><br>
+                    <span>🤖 استخدمت هذا الشهر: <strong>${data.gemini_uses || 0}</strong> توصية</span>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <div class="alert alert-warning"><i class="fas fa-gem"></i> أنت حالياً في الخطة المجانية</div>
+                <div style="background: linear-gradient(135deg, var(--primary)10, var(--secondary)10); border-radius: 16px; padding: 15px;">
+                    <div style="text-align: center;"><span>📊 الحد اليومي: <strong>${data.free_limit || 2} تحليل/يوم</strong></span></div>
+                    <div style="text-align: center; margin-top: 10px;"><span>🤖 التوصيات غير متاحة للمستخدمين المجانيين</span></div>
+                </div>
+            `;
+        }
+    }
+    
+    function updateRecommendationsUI(data) {
+        const container = document.getElementById('recommendationsList');
+        if (!container) return;
+        
+        const recommendations = data.recommendations || [];
+        
+        const platformColors = {
+            youtube: '#ff0000',
+            instagram: '#e1306c',
+            tiktok: '#000000',
+            facebook: '#1877f2'
+        };
+        
+        const platformNames = {
+            youtube: 'يوتيوب',
+            instagram: 'انستقرام',
+            tiktok: 'تيك توك',
+            facebook: 'فيسبوك'
+        };
+        
+        const platformIcons = {
+            youtube: 'fab fa-youtube',
+            instagram: 'fab fa-instagram',
+            tiktok: 'fab fa-tiktok',
+            facebook: 'fab fa-facebook-f'
+        };
+        
+        if (!recommendations.length) {
+            container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-light);"><i class="fas fa-robot"></i> لا توجد توصيات حتى الآن</div>';
+            return;
+        }
+        
+        container.innerHTML = recommendations.map(rec => `
+            <div class="recommendation-card">
+                <span class="recommendation-platform" style="background: ${platformColors[rec.platform] || '#667eea'}; color: white;">
+                    <i class="${platformIcons[rec.platform] || 'fas fa-robot'}"></i>
+                    ${platformNames[rec.platform] || rec.platform}
+                </span>
+                <div><strong>@${rec.account_identifier || 'غير محدد'}</strong></div>
+                <div class="recommendation-text">${rec.recommendation_summary ? rec.recommendation_summary.substring(0, 150) + '...' : 'لا يوجد نص'}</div>
+                <div class="recommendation-meta">
+                    <span><i class="fas fa-calendar"></i> ${new Date(rec.created_at).toLocaleDateString('ar-EG')}</span>
+                    <button class="btn-view" onclick="showFullRecommendation(${JSON.stringify(rec.recommendation_text || rec.recommendation_summary).replace(/"/g, '&quot;')})">عرض التوصية كاملة</button>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    function updateUI(data) {
+        if (typeof updateProfileTab === 'function') updateProfileTab(data);
+        if (typeof updateSubscriptionTab === 'function') updateSubscriptionTab(data);
+        if (typeof updateStatsUI === 'function') updateStatsUI(data);
+        if (typeof updateRecommendationsUI === 'function') updateRecommendationsUI(data);
+    }
+    
+    function showFullRecommendation(text) {
+        const modal = document.getElementById('recommendationModal');
+        const modalText = document.getElementById('modalRecommendationText');
+        modalText.innerHTML = text.replace(/\n/g, '<br>');
+        modal.style.display = 'flex';
+    }
+    
+    function closeModal() {
+        document.getElementById('recommendationModal').style.display = 'none';
+    }
+    
+    function showTab(tabName, element) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.getElementById(`${tabName}Tab`).classList.add('active');
+        
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active-nav'));
+        if (element) element.classList.add('active-nav');
+        
+        if (tabName === 'stats') {
+            setTimeout(() => {
+                if (window.platformChart && typeof window.platformChart.resize === 'function') {
+                    window.platformChart.resize();
+                }
+                if (window.trendChart && typeof window.trendChart.resize === 'function') {
+                    window.trendChart.resize();
+                }
+            }, 100);
+        }
+    }
+    
+    // ========== دوال المساعدة والدردشة ==========
+    
+    function openQuickHelp() {
+        document.getElementById('quickHelpModal').style.display = 'flex';
+    }
+    
+    function closeQuickHelp() {
+        document.getElementById('quickHelpModal').style.display = 'none';
+    }
+    
+    function toggleQuickFAQ(element) {
+        const answer = element.nextElementSibling;
+        const icon = element.querySelector('i');
+        answer.classList.toggle('show');
+        element.classList.toggle('active');
+    }
+    
+    function goToFullGuide() {
+        closeQuickHelp();
+        goToInfoTab();
+    }
+    
+    function goToInfoTab() {
+        closeAIModal();
+        closeQuickHelp();
+        
+        const infoTab = document.getElementById('infoTab');
+        const tabs = ['profileTab', 'subscriptionTab', 'statsTab', 'recommendationsTab', 'infoTab'];
+        
+        tabs.forEach(tabId => {
+            const tab = document.getElementById(tabId);
+            if (tab) tab.classList.remove('active');
+        });
+        
+        if (infoTab) infoTab.classList.add('active');
+        
+        const navItems = document.querySelectorAll('.nav-item');
+        navItems.forEach(item => item.classList.remove('active-nav'));
+        
+        const infoNavItem = document.querySelector('.nav-item:last-child');
+        if (infoNavItem) infoNavItem.classList.add('active-nav');
+        
+        showToast('📖 تم نقلك إلى دليل التعليمات الكامل', false);
+    }
+    
+    function openAIChat() {
+        const aiModal = document.getElementById('aiModal');
+        aiModal.style.display = 'flex';
+        setTimeout(() => {
+            const input = document.getElementById('aiInput');
+            input.focus();
+            const messages = document.getElementById('aiMessages');
+            messages.scrollTop = messages.scrollHeight;
+        }, 300);
+        loadChatStats();
+    }
+    
+    function closeAIModal() {
+        document.getElementById('aiModal').style.display = 'none';
+    }
+    
+    async function loadChatStats() {
+        try {
+            const response = await fetch(`/api/chat-stats?token=${encodeURIComponent(token)}`);
+            const result = await response.json();
+            
+            if (result.success && result.stats) {
+                document.getElementById('todayQuestions').innerText = result.stats.today_usage || 0;
+                document.getElementById('dailyLimit').innerText = result.stats.daily_limit || 10;
+                const planBadge = document.getElementById('userPlanBadge');
+                if (result.stats.is_premium) {
+                    planBadge.innerHTML = '⭐ مميز';
+                    planBadge.className = 'stat-badge-premium';
+                } else {
+                    planBadge.innerHTML = '🎁 مجاني';
+                    planBadge.className = 'stat-badge-free';
+                }
+            }
+        } catch (error) {
+            console.error('Error loading chat stats:', error);
+        }
+    }
+    
+    function sendQuickQuestion(question) {
+        document.getElementById('aiInput').value = question;
+        sendAIMessage();
+    }
+    
+    function handleAIKeyPress(event) {
+        if (event.key === 'Enter') {
+            sendAIMessage();
+        }
+    }
+    
+    function addAIMessage(message, isUser = false) {
+        const messagesContainer = document.getElementById('aiMessages');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+        
+        const bubble = document.createElement('div');
+        bubble.className = 'message-bubble';
+        bubble.innerHTML = message.replace(/\n/g, '<br>');
+        
+        messageDiv.appendChild(bubble);
+        messagesContainer.appendChild(messageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        
+        return messageDiv;
+    }
+    
+    function showTypingIndicator() {
+        const messagesContainer = document.getElementById('aiMessages');
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'message bot';
+        typingDiv.id = 'typingIndicator';
+        typingDiv.innerHTML = `
+            <div class="typing-indicator">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        `;
+        messagesContainer.appendChild(typingDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    
+    function hideTypingIndicator() {
+        const indicator = document.getElementById('typingIndicator');
+        if (indicator) {
+            indicator.remove();
+        }
+    }
+    
+    async function sendAIMessage() {
+        const input = document.getElementById('aiInput');
+        const question = input.value.trim();
+        
+        if (!question) {
+            showToast('📝 الرجاء كتابة سؤالك أولاً', true);
+            return;
+        }
+        
+        addAIMessage(question, true);
+        input.value = '';
+        showTypingIndicator();
+        
+        try {
+            const response = await fetch('/api/ai-chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    token: token,
+                    question: question,
+                    context: {
+                        user_permissions: userPermissions,
+                        has_youtube: userPermissions.has_youtube
+                    }
+                })
+            });
+            
+            const result = await response.json();
+            hideTypingIndicator();
+            
+            let answer = null;
+            
+            if (typeof result === 'string') {
+                answer = result;
+            } else if (result.answer) {
+                answer = result.answer;
+            } else if (result.response) {
+                answer = result.response;
+            } else if (result.text) {
+                answer = result.text;
+            } else if (result.message) {
+                answer = result.message;
+            } else {
+                answer = JSON.stringify(result);
+            }
+            
+            if (answer && answer !== '{}') {
+                addAIMessage(answer);
+                loadChatStats();
+            } else {
+                addAIMessage('❌ لم أستطع الحصول على إجابة. يرجى المحاولة مرة أخرى.');
+            }
+            
+        } catch (error) {
+            console.error('AI Chat error:', error);
+            hideTypingIndicator();
+            addAIMessage('❌ حدث خطأ: ' + error.message);
+        }
+    }
+    
+    // ========== جعل الزر العائم قابلاً للسحب ==========
+    (function() {
+        const fab = document.querySelector('.fab-help');
+        if (!fab) return;
+        
+        let isDragging = false;
+        let startX, startY, startRight, startBottom;
+        let dragStarted = false;
+        let hasMoved = false;
+        
+        const onStart = (e) => {
+            e.preventDefault();
+            isDragging = true;
+            dragStarted = true;
+            hasMoved = false;
+            
+            const rect = fab.getBoundingClientRect();
+            const parentRect = fab.parentElement.getBoundingClientRect();
+            
+            startX = e.touches ? e.touches[0].clientX : e.clientX;
+            startY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            const currentRight = window.getComputedStyle(fab).right;
+            const currentBottom = window.getComputedStyle(fab).bottom;
+            
+            startRight = currentRight !== 'auto' ? parseFloat(currentRight) : (parentRect.width - rect.right);
+            startBottom = currentBottom !== 'auto' ? parseFloat(currentBottom) : (parentRect.height - rect.bottom);
+            
+            fab.style.transition = 'none';
+        };
+        
+        const onMove = (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            
+            const currentX = e.touches ? e.touches[0].clientX : e.clientX;
+            const currentY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            const deltaX = currentX - startX;
+            const deltaY = currentY - startY;
+            
+            if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+                hasMoved = true;
+            }
+            
+            const newRight = startRight - deltaX;
+            const newBottom = startBottom - deltaY;
+            
+            const maxRight = window.innerWidth - fab.offsetWidth - 10;
+            const maxBottom = window.innerHeight - fab.offsetHeight - 70;
+            
+            let finalRight = Math.min(Math.max(10, newRight), maxRight);
+            let finalBottom = Math.min(Math.max(70, newBottom), maxBottom);
+            
+            fab.style.right = finalRight + 'px';
+            fab.style.bottom = finalBottom + 'px';
+        };
+        
+        const onEnd = (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            fab.style.transition = '';
+            
+            if (!hasMoved && dragStarted) {
+                setTimeout(() => {
+                    openAIChat();
+                }, 10);
+            }
+            
+            dragStarted = false;
+            hasMoved = false;
+        };
+        
+        fab.addEventListener('mousedown', onStart);
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onEnd);
+        
+        fab.addEventListener('touchstart', onStart, { passive: false });
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('touchend', onEnd);
+        
+        fab.addEventListener('click', (e) => {
+            if (hasMoved) {
+                e.stopPropagation();
+                e.preventDefault();
+            }
+        });
+    })();
+    
+    const styleElem = document.createElement('style');
+    styleElem.textContent = `
+        .btn-analyze.coming-soon {
+            background: #adb5bd !important;
+            cursor: not-allowed;
+        }
+        .btn-analyze.coming-soon:hover {
+            transform: none;
+            opacity: 1;
+        }
+    `;
+    document.head.appendChild(styleElem);
+    
+    // تهيئة
+    document.addEventListener('DOMContentLoaded', () => {
+        initTheme();
+        fixIcons();
+        refreshPermissions();
+    });
+    
+    loadUserData();
+</script>
+</body>
+</html>

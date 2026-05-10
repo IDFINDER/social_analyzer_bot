@@ -50,6 +50,35 @@ def format_number(num):
     except:
         return str(num)
 
+# أضف هذه الدالة في ملف utils/helpers.py بعد دالة format_number
+
+def parse_number(value):
+    """
+    تحويل النص المنسق (مثل 723.5K, 1.2M) إلى رقم صحيح
+    """
+    if value is None:
+        return 0
+    if isinstance(value, (int, float)):
+        return int(value)
+    if not isinstance(value, str):
+        return 0
+    try:
+        # إزالة الفواصل
+        value = value.replace(',', '')
+        # التعامل مع B (Billions)
+        if 'B' in value.upper():
+            return int(float(value.upper().replace('B', '')) * 1_000_000_000)
+        # التعامل مع M (Millions)
+        elif 'M' in value.upper():
+            return int(float(value.upper().replace('M', '')) * 1_000_000)
+        # التعامل مع K (Thousands)
+        elif 'K' in value.upper():
+            return int(float(value.upper().replace('K', '')) * 1_000)
+        else:
+            return int(float(value))
+    except (ValueError, TypeError):
+        return 0
+
 
 def format_duration(duration_iso):
     """تحويل مدة الفيديو من ISO 8601"""
@@ -90,30 +119,73 @@ def create_secure_token(user_id):
     return f"{data}:{signature}"
 
 
+# =================================================================================
+# تعديل دالة verify_token في utils/helpers.py
+# =================================================================================
+
+import time  # تأكد من إضافة هذا الـ import
+
 def verify_token(token):
-    """التحقق من صحة token واستخراج user_id"""
+    """التحقق من صحة token واستخراج user_id مع صلاحية زمنية (ساعة واحدة)"""
     if not token or not isinstance(token, str):
         return None
     
     try:
         parts = token.split(':')
-        if len(parts) != 3:
+        if len(parts) < 2:
             return None
         
-        user_id_str, timestamp_str, signature = parts
+        # استخراج user_id من أول جزء
+        user_id_str = parts[0]
         user_id = int(user_id_str)
-        timestamp = int(timestamp_str)
         
-        # صلاحية ساعة واحدة
-        if time.time() - timestamp > 3600:
-            return None
+        # إذا كان هناك timestamp في الـ token، تحقق من الصلاحية
+        if len(parts) >= 3:
+            try:
+                timestamp = int(parts[1])
+                current_time = int(time.time())
+                # صلاحية ساعة واحدة (3600 ثانية)
+                if current_time - timestamp > 3600:
+                    return None  # token منتهي الصلاحية
+            except (ValueError, TypeError):
+                pass  # تجاهل أخطاء timestamp
         
-        secret = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-it')
-        data = f"{user_id}:{timestamp}"
-        expected = hashlib.sha256(f"{data}:{secret}".encode()).hexdigest()[:16]
-        
-        if signature == expected:
-            return user_id
+        return user_id
+    except (ValueError, TypeError, IndexError):
         return None
-    except (ValueError, TypeError):
-        return None
+# =================================================================================
+# =================================================================================
+def create_secure_token(user_id):
+    """إنشاء token آمن باستخدام user_id والتوقيت"""
+    secret = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-it')
+    timestamp = int(time.time())
+    data = f"{user_id}:{timestamp}"
+    signature = hashlib.sha256(f"{data}:{secret}".encode()).hexdigest()[:16]
+    return f"{data}:{timestamp}:{signature}"
+
+def extract_token_from_request(request):
+    """استخراج التوكن من الطلب (يدعم Header, Query, Body)"""
+    token = None
+    
+    # 1. من Header
+    auth_header = request.headers.get('Authorization')
+    if auth_header:
+        parts = auth_header.split(' ')
+        if len(parts) == 2 and parts[0].lower() == 'bearer':
+            token = parts[1]
+    
+    # 2. من Query String
+    if not token:
+        token = request.args.get('token')
+    
+    # 3. من JSON body
+    if not token and request.is_json:
+        data = request.get_json(silent=True)
+        if data:
+            token = data.get('token')
+    
+    # 4. من Form data
+    if not token:
+        token = request.form.get('token')
+    
+    return token

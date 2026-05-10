@@ -1,70 +1,566 @@
+<!-- ========== قسم حالة الاشتراك ========== -->
 <div id="subscriptionContent"></div>
 
+<!-- ========== بطاقة التحذير للمستخدم المجاني عند انتهاء الحصة ========== -->
+<div id="dailyLimitWarning" class="alert alert-warning" style="display: none; margin-bottom: 16px;">
+    ⚠️ لقد وصلت للحد اليومي المجاني! 
+    <span id="dailyRemainingDisplay"></span>
+    <br>💎 للتحليل غير المحدود، اشترك في الخطة المميزة
+</div>
+
+<!-- ========== بطاقة الحسابات المسجلة ========== -->
+<div class="card" style="margin-top: 16px;">
+    <h3><i class="fas fa-link"></i> 📱 حساباتي المسجلة للتحليل</h3>
+    <div style="background: #e8f0fe; border-radius: 12px; padding: 8px 12px; margin-bottom: 12px; font-size: 11px; color: #667eea; display: flex; align-items: center; gap: 8px;">
+        <i class="fas fa-info-circle"></i> <span>💡 اضغط على زر "تحليل" لتحليل الحساب والحصول على تقرير مفصل</span>
+    </div>
+    <div id="subscriptionAccountsList"></div>
+</div>
+
+<!-- ========== بطاقة آخر التحليلات (بطاقة واحدة كاملة) ========== -->
+<div id="recentAnalysesCard" class="card" style="margin-top: 16px; display: none;">
+    <h3><i class="fas fa-history"></i> 📋 آخر التحليلات</h3>
+    <div id="recentAnalysesList"></div>
+</div>
+
+<!-- ========== مسافة فارغة أسفل الصفحة ========== -->
+<div style="height: 80px;"></div>
+
+<!-- ========== نافذة عرض التقرير الكامل ========== -->
+<div id="reportModal" class="modal" onclick="closeReportModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h3 style="color: var(--primary, #667eea); margin-bottom: 15px;">📊 التقرير الكامل</h3>
+        <div id="modalReportText" style="white-space: pre-wrap; line-height: 1.6; max-height: 60vh; overflow-y: auto; font-family: monospace; font-size: 12px; background: var(--hover-bg, #f8f9fa); padding: 15px; border-radius: 12px; color: var(--text, #2d3748);"></div>
+        <button onclick="closeReportModal()" style="margin-top: 15px; background: var(--primary, #667eea); color: white; border: none; padding: 10px; border-radius: 10px; width: 100%; cursor: pointer;">إغلاق</button>
+    </div>
+</div>
+
+<!-- ========== نافذة منبثقة للإشعارات ========== -->
+<div id="subToastMessage" style="position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #28a745; color: white; padding: 10px 20px; border-radius: 30px; font-size: 14px; z-index: 1002; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+    ✅ تمت العملية بنجاح
+</div>
+
+<style>
+    .account-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--border, #eee);
+    }
+    .account-item:last-child { border-bottom: none; }
+    .account-info { flex: 1; display: flex; align-items: center; gap: 12px; }
+    
+    .btn-analyze {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        cursor: pointer;
+        border: none;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        transition: all 0.2s;
+    }
+    .btn-analyze:hover { transform: translateY(-2px); opacity: 0.9; }
+    .btn-analyze.coming-soon { background: #adb5bd; cursor: not-allowed; opacity: 0.7; }
+    .btn-analyze.coming-soon:hover { transform: none; }
+    
+    .analysis-card {
+        background: linear-gradient(135deg, #667eea08, #764ba208);
+        border-radius: 16px;
+        padding: 15px;
+        margin-bottom: 12px;
+        border-right: 3px solid var(--primary, #667eea);
+        transition: all 0.2s;
+    }
+    .analysis-card:hover { transform: translateX(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    
+    .analysis-stats { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+    .stat-mini {
+        background: #f0f4ff;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        color: #667eea;
+    }
+    
+    body.dark .stat-mini {
+        background: #1a202c;
+        color: #9b59b6;
+    }
+    
+    .btn-details, .btn-download, .btn-ai, .btn-ai-premium {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+    }
+    .btn-details { background: var(--primary, #667eea); color: white; }
+    .btn-download { background: #28a745; color: white; }
+    .btn-details:hover, .btn-download:hover { transform: scale(1.02); opacity: 0.9; }
+    
+    .btn-ai {
+        background: linear-gradient(135deg, #9b59b6, #8e44ad);
+        color: white;
+    }
+    .btn-ai:hover { transform: scale(1.02); opacity: 0.9; }
+    
+    .btn-ai-premium {
+        background: #6c757d;
+        color: white;
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+    
+    .videos-list {
+        margin: 12px 0;
+        padding: 10px;
+        background: var(--hover-bg, #f8f9fa);
+        border-radius: 12px;
+        font-size: 12px;
+    }
+    .video-item {
+        padding: 6px 0;
+        border-bottom: 1px solid var(--border, #eee);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .video-item:last-child { border-bottom: none; }
+    .video-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text, #2d3748); }
+    .video-link { color: var(--primary, #667eea); text-decoration: none; font-size: 11px; }
+    
+    .alert { padding: 12px; border-radius: 12px; margin-bottom: 15px; font-size: 13px; }
+    .alert-warning { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+    .alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    
+    body.dark .alert-warning { background: rgba(237,137,54,0.2); color: #fbbf24; border-color: #f59e0b; }
+    body.dark .alert-danger { background: rgba(229,62,62,0.2); color: #f87171; border-color: #ef4444; }
+    
+    .success-badge { background: #28a745; color: white; padding: 3px 8px; border-radius: 20px; font-size: 11px; }
+    .danger-badge { background: #dc3545; color: white; padding: 3px 8px; border-radius: 20px; font-size: 11px; }
+    .warning-badge { background: #ffc107; color: #333; padding: 3px 8px; border-radius: 20px; font-size: 11px; }
+    .text-center { text-align: center; }
+    
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+    .modal-content {
+        background: var(--modal-bg, white);
+        border-radius: 20px;
+        max-width: 90%;
+        max-height: 80%;
+        overflow-y: auto;
+        padding: 20px;
+        margin: 20px;
+        color: var(--text, #2d3748);
+    }
+</style>
+
 <script>
+    // ========== متغيرات عامة ==========
+    let currentAnalysisText = '';
+    
+    // ========== معلومات المنصات ==========
+    const platformInfoSub = {
+        youtube: { name: 'يوتيوب', icon: 'fab fa-youtube', color: '#ff0000', works: true },
+        instagram: { name: 'انستقرام', icon: 'fab fa-instagram', color: '#e1306c', works: false },
+        tiktok: { name: 'تيك توك', icon: 'fab fa-tiktok', color: '#000000', works: false },
+        facebook: { name: 'فيسبوك', icon: 'fab fa-facebook-f', color: '#1877f2', works: false },
+        snapchat: { name: 'سناب شات', icon: 'fab fa-snapchat', color: '#fffc00', works: false }
+    };
+    const platformOrderSub = ['youtube', 'instagram', 'tiktok', 'facebook', 'snapchat'];
+    
+    // ========== دوال مساعدة ==========
+    function showSubToast(message, isError = false) {
+        const toast = document.getElementById('subToastMessage');
+        if (toast) {
+            toast.textContent = message;
+            toast.style.background = isError ? '#dc3545' : '#28a745';
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 3000);
+        }
+    }
+    
+    function closeReportModal() {
+        document.getElementById('reportModal').style.display = 'none';
+    }
+    
+    function formatNumber(num) {
+        if (!num && num !== 0) return '0';
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+        return num.toString();
+    }
+    
+    // ========== عرض التقرير الكامل ==========
+    async function showFullReport(analysisId, platformName, accountName) {
+        const modal = document.getElementById('reportModal');
+        const modalText = document.getElementById('modalReportText');
+        modal.style.display = 'flex';
+        modalText.innerHTML = '<div class="text-center" style="padding: 40px;"><i class="fas fa-spinner fa-spin" style="font-size: 32px; color: var(--primary, #667eea);"></i><p>جاري تحميل التقرير...</p></div>';
+        
+        try {
+            const token = new URLSearchParams(window.location.search).get('token');
+            const response = await fetch('/api/send-report-to-bot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token, analysis_id: analysisId, return_report: true })
+            });
+            const result = await response.json();
+            
+            if (result.success && result.report_text) {
+                modalText.innerHTML = result.report_text.replace(/\n/g, '<br>');
+            } else {
+                modalText.innerHTML = '<p style="color: red;">❌ فشل تحميل التقرير</p>';
+            }
+        } catch (error) {
+            modalText.innerHTML = '<p style="color: red;">❌ حدث خطأ أثناء تحميل التقرير</p>';
+        }
+    }
+    
+    // ========== تنزيل التقرير ==========
+    async function downloadReport(analysisId, platformName, accountName) {
+        showSubToast('⏳ جاري تجهيز التقرير...');
+        
+        try {
+            const token = new URLSearchParams(window.location.search).get('token');
+            const response = await fetch('/api/send-report-to-bot', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token, analysis_id: analysisId, platform: platformName, account_name: accountName })
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showSubToast('✅ تم إرسال التقرير إلى البوت! تحقق من الدردشة');
+            } else {
+                showSubToast('❌ فشل إرسال التقرير: ' + (result.error || 'حدث خطأ'), true);
+            }
+        } catch (error) {
+            showSubToast('❌ حدث خطأ أثناء إرسال التقرير', true);
+        }
+    }
+    
+    // ========== طلب توصيات AI ==========
+    async function getRecommendationsForAnalysis(analysisId, platformName, accountName) {
+        showSubToast('🤖 جاري توليد توصيات ذكاء اصطناعي...');
+        
+        try {
+            const token = new URLSearchParams(window.location.search).get('token');
+            const response = await fetch('/api/recommendations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showSubToast('✅ تم توليد التوصيات! تم إرسالها إلى البوت');
+                if (typeof loadRecommendations === 'function') {
+                    setTimeout(() => loadRecommendations(), 2000);
+                }
+                if (typeof refreshPermissions === 'function') {
+                    setTimeout(() => refreshPermissions(), 2000);
+                }
+            } else {
+                showSubToast(result.error || '❌ فشل توليد التوصيات', true);
+            }
+        } catch (error) {
+            showSubToast('❌ حدث خطأ أثناء توليد التوصيات', true);
+        }
+    }
+    
+    // ========== رسالة للمستخدمين المجانيين ==========
+    function showPremiumRequired() {
+        showSubToast('💎 هذه الميزة متاحة فقط للمستخدمين المميزين!\n\nللاشتراك، تواصل مع المطور @Alshabany_Ai', true);
+    }
+    
+    // ========== تحميل آخر التحليلات (بطاقة واحدة كاملة) ==========
+    async function loadRecentAnalyses() {
+        const card = document.getElementById('recentAnalysesCard');
+        const container = document.getElementById('recentAnalysesList');
+        
+        if (!card || !container) return;
+        
+        try {
+            const token = new URLSearchParams(window.location.search).get('token');
+            if (!token) {
+                card.style.display = 'none';
+                return;
+            }
+            
+            const response = await fetch(`/api/analysis/history?token=${encodeURIComponent(token)}&limit=10`);
+            const result = await response.json();
+            
+            if (!result.success || !result.data || result.data.length === 0) {
+                card.style.display = 'none';
+                return;
+            }
+            
+            card.style.display = 'block';
+            
+            const analyses = [...result.data].sort((a, b) => new Date(b.analysis_date) - new Date(a.analysis_date));
+            const isPremium = (typeof userPermissions !== 'undefined' && userPermissions.is_premium);
+            
+            let html = '';
+            let hasValidAnalysis = false;
+            
+            for (let index = 0; index < analyses.length; index++) {
+                const analysis = analyses[index];
+                
+                if (!analysis || !analysis.id) continue;
+                hasValidAnalysis = true;
+                const isFirst = (index === 0);
+                
+                let displayDate = 'تاريخ غير معروف';
+                let displayTime = '';
+                
+                if (analysis.analysis_date) {
+                    try {
+                        const dateObj = new Date(analysis.analysis_date);
+                        if (!isNaN(dateObj.getTime())) {
+                            displayDate = dateObj.toLocaleDateString('ar-EG', { year: 'numeric', month: 'numeric', day: 'numeric' });
+                            displayTime = dateObj.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+                        }
+                    } catch(e) {}
+                }
+                
+                const platformName = analysis.platform === 'youtube' ? 'يوتيوب' : analysis.platform;
+                const platformIcon = 'fab fa-youtube';
+                const platformColor = '#ff0000';
+                const accountName = analysis.account_name || analysis.analyzed_username || 'غير محدد';
+                const channelUsername = analysis.analyzed_username || accountName.replace(/\s/g, '_');
+                
+                // عرض الفيديوهات
+                let videosHtml = '';
+                if (analysis.top_posts) {
+                    try {
+                        let topPosts = analysis.top_posts;
+                        if (typeof topPosts === 'string') topPosts = JSON.parse(topPosts);
+                        if (topPosts && Array.isArray(topPosts) && topPosts.length > 0) {
+                            videosHtml = `
+                                <div class="videos-list">
+                                    <strong>🎬 أحدث الفيديوهات:</strong>
+                                    ${topPosts.slice(0, 5).map(video => `
+                                        <div class="video-item">
+                                            <span class="video-title">${video.title || 'بدون عنوان'}</span>
+                                            ${video.video_id ? `<a href="https://youtu.be/${video.video_id}" target="_blank" class="video-link"><i class="fas fa-external-link-alt"></i> رابط</a>` : ''}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `;
+                        }
+                    } catch(e) {}
+                }
+                
+                // زر التوصيات (لأحدث تحليل فقط)
+                let aiButtonHtml = '';
+                if (isPremium && isFirst) {
+                    aiButtonHtml = `
+                        <button class="btn-ai" onclick="getRecommendationsForAnalysis(${analysis.id}, '${platformName}', '${accountName.replace(/'/g, "\\'")}')">
+                            <i class="fas fa-robot"></i> 🤖 توصيات AI
+                        </button>
+                    `;
+                } else if (!isPremium && isFirst) {
+                    aiButtonHtml = `
+                        <button class="btn-ai-premium" onclick="showPremiumRequired()">
+                            <i class="fas fa-lock"></i> 🔒 توصيات AI (للمميزين)
+                        </button>
+                    `;
+                }
+                
+                const dateTimeHtml = displayTime ? `${displayDate} - ${displayTime}` : displayDate;
+                
+                html += `
+                    <div class="analysis-card">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                            <i class="${platformIcon}" style="color: ${platformColor}; font-size: 18px;"></i>
+                            <strong>${platformName}</strong>
+                            <span style="font-size: 11px; color: var(--text-light, #888); margin-right: auto;">
+                                <i class="fas fa-calendar-alt"></i> ${dateTimeHtml}
+                            </span>
+                        </div>
+                        <div style="font-size: 14px; margin-bottom: 8px;">
+                            📺 <strong>${accountName}</strong>
+                            <span style="font-size: 11px; color: var(--text-light, #888);"> (@${channelUsername})</span>
+                        </div>
+                        <div class="analysis-stats">
+                            <span class="stat-mini">👥 ${formatNumber(analysis.subscribers)} مشترك</span>
+                            <span class="stat-mini">👁️ ${formatNumber(analysis.total_views)} مشاهدة</span>
+                            <span class="stat-mini">📹 ${analysis.total_posts || 0} فيديو</span>
+                            <span class="stat-mini">📈 ${formatNumber(analysis.avg_views_per_post)} متوسط</span>
+                        </div>
+                        ${videosHtml}
+                        <div style="display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap;">
+                            <button class="btn-details" onclick="showFullReport(${analysis.id}, '${platformName}', '${accountName.replace(/'/g, "\\'")}')">
+                                <i class="fas fa-file-alt"></i> عرض التقرير الكامل
+                            </button>
+                            <button class="btn-download" onclick="downloadReport(${analysis.id}, '${platformName}', '${accountName.replace(/'/g, "\\'")}')">
+                                <i class="fas fa-download"></i> تنزيل التقرير
+                            </button>
+                            ${aiButtonHtml}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (!hasValidAnalysis) {
+                card.style.display = 'none';
+            } else {
+                container.innerHTML = html;
+            }
+        } catch (error) {
+            console.error('Error loading analyses:', error);
+            card.style.display = 'none';
+        }
+    }
+    
+    // ========== تحليل الحساب ==========
+    async function analyzeAccount(platform, identifier) {
+        const platformInfo = platformInfoSub[platform];
+        
+        if (typeof userPermissions !== 'undefined' && !userPermissions.is_premium) {
+            if (userPermissions.daily_remaining <= 0) {
+                const warning = document.getElementById('dailyLimitWarning');
+                if (warning) warning.style.display = 'block';
+                showSubToast(`⚠️ لقد وصلت للحد اليومي المجاني!\n📊 الحد المسموح: ${userPermissions.free_limit} تحليل يومياً`, true);
+                return;
+            }
+        }
+        
+        if (!platformInfo.works) {
+            showSubToast(`📢 ميزة تحليل ${platformInfo.name} قيد التطوير حالياً`, true);
+            return;
+        }
+        
+        showSubToast(`⏳ جاري تحليل ${platformInfo.name}...`);
+        
+        let cleanIdentifier = identifier.replace(/^@/, '');
+        const token = new URLSearchParams(window.location.search).get('token');
+        
+        try {
+            const response = await fetch('/api/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token, platform: 'youtube', identifier: cleanIdentifier })
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showSubToast('✅ تم تحليل القناة بنجاح!');
+                setTimeout(() => { 
+                    loadRecentAnalyses(); 
+                    if (typeof loadUserData === 'function') loadUserData(); 
+                    if (typeof refreshPermissions === 'function') refreshPermissions(); 
+                }, 1500);
+            } else {
+                showSubToast(`❌ فشل التحليل: ${result.error || 'حدث خطأ'}`, true);
+            }
+        } catch (error) {
+            showSubToast('❌ حدث خطأ أثناء التحليل', true);
+        }
+    }
+    
+    // ========== عرض الحسابات المسجلة ==========
+    function displayAccountsList(accounts) {
+        const container = document.getElementById('subscriptionAccountsList');
+        if (!container) return;
+        
+        let html = '';
+        let hasAny = false;
+        
+        for (const platform of platformOrderSub) {
+            const acc = accounts[platform];
+            const info = platformInfoSub[platform];
+            
+            if (acc && acc.account_identifier) {
+                hasAny = true;
+                let username = acc.account_identifier.replace(/^@/, '');
+                const isWorking = info.works;
+                const btnClass = isWorking ? 'btn-analyze' : 'btn-analyze coming-soon';
+                const btnText = isWorking ? '🔍 تحليل' : '⏳ قيد التطوير';
+                
+                html += `
+                    <div class="account-item">
+                        <div class="account-info">
+                            <div style="background: ${info.color}20; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                <i class="${info.icon}" style="color: ${info.color};"></i>
+                            </div>
+                            <div>
+                                <strong>${info.name}</strong>
+                                <div style="font-size: 12px; color: ${info.color};">@${username}</div>
+                            </div>
+                        </div>
+                        <div>
+                            <button class="${btnClass}" onclick="analyzeAccount('${platform}', '${acc.account_identifier}')">
+                                <i class="fas fa-chart-line"></i> ${btnText}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        if (!hasAny) {
+            html = '<div style="text-align:center; padding: 40px; color: var(--text-light, #888);"><i class="fas fa-info-circle" style="font-size: 48px; margin-bottom: 15px; display: block;"></i><p>لا توجد حسابات مسجلة</p><p style="font-size: 12px;">يمكنك إضافة حساباتك من تبويب "بياناتي"</p></div>';
+        }
+        container.innerHTML = html;
+    }
+    
+    // ========== تحديث التبويب الرئيسي ==========
     function updateSubscriptionTab(data) {
+        if (!data) return;
+        
         const container = document.getElementById('subscriptionContent');
+        if (!container) return;
         
         if (data.is_premium && data.subscription) {
             const daysLeft = data.subscription.days_left || 0;
-            let badge = '';
-            let alertMsg = '';
-            
-            if (daysLeft <= 3 && daysLeft > 0) {
-                badge = '<span class="danger-badge">⚠️ على وشك الانتهاء</span>';
-                alertMsg = '<div class="alert alert-danger">⚠️ تنبيه: اشتراكك على وشك الانتهاء! يرجى التجديد قريباً.</div>';
-            } else if (daysLeft <= 7 && daysLeft > 3) {
-                badge = '<span class="warning-badge">⚠️ ينتهي قريباً</span>';
-                alertMsg = '<div class="alert alert-warning">⏰ ملاحظة: اشتراكك ينتهي بعد أيام قليلة.</div>';
-            } else if (daysLeft > 0) {
-                badge = '<span class="success-badge">✅ نشط</span>';
-            } else {
-                badge = '<span class="danger-badge">❌ منتهي</span>';
-                alertMsg = '<div class="alert alert-danger">❌ اشتراكك منتهي! يرجى التجديد للمتابعة.</div>';
-            }
-            
-            const startDate = data.subscription.start_date ? new Date(data.subscription.start_date).toLocaleDateString('ar-EG') : 'غير محدد';
-            const endDate = data.subscription.end_date ? new Date(data.subscription.end_date).toLocaleDateString('ar-EG') : 'غير محدد';
+            let badge = '', alertMsg = '';
+            if (daysLeft <= 3 && daysLeft > 0) { badge = '<span class="danger-badge">⚠️ على وشك الانتهاء</span>'; alertMsg = '<div class="alert alert-danger">⚠️ تنبيه: اشتراكك على وشك الانتهاء! يرجى التجديد قريباً.</div>'; }
+            else if (daysLeft <= 7 && daysLeft > 3) { badge = '<span class="warning-badge">⚠️ ينتهي قريباً</span>'; alertMsg = '<div class="alert alert-warning">⏰ ملاحظة: اشتراكك ينتهي بعد أيام قليلة.</div>'; }
+            else if (daysLeft > 0) { badge = '<span class="success-badge">✅ نشط</span>'; }
+            else { badge = '<span class="danger-badge">❌ منتهي</span>'; alertMsg = '<div class="alert alert-danger">❌ اشتراكك منتهي! يرجى التجديد للمتابعة.</div>'; }
             
             container.innerHTML = `
                 ${alertMsg}
                 <div style="background: linear-gradient(135deg, #667eea10, #764ba210); border-radius: 16px; padding: 15px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                        <span>📅 تاريخ البداية:</span>
-                        <span><strong>${startDate}</strong></span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                        <span>⭐ خطتك:</span>
-                        <span><strong>${data.subscription.plan || 'مميز'}</strong></span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                        <span>📅 تاريخ الانتهاء:</span>
-                        <span>${endDate}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>⏰ الأيام المتبقية:</span>
-                        <span><strong>${daysLeft > 0 ? daysLeft : 'منتهي'}</strong> ${badge}</span>
-                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;"><span>📅 تاريخ البداية:</span><span><strong>${data.subscription.start_date ? new Date(data.subscription.start_date).toLocaleDateString('ar-EG') : 'غير محدد'}</strong></span></div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;"><span>⭐ خطتك:</span><span><strong>${data.subscription.plan || 'مميز'}</strong> ${badge}</span></div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;"><span>📅 تاريخ الانتهاء:</span><span>${data.subscription.end_date ? new Date(data.subscription.end_date).toLocaleDateString('ar-EG') : 'غير محدد'}</span></div>
+                    <div style="display: flex; justify-content: space-between;"><span>⏰ الأيام المتبقية:</span><span><strong>${daysLeft > 0 ? daysLeft : 'منتهي'}</strong></span></div>
                 </div>
-                <div style="margin-top: 15px; background: #f0f0f0; border-radius: 12px; padding: 12px; text-align: center;">
-                    <span>📊 حصتك الشهرية من التوصيات: <strong>${data.gemini_limit || 0}</strong> توصية</span>
-                    <br>
+                <div style="margin-top: 15px; background: var(--hover-bg, #f0f0f0); border-radius: 12px; padding: 12px; text-align: center;">
+                    <span>📊 حصتك الشهرية من التوصيات: <strong>${data.gemini_limit || 0}</strong> توصية</span><br>
                     <span>🤖 استخدمت هذا الشهر: <strong>${data.gemini_uses || 0}</strong> توصية</span>
                 </div>
             `;
         } else {
             container.innerHTML = `
-                <div class="alert alert-warning">
-                    <i class="fas fa-gem"></i> أنت حالياً في الخطة المجانية
-                </div>
+                <div class="alert alert-warning"><i class="fas fa-gem"></i> أنت حالياً في الخطة المجانية</div>
                 <div style="background: linear-gradient(135deg, #667eea10, #764ba210); border-radius: 16px; padding: 15px;">
-                    <div style="text-align: center; margin-bottom: 10px;">
-                        📊 الحد اليومي: <strong>${data.free_limit || 2} تحليل/يوم</strong>
-                    </div>
-                    <div style="text-align: center; margin-top: 10px;">
-                        🤖 التوصيات غير متاحة للمستخدمين المجانيين
-                    </div>
+                    <div style="text-align: center;"><span>📊 الحد اليومي: <strong>${data.free_limit || 2} تحليل/يوم</strong></span></div>
+                    <div style="text-align: center; margin-top: 10px;"><span>🤖 التوصيات غير متاحة للمستخدمين المجانيين</span></div>
                 </div>
             `;
         }
+        
+        displayAccountsList(data.accounts || {});
+        loadRecentAnalyses();
     }
 </script>

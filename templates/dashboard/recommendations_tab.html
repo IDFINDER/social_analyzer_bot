@@ -7,28 +7,19 @@
             <div id="totalRecs" style="font-size: 18px; font-weight: bold; color: #667eea;">0</div>
             <div style="font-size: 10px; color: #888;">إجمالي التوصيات</div>
         </div>
-        <div style="background: linear-gradient(135deg, #48bb7820, #38a16920); border-radius: 12px; padding: 8px 12px; text-align: center; flex: 1;">
-            <div id="pinnedRecs" style="font-size: 18px; font-weight: bold; color: #48bb78;">0</div>
-            <div style="font-size: 10px; color: #888;">توصيات مثبتة</div>
-        </div>
         <div style="background: linear-gradient(135deg, #ed893620, #dd6b2020); border-radius: 12px; padding: 8px 12px; text-align: center; flex: 1;">
             <div id="remainingRecs" style="font-size: 18px; font-weight: bold; color: #ed8936;">0</div>
             <div style="font-size: 10px; color: #888;">توصيات متاحة</div>
         </div>
     </div>
     
-    <!-- شريط الترتيب وحفظ التغييرات -->
+    <!-- شريط الترتيب (تم إصلاحه) -->
     <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; align-items: center;">
         <div style="flex: 2;">
-            <select id="sortRecsSelect" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 12px; background: white;">
+            <select id="sortRecsSelect" style="width: 100%; padding: 10px; border: 1px solid var(--border, #e2e8f0); border-radius: 12px; font-size: 12px; background: var(--card-bg, white); color: var(--text, #2d3748);">
                 <option value="newest">📅 الأحدث ← الأقدم</option>
                 <option value="oldest">📅 الأقدم ← الأحدث</option>
             </select>
-        </div>
-        <div>
-            <button id="saveSettingsBtn" style="background: linear-gradient(135deg, #48bb78, #38a169); color: white; border: none; padding: 10px 20px; border-radius: 12px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 5px;">
-                <i class="fas fa-save"></i> حفظ التغييرات
-            </button>
         </div>
     </div>
     
@@ -39,79 +30,45 @@
 <div style="height: 80px;"></div>
 
 <script>
-    // تخزين البيانات محلياً للتثبيت والترتيب
+    // تخزين البيانات محلياً
     let allRecommendations = [];
-    let pinnedRecommendations = [];
     let currentSortOrder = 'newest';
     
-    // تحميل الإعدادات المحفوظة من localStorage
+    // تحميل إعداد الترتيب المحفوظ من localStorage
     function loadSavedSettings() {
-        const savedPinned = localStorage.getItem('pinnedRecs');
-        if (savedPinned) {
-            pinnedRecommendations = JSON.parse(savedPinned);
+        const savedSort = localStorage.getItem('recSortOrder');
+        if (savedSort && (savedSort === 'newest' || savedSort === 'oldest')) {
+            currentSortOrder = savedSort;
         } else {
-            pinnedRecommendations = [];
+            currentSortOrder = 'newest';
         }
         
-        const savedSort = localStorage.getItem('sortOrder');
-        if (savedSort) {
-            currentSortOrder = savedSort;
-            const sortSelect = document.getElementById('sortRecsSelect');
-            if (sortSelect) sortSelect.value = currentSortOrder;
-        }
+        const sortSelect = document.getElementById('sortRecsSelect');
+        if (sortSelect) sortSelect.value = currentSortOrder;
         
         // تحديث الإحصائيات
         updateRecStats();
     }
     
-    // حفظ الإعدادات إلى localStorage
-    function saveSettings() {
-        localStorage.setItem('pinnedRecs', JSON.stringify(pinnedRecommendations));
-        localStorage.setItem('sortOrder', currentSortOrder);
-        
-        const saveBtn = document.getElementById('saveSettingsBtn');
-        const originalText = saveBtn.innerHTML;
-        saveBtn.innerHTML = '<i class="fas fa-check"></i> تم الحفظ!';
-        saveBtn.style.background = 'linear-gradient(135deg, #38a169, #2f855a)';
-        
-        setTimeout(() => {
-            saveBtn.innerHTML = originalText;
-            saveBtn.style.background = 'linear-gradient(135deg, #48bb78, #38a169)';
-        }, 1500);
-        
-        displayRecommendations();
-    }
-    
-    // تثبيت/إلغاء تثبيت توصية
-    function togglePinRec(recId, event) {
-        event.stopPropagation();
-        
-        const index = pinnedRecommendations.indexOf(recId);
-        if (index === -1) {
-            pinnedRecommendations.push(recId);
-        } else {
-            pinnedRecommendations.splice(index, 1);
-        }
-        
-        displayRecommendations();
-        updateRecStats();
+    // حفظ إعداد الترتيب
+    function saveSortOrder() {
+        localStorage.setItem('recSortOrder', currentSortOrder);
     }
     
     // تحديث إحصائيات التوصيات
     function updateRecStats() {
         const total = allRecommendations.length;
-        const pinned = pinnedRecommendations.length;
         
         const totalEl = document.getElementById('totalRecs');
-        const pinnedEl = document.getElementById('pinnedRecs');
         const remainingEl = document.getElementById('remainingRecs');
         
         if (totalEl) totalEl.innerHTML = total;
-        if (pinnedEl) pinnedEl.innerHTML = pinned;
         
-        // عرض التوصيات المتاحة (الحد المتبقي)
-        if (window.userData && window.userData.gemini_limit) {
-            const remaining = Math.max(0, window.userData.gemini_limit - (window.userData.gemini_uses || 0));
+        // عرض التوصيات المتاحة (الحد المتبقي من Gemini)
+        if (window.userData && typeof window.userData.gemini_limit !== 'undefined') {
+            const geminiLimit = window.userData.gemini_limit || 0;
+            const geminiUsed = window.userData.gemini_uses || 0;
+            const remaining = Math.max(0, geminiLimit - geminiUsed);
             if (remainingEl) remainingEl.innerHTML = remaining;
         } else {
             if (remainingEl) remainingEl.innerHTML = '—';
@@ -123,75 +80,67 @@
         const container = document.getElementById('recommendationsList');
         if (!container) return;
         
-        const sortOrder = currentSortOrder;
+        // نسخ التوصيات لتجنب تعديل الأصل
+        let filtered = [...allRecommendations];
         
-        let pinned = [];
-        let unpinned = [];
-        
-        for (const rec of allRecommendations) {
-            if (pinnedRecommendations.includes(rec.id)) {
-                pinned.push(rec);
-            } else {
-                unpinned.push(rec);
-            }
-        }
-        
+        // ترتيب حسب التاريخ
         const sortByDate = (a, b) => {
             const dateA = new Date(a.created_at);
             const dateB = new Date(b.created_at);
-            return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+            return currentSortOrder === 'newest' ? dateB - dateA : dateA - dateB;
         };
         
-        pinned.sort(sortByDate);
-        unpinned.sort(sortByDate);
-        
-        let filtered = [...pinned, ...unpinned];
+        filtered.sort(sortByDate);
         
         const platformColors = {
             youtube: '#ff0000',
             instagram: '#e1306c',
             tiktok: '#000000',
-            facebook: '#1877f2'
+            facebook: '#1877f2',
+            snapchat: '#fffc00'
         };
         
         const platformNames = {
             youtube: 'يوتيوب',
             instagram: 'انستقرام',
             tiktok: 'تيك توك',
-            facebook: 'فيسبوك'
+            facebook: 'فيسبوك',
+            snapchat: 'سناب شات'
         };
         
         const platformIcons = {
             youtube: 'fab fa-youtube',
             instagram: 'fab fa-instagram',
             tiktok: 'fab fa-tiktok',
-            facebook: 'fab fa-facebook-f'
+            facebook: 'fab fa-facebook-f',
+            snapchat: 'fab fa-snapchat'
         };
         
         if (!filtered.length) {
             container.innerHTML = `
-                <div style="text-align:center; padding:60px 20px; color:#888;">
+                <div style="text-align:center; padding:60px 20px; color:var(--text-light, #888);">
                     <i class="fas fa-robot" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
                     <p>لا توجد توصيات حتى الآن</p>
-                    <p style="font-size: 12px; margin-top: 10px;">قم بتحليل قناتك باستخدام توصيات الذكاء الاصطناعي</p>
+                    <p style="font-size: 12px; margin-top: 10px;">💎 هذه الميزة متاحة للمستخدمين المميزين فقط</p>
+                    <p style="font-size: 12px;">قم بالاشتراك في الخطة المميزة للحصول على توصيات الذكاء الاصطناعي</p>
                 </div>
             `;
             return;
         }
         
         container.innerHTML = filtered.map(rec => {
-            // معالجة اسم الحساب - إزالة @ المكرر
+            // معالجة اسم الحساب
             let accountName = rec.account_identifier || 'غير محدد';
             if (accountName.startsWith('@@')) {
                 accountName = accountName.substring(1);
             }
-            if (accountName.startsWith('@')) {
-                // نترك @ واحدة فقط
+            if (!accountName.startsWith('@')) {
+                accountName = '@' + accountName;
             }
             
             let fullText = rec.recommendation_text || rec.recommendation_summary || '';
             
-            // إزالة الأسطر غير المرغوب فيها
+            // تنظيف النص من الأسطر غير المرغوب فيها
             fullText = fullText.replace(/📊 \*\*المتبقي اليوم:.*?\*\*/g, '');
             fullText = fullText.replace(/💎 \*\*مستوى التوصية:.*?\*\*/g, '');
             fullText = fullText.replace(/━━━━━━━━━━━━━━━━━━━━━━/g, '');
@@ -205,32 +154,30 @@
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\n/g, '<br>');
             
-            const isPinned = pinnedRecommendations.includes(rec.id);
             const recDate = new Date(rec.created_at);
-            const formattedDate = recDate.toLocaleDateString('ar-EG');
+            const formattedDate = recDate.toLocaleDateString('ar-EG', { year: 'numeric', month: 'numeric', day: 'numeric' });
+            
+            // الحصول على لون المنصة (مع دعم السناب شات)
+            const platformColor = platformColors[rec.platform] || '#667eea';
             
             return `
-                <div class="recommendation-card" data-recid="${rec.id}">
+                <div class="recommendation-card" data-recid="${rec.id || Math.random()}">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
                         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                            <span class="recommendation-platform" style="background: ${platformColors[rec.platform] || '#667eea'}; color: white;">
+                            <span class="recommendation-platform" style="background: ${platformColor}; color: white;">
                                 <i class="${platformIcons[rec.platform] || 'fas fa-robot'}"></i>
                                 ${platformNames[rec.platform] || rec.platform}
                             </span>
-                            <span style="font-size: 11px; color: #888;">
+                            <span style="font-size: 11px; color: var(--text-light, #888);">
                                 <i class="fas fa-calendar"></i> ${formattedDate}
                             </span>
-                            ${isPinned ? '<span style="background: #f6d365; color: #333; padding: 2px 8px; border-radius: 12px; font-size: 10px;"><i class="fas fa-thumbtack"></i> مثبتة</span>' : ''}
                         </div>
-                        <button class="pin-btn ${isPinned ? 'pinned' : ''}" onclick="togglePinRec(${rec.id}, event)">
-                            <i class="fas fa-thumbtack" style="transform: ${isPinned ? 'rotate(45deg)' : 'none'}"></i>
-                            ${isPinned ? 'إلغاء التثبيت' : 'تثبيت'}
-                        </button>
                     </div>
                     <div style="margin-bottom: 8px;">
-                        <strong><i class="fas fa-at"></i> الحساب:</strong> ${accountName.startsWith('@') ? accountName : '@' + accountName}
+                        <strong><i class="fas fa-at"></i> الحساب:</strong> 
+                        <span style="color: ${platformColor};">${accountName}</span>
                     </div>
-                    <div class="recommendation-text-full" style="font-size: 13px; line-height: 1.6; color: #2d3748; background: #f8f9fa; border-radius: 12px; padding: 12px; margin: 10px 0; max-height: 150px; overflow-y: auto;">
+                    <div class="recommendation-text-full" style="font-size: 13px; line-height: 1.6; color: var(--text, #2d3748); background: var(--hover-bg, #f8f9fa); border-radius: 12px; padding: 12px; margin: 10px 0; max-height: 150px; overflow-y: auto;">
                         ${formattedText}
                     </div>
                     <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
@@ -246,30 +193,29 @@
     // إعداد مستمعي الأحداث
     function setupEventListeners() {
         const sortSelect = document.getElementById('sortRecsSelect');
-        const saveBtn = document.getElementById('saveSettingsBtn');
         
         if (sortSelect) {
-            sortSelect.addEventListener('change', (e) => {
+            // إزالة المستمع القديم إذا وجد
+            const newSortSelect = sortSelect.cloneNode(true);
+            sortSelect.parentNode.replaceChild(newSortSelect, sortSelect);
+            
+            newSortSelect.addEventListener('change', (e) => {
                 currentSortOrder = e.target.value;
+                saveSortOrder();
                 displayRecommendations();
-            });
-        }
-        
-        if (saveBtn) {
-            saveBtn.addEventListener('click', () => {
-                saveSettings();
             });
         }
     }
     
-    // تحديث التوصيات الرئيسية
+    // تحديث التوصيات الرئيسية (تُستدعى من base.html)
     function updateRecommendationsTab(data) {
+        if (!data) return;
         window.userData = data;
         allRecommendations = data.recommendations || [];
         
-        // إضافة id فريد
+        // إضافة id فريد لكل توصية إذا لم يكن موجوداً
         allRecommendations = allRecommendations.map((rec, index) => {
-            if (!rec.id) rec.id = index + 1;
+            if (!rec.id) rec.id = 'rec_' + Date.now() + '_' + index + '_' + Math.random();
             return rec;
         });
         
@@ -278,16 +224,41 @@
         updateRecStats();
         displayRecommendations();
     }
+    
+    // دالة لعرض التوصية كاملة (متصلة بـ base.html)
+    window.showFullRecommendationModal = function(text) {
+        if (typeof showFullRecommendation === 'function') {
+            showFullRecommendation(text);
+        } else {
+            // بديل إذا كانت الدالة غير موجودة
+            alert(text);
+        }
+    };
+    
+    // تحديث إحصائيات التوصيات عند تغيير بيانات المستخدم
+    window.addEventListener('refreshUserData', () => {
+        if (window.userData) {
+            updateRecStats();
+        }
+    });
+    
+    // تحديث أولي إذا كانت البيانات موجودة
+    if (window.userData) {
+        setTimeout(() => {
+            updateRecommendationsTab(window.userData);
+        }, 100);
+    }
 </script>
 
 <style>
     .recommendation-card {
-        background: linear-gradient(135deg, #667eea08, #764ba208);
+        background: var(--card-bg, white);
         border-radius: 16px;
         padding: 18px;
         margin-bottom: 16px;
-        border-right: 4px solid var(--primary);
+        border-right: 4px solid var(--primary, #667eea);
         transition: all 0.3s ease;
+        box-shadow: var(--shadow, 0 2px 8px rgba(0,0,0,0.05));
     }
     
     .recommendation-card:hover {
@@ -303,29 +274,6 @@
         font-weight: bold;
     }
     
-    .pin-btn {
-        background: transparent;
-        border: 1px solid #e2e8f0;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 11px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        color: #888;
-    }
-    
-    .pin-btn:hover {
-        background: #f6d36520;
-        border-color: #f6d365;
-        color: #f6d365;
-    }
-    
-    .pin-btn.pinned {
-        background: #f6d36520;
-        border-color: #f6d365;
-        color: #f6d365;
-    }
-    
     .recommendation-text-full {
         scrollbar-width: thin;
     }
@@ -335,17 +283,17 @@
     }
     
     .recommendation-text-full::-webkit-scrollbar-track {
-        background: #e2e8f0;
+        background: var(--border, #e2e8f0);
         border-radius: 10px;
     }
     
     .recommendation-text-full::-webkit-scrollbar-thumb {
-        background: var(--primary);
+        background: var(--primary, #667eea);
         border-radius: 10px;
     }
     
     .btn-view {
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        background: linear-gradient(135deg, var(--primary, #667eea), var(--secondary, #764ba2));
         color: white;
         border: none;
         padding: 6px 14px;
@@ -360,12 +308,34 @@
         opacity: 0.9;
     }
     
-    #sortRecsSelect:focus {
-        outline: none;
-        border-color: var(--primary);
+    #sortRecsSelect {
+        cursor: pointer;
+        transition: all 0.2s ease;
     }
     
-    #saveSettingsBtn:hover {
-        transform: scale(1.02);
+    #sortRecsSelect:focus {
+        outline: none;
+        border-color: var(--primary, #667eea);
+    }
+    
+    /* دعم الوضع المظلم */
+    body.dark .recommendation-card {
+        background: var(--card-bg, #2d3748);
+    }
+    
+    body.dark .recommendation-text-full {
+        background: var(--hover-bg, #374151);
+        color: var(--text, #f7fafc);
+    }
+    
+    body.dark #sortRecsSelect {
+        background: var(--card-bg, #2d3748);
+        color: var(--text, #f7fafc);
+        border-color: var(--border, #4a5568);
+    }
+    
+    body.dark #sortRecsSelect option {
+        background: var(--card-bg, #2d3748);
+        color: var(--text, #f7fafc);
     }
 </style>

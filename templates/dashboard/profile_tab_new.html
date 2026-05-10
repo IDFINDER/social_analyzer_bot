@@ -1,7 +1,17 @@
 <div class="card">
     <h3><i class="fas fa-user-circle"></i> ملفي الشخصي</h3>
     
-    <!-- المعلومات الأساسية (بدون صورة) -->
+    <!-- صف الأزرار العلوية: زر التحديث + زر الوضع المظلم -->
+    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <button onclick="manualRefresh()" style="flex: 2; background: linear-gradient(135deg, #48bb78, #38a169); color: white; border: none; padding: 10px; border-radius: 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <i class="fas fa-sync-alt"></i> تحديث البيانات
+        </button>
+        <button id="themeToggleBtn" onclick="toggleThemeFromProfile()" style="width: 50px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center;">
+            🌙
+        </button>
+    </div>
+    <p style="font-size: 10px; color: #888; text-align: center; margin-top: -8px; margin-bottom: 6px;">💡 بعد تعديل أي حساب، اضغط تحديث البيانات</p>
+    
     <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
         <div style="flex: 1;">
             <div style="display: flex; justify-content: space-between; padding: 5px 0;">
@@ -19,23 +29,21 @@
         </div>
     </div>
     
-    <!-- إحصائيات سريعة -->
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 16px;">
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 15px 0; padding: 10px; background: var(--hover-bg, #f8f9fa); border-radius: 16px;">
         <div style="text-align: center;">
             <div id="totalAnalyses" style="font-size: 18px; font-weight: bold; color: #667eea;">0</div>
-            <div style="font-size: 10px; color: #888;">📊 تحليلات</div>
+            <div style="font-size: 10px; color: var(--text-light, #888);">📊 تحليلات</div>
         </div>
         <div style="text-align: center;">
             <div id="totalRecommendations" style="font-size: 18px; font-weight: bold; color: #48bb78;">0</div>
-            <div style="font-size: 10px; color: #888;">🤖 توصيات</div>
+            <div style="font-size: 10px; color: var(--text-light, #888);">🤖 توصيات</div>
         </div>
         <div style="text-align: center;">
             <div id="lastActive" style="font-size: 12px; font-weight: bold; color: #ed8936;">-</div>
-            <div style="font-size: 10px; color: #888;">🕒 آخر نشاط</div>
+            <div style="font-size: 10px; color: var(--text-light, #888);">🕒 آخر نشاط</div>
         </div>
     </div>
     
-    <!-- شريط نسبة إكمال الملف -->
     <div style="margin: 15px 0;">
         <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px;">
             <span><i class="fas fa-chart-line"></i> نسبة اكمال ملفك الشخصي</span>
@@ -44,14 +52,12 @@
         <div style="background: #e2e8f0; border-radius: 20px; height: 8px; overflow: hidden;">
             <div id="completionBar" style="width: 0%; height: 100%; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 20px; transition: width 0.5s;"></div>
         </div>
-        <div id="completionMessage" style="font-size: 10px; color: #888; margin-top: 5px;"></div>
+        <div id="completionMessage" style="font-size: 10px; color: var(--text-light, #888); margin-top: 5px;"></div>
     </div>
     
-    <!-- تنبيهات الحسابات -->
     <div id="accountAlerts" style="margin: 15px 0;"></div>
     
-    <!-- تاريخ الانضمام واللغة -->
-    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid #eee; margin-top: 10px;">
+    <div style="display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--border, #eee); margin-top: 10px;">
         <span>📅 تاريخ الانضمام:</span>
         <span id="joinDate" style="font-weight: bold;">-</span>
     </div>
@@ -61,279 +67,579 @@
     </div>
 </div>
 
-<!-- رابط صفحة البايو (بدون QR Code) -->
-<div id="bioLinkCard" class="card" style="display: none;">
-    <h3><i class="fas fa-link"></i> صفحتي الشخصية</h3>
-    <div style="background: linear-gradient(135deg, #667eea10, #764ba210); border-radius: 16px; padding: 15px; text-align: center;">
-        <div style="font-size: 13px; margin-bottom: 8px;">
-            👁️ <span id="bioViews">0</span> مشاهدة
-        </div>
-        <a id="bioLink" href="#" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 10px 20px; border-radius: 30px; text-decoration: none; font-size: 14px;">
-            <i class="fas fa-id-card"></i> صفحتي الشخصية
-        </a>
-        <p style="font-size: 10px; color: #888; margin-top: 8px;">اضغط للنسخ والمشاركة</p>
-    </div>
-</div>
-
-<!-- إنجازات المستخدم -->
+<!-- ========== بطاقة الإنجازات ========== -->
 <div class="card">
     <h3><i class="fas fa-trophy"></i> إنجازاتي 🏆</h3>
-    <div id="achievementsList" style="display: flex; flex-wrap: wrap; gap: 10px;">
-        <!-- سيتم تعبئتها بواسطة JavaScript -->
+    <div id="achievementsList" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
+</div>
+
+<!-- ========== بطاقة صفحة البايو المتطورة ========== -->
+<div id="bioLinkCard" class="card" style="display: none;">
+    <h3><i class="fas fa-id-card"></i> صفحة البايو الخاصة بي</h3>
+    
+    <!-- إحصائيات سريعة -->
+    <div style="display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #667eea10, #764ba210); border-radius: 16px; padding: 12px; margin-bottom: 15px;">
+        <div style="text-align: center; flex: 1;">
+            <div style="font-size: 20px; font-weight: bold; color: #667eea;" id="bioViews">0</div>
+            <div style="font-size: 10px; color: var(--text-light, #888);">👁️ مشاهدة</div>
+        </div>
+        <div style="text-align: center; flex: 1;">
+            <div style="font-size: 20px; font-weight: bold; color: #48bb78;" id="bioDisplayName">-</div>
+            <div style="font-size: 10px; color: var(--text-light, #888);">📛 الاسم المعروض</div>
+        </div>
     </div>
+    
+    <!-- أزرار التحكم في صفحة البايو -->
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+        <button id="editBioNameBtn" onclick="editBioDisplayName()" style="flex: 1; background: #17a2b8; color: white; border: none; padding: 8px; border-radius: 12px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+            <i class="fas fa-user-edit"></i> تعديل الاسم
+        </button>
+        <button id="editBioTextBtn" onclick="editBioText()" style="flex: 1; background: #6f42c1; color: white; border: none; padding: 8px; border-radius: 12px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+            <i class="fas fa-align-left"></i> تعديل النبذة
+        </button>
+        <button id="editBioAvatarBtn" onclick="editBioAvatar()" style="flex: 1; background: #e94560; color: white; border: none; padding: 8px; border-radius: 12px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+            <i class="fas fa-image"></i> تعديل الصورة
+        </button>
+    </div>
+    
+    <!-- قائمة منسدلة لاختيار الثيم -->
+    <div style="margin-bottom: 15px;">
+        <label style="font-size: 12px; color: var(--text-light, #888); display: block; margin-bottom: 5px;">
+            <i class="fas fa-palette"></i> اختيار الثيم:
+        </label>
+        <select id="themeSelect" onchange="changeTheme()" style="width: 100%; padding: 8px; border-radius: 12px; border: 1px solid var(--border, #ddd); background: var(--card-bg, white); color: var(--text, #2d3748); cursor: pointer;">
+            <option value="default">☀️ فاتح (افتراضي)</option>
+            <option value="dark">🌙 داكن</option>
+            <option value="green">🍃 أخضر</option>
+            <option value="pink">🌸 وردي</option>
+            <option value="ocean">🌊 محيط (أزرق)</option>
+        </select>
+    </div>
+    
+    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+        <a id="bioLink" href="#" target="_blank" style="flex: 1; background: linear-gradient(135deg, #667eea, #764ba2); color: white; text-decoration: none; padding: 8px; border-radius: 12px; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+            <i class="fas fa-eye"></i> معاينة الصفحة
+        </a>
+        <button onclick="copyBioLink()" style="flex: 1; background: #28a745; color: white; border: none; padding: 8px; border-radius: 12px; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+            <i class="fas fa-copy"></i> نسخ الرابط
+        </button>
+    </div>
+    
+    <p style="font-size: 10px; color: var(--text-light, #888); text-align: center; margin-top: 12px;">
+        💡 ملاحظة: الاسم والنبذة التي تعدلها هنا تظهر فقط في صفحة البايو ولا تؤثر على بيانات البوت
+    </p>
 </div>
 
 <div class="card">
     <h3><i class="fas fa-link"></i> حساباتي المسجلة</h3>
+    <div style="background: #e8f0fe; border-radius: 12px; padding: 8px 12px; margin-bottom: 12px; font-size: 11px; color: #667eea; display: flex; align-items: center; gap: 8px;">
+        <i class="fas fa-info-circle"></i> <span>💡 تلميح: اضغط على اسم الحساب للانتقال إلى صفحته مباشرة</span>
+    </div>
     <div id="accountsList"></div>
 </div>
 
-<!-- مسافة فارغة أسفل الصفحة لظهور جميع المحتوى -->
 <div style="height: 80px;"></div>
 
-<script>
-    // ========== معلومات المنصات (مع إضافة سناب شات) ==========
-    const platformInfo = {
-        youtube: { name: 'يوتيوب', icon: 'fab fa-youtube', color: '#ff0000', baseUrl: 'https://youtube.com/@' },
-        instagram: { name: 'انستقرام', icon: 'fab fa-instagram', color: '#e1306c', baseUrl: 'https://instagram.com/' },
-        tiktok: { name: 'تيك توك', icon: 'fab fa-tiktok', color: '#000000', baseUrl: 'https://tiktok.com/@' },
-        facebook: { name: 'فيسبوك', icon: 'fab fa-facebook-f', color: '#1877f2', baseUrl: 'https://facebook.com/' },
-        snapchat: { name: 'سناب شات', icon: 'fab fa-snapchat', color: '#fffc00', baseUrl: 'https://snapchat.com/add/' }
-    };
-    
-    // ترتيب عرض المنصات (مع إضافة snapchat)
-    const platformOrder = ['youtube', 'instagram', 'tiktok', 'facebook', 'snapchat'];
-    
-    // أيقونات الإنجازات
-    const achievementsConfig = {
-        first_analysis: { icon: '🎯', name: 'أول تحليل', desc: 'أجرى أول تحليل لحساب', color: '#667eea' },
-        ten_analyses: { icon: '📊', name: '10 تحليلات', desc: 'أجرى 10 تحليلات', color: '#48bb78' },
-        fifty_analyses: { icon: '🔥', name: '50 تحليلاً', desc: 'أجرى 50 تحليلاً', color: '#ed8936' },
-        premium: { icon: '👑', name: 'مشترك مميز', desc: 'اشترك في الخطة المميزة', color: '#e94560' },
-        first_recommendation: { icon: '🤖', name: 'أول توصية', desc: 'حصل على أول توصية AI', color: '#9b59b6' },
-        complete_profile: { icon: '✅', name: 'ملف كامل', desc: 'أكمل جميع حسابات التواصل', color: '#38a169' },
-        bio_page: { icon: '📄', name: 'صفحة بايو', desc: 'فعّل صفحة البايو الشخصية', color: '#f6d365' }
-    };
-    
-    function updateProfileTab(data) {
-        // ========== المعلومات الأساسية ==========
-        document.getElementById('userName').innerText = data.user.first_name || '-';
-        document.getElementById('userHandle').innerText = data.user.username ? `@${data.user.username}` : '-';
-        
-        // الحالة
-        const statusSpan = document.getElementById('userStatus');
-        if (data.is_premium) {
-            statusSpan.innerHTML = '<span class="success-badge">👑 مميز</span>';
-        } else {
-            statusSpan.innerHTML = '<span class="warning-badge">🎁 مجاني</span>';
-        }
-        
-        // ========== إحصائيات سريعة ==========
-        const totalUses = data.stats?.total_uses || 0;
-        const totalGeminiUses = data.gemini_uses || 0;
-        document.getElementById('totalAnalyses').innerHTML = totalUses;
-        document.getElementById('totalRecommendations').innerHTML = totalGeminiUses;
-        
-        // آخر نشاط
-        if (data.user.last_activity) {
-            const lastActive = new Date(data.user.last_activity);
-            const now = new Date();
-            const diffDays = Math.floor((now - lastActive) / (1000 * 60 * 60 * 24));
-            if (diffDays === 0) {
-                document.getElementById('lastActive').innerHTML = 'اليوم';
-            } else if (diffDays === 1) {
-                document.getElementById('lastActive').innerHTML = 'أمس';
-            } else {
-                document.getElementById('lastActive').innerHTML = `منذ ${diffDays} يوم`;
-            }
-        } else {
-            document.getElementById('lastActive').innerHTML = 'غير محدد';
-        }
-        
-        // ========== نسبة إكمال الملف ==========
-        const accounts = data.accounts || {};
-        let completedAccounts = 0;
-        let totalAccounts = platformOrder.length;
-        
-        for (const platform of platformOrder) {
-            if (accounts[platform] && accounts[platform].account_identifier) {
-                completedAccounts++;
-            }
-        }
-        
-        // عوامل إضافية للإكمال
-        let extraPoints = 0;
-        if (data.user.first_name) extraPoints += 10;
-        if (data.user.username) extraPoints += 10;
-        if (data.is_premium) extraPoints += 20;
-        if (data.bio_page) extraPoints += 20;
-        
-        const completionPercent = Math.min(100, Math.floor((completedAccounts / totalAccounts) * 60 + extraPoints));
-        document.getElementById('completionPercent').innerHTML = `${completionPercent}%`;
-        document.getElementById('completionBar').style.width = `${completionPercent}%`;
-        
-        let completionMessage = '';
-        if (completionPercent === 100) {
-            completionMessage = '🎉 مذهل! ملفك مكتمل بالكامل';
-        } else if (completionPercent >= 70) {
-            completionMessage = '👍 ممتاز! قريب من الاكتمال';
-        } else if (completionPercent >= 40) {
-            completionMessage = '📝 يمكنك إضافة المزيد من الحسابات';
-        } else {
-            completionMessage = '✨ أضف حساباتك للحصول على تجربة أفضل';
-        }
-        document.getElementById('completionMessage').innerHTML = completionMessage;
-        
-        // ========== تنبيهات الحسابات ==========
-        const accountAlerts = document.getElementById('accountAlerts');
-        let alertsHtml = '';
-        
-        for (const platform of platformOrder) {
-            const acc = accounts[platform];
-            if (!acc || !acc.account_identifier) {
-                alertsHtml += `
-                    <div style="background: #fff3cd; border-right: 3px solid #ffc107; padding: 8px; margin-bottom: 8px; border-radius: 10px; font-size: 12px;">
-                        <i class="fas fa-exclamation-triangle" style="color: #ffc107;"></i>
-                        <strong>${platformInfo[platform].name}</strong>: لم تقم بتسجيل حساب بعد
-                    </div>
-                `;
-            }
-        }
-        
-        if (alertsHtml) {
-            accountAlerts.innerHTML = `<div style="margin-bottom: 8px;"><i class="fas fa-bell"></i> تنبيهات</div>${alertsHtml}`;
-        } else {
-            accountAlerts.innerHTML = '<div style="background: #d4edda; border-right: 3px solid #28a745; padding: 8px; border-radius: 10px; font-size: 12px;"><i class="fas fa-check-circle" style="color: #28a745;"></i> جميع حساباتك مسجلة! ✅</div>';
-        }
-        
-        // ========== تاريخ الانضمام واللغة ==========
-        if (data.user.created_at) {
-            const joinDate = new Date(data.user.created_at).toLocaleDateString('ar-EG', { year: 'numeric', month: 'long', day: 'numeric' });
-            document.getElementById('joinDate').innerHTML = joinDate;
-        } else {
-            document.getElementById('joinDate').innerText = 'غير محدد';
-        }
-        
-        const langNames = {
-            'ar': 'العربية 🇸🇦',
-            'en': 'English 🇬🇧',
-            'fr': 'Français 🇫🇷',
-            'de': 'Deutsch 🇩🇪'
-        };
-        const userLang = data.user.language_code || 'ar';
-        document.getElementById('userLanguage').innerHTML = langNames[userLang] || userLang;
-        
-        // ========== الحسابات المسجلة (مع إضافة سناب شات) ==========
-        const accountsList = document.getElementById('accountsList');
-        let accountsHtml = '';
-        let hasAnyAccount = false;
-        
-        for (const platform of platformOrder) {
-            const acc = accounts[platform];
-            const info = platformInfo[platform];
-            const hasAccount = acc && acc.account_identifier;
-            
-            if (hasAccount) {
-                hasAnyAccount = true;
-                let username = acc.account_identifier;
-                if (username.startsWith('@')) {
-                    username = username.substring(1);
-                }
-                const profileUrl = `${info.baseUrl}${username}`;
-                
-                accountsHtml += `
-                    <div class="account-item">
-                        <div class="account-icon" style="background: ${info.color};">
-                            <i class="${info.icon}" style="color: white;"></i>
-                        </div>
-                        <div style="flex:1;"><strong>${info.name}</strong></div>
-                        <a href="${profileUrl}" target="_blank" rel="noopener noreferrer" 
-                           style="color: ${info.color}; text-decoration: none; font-weight: bold; display: flex; align-items: center; gap: 5px;">
-                            <span>@${username}</span>
-                            <i class="fas fa-external-link-alt" style="font-size: 10px;"></i>
-                        </a>
-                    </div>
-                `;
-            } else {
-                accountsHtml += `
-                    <div class="account-item" style="opacity: 0.6;">
-                        <div class="account-icon" style="background: #ccc;">
-                            <i class="${info.icon}" style="color: white;"></i>
-                        </div>
-                        <div style="flex:1;"><strong>${info.name}</strong></div>
-                        <div style="color: #999; font-size: 12px;">
-                            <i class="fas fa-plus-circle"></i> لم تسجل بعد
-                        </div>
-                    </div>
-                `;
-            }
-        }
-        
-        if (!hasAnyAccount) {
-            accountsHtml = '<div style="text-align:center; padding:20px; color:#888;"><i class="fas fa-info-circle"></i> لا توجد حسابات مسجلة<br><small>استخدم أمر /edit لإضافة حساباتك</small></div>';
-        }
-        accountsList.innerHTML = accountsHtml;
-        
-        // ========== رابط صفحة البايو ==========
-        const bioCard = document.getElementById('bioLinkCard');
-        
-        if (data.is_premium && data.bio_page) {
-            bioCard.style.display = 'block';
-            const bioUrl = data.bio_page.page_url || data.bio_page.url;
-            const fullUrl = `https://social-analyzer-flask.onrender.com/bio/${bioUrl}`;
-            const bioLink = document.getElementById('bioLink');
-            bioLink.href = fullUrl;
-            
-            // نسخ الرابط
-            bioLink.onclick = function(e) {
-                e.preventDefault();
-                navigator.clipboard.writeText(fullUrl);
-                const originalText = bioLink.innerHTML;
-                bioLink.innerHTML = '<i class="fas fa-check"></i> تم النسخ!';
-                setTimeout(() => {
-                    bioLink.innerHTML = originalText;
-                }, 2000);
-            };
-            
-            // عدد المشاهدات
-            const viewsCount = data.bio_page.views_count || 0;
-            document.getElementById('bioViews').innerHTML = viewsCount;
-        } else {
-            bioCard.style.display = 'none';
-        }
-        
-        // ========== إنجازات المستخدم ==========
-        const achievementsList = document.getElementById('achievementsList');
-        let achievements = [];
-        
-        if (totalUses >= 1) achievements.push('first_analysis');
-        if (totalUses >= 10) achievements.push('ten_analyses');
-        if (totalUses >= 50) achievements.push('fifty_analyses');
-        if (data.is_premium) achievements.push('premium');
-        if (totalGeminiUses >= 1) achievements.push('first_recommendation');
-        if (completedAccounts === totalAccounts) achievements.push('complete_profile');
-        if (data.bio_page) achievements.push('bio_page');
-        
-        if (achievements.length > 0) {
-            achievementsList.innerHTML = achievements.map(ach => `
-                <div style="background: linear-gradient(135deg, ${achievementsConfig[ach].color}20, ${achievementsConfig[ach].color}10); border-radius: 12px; padding: 8px 12px; text-align: center; min-width: 80px; border: 1px solid ${achievementsConfig[ach].color}30;">
-                    <div style="font-size: 24px;">${achievementsConfig[ach].icon}</div>
-                    <div style="font-size: 11px; font-weight: bold; color: ${achievementsConfig[ach].color};">${achievementsConfig[ach].name}</div>
-                    <div style="font-size: 9px; color: #888;">${achievementsConfig[ach].desc}</div>
-                </div>
-            `).join('');
-        } else {
-            achievementsList.innerHTML = '<div style="text-align:center; padding:20px; color:#888;"><i class="fas fa-medal"></i> لا توجد إنجازات بعد<br><small>ابدأ باستخدام البوت للحصول على إنجازاتك الأولى!</small></div>';
-        }
-    }
-</script>
+<div id="toastMessage" style="position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #28a745; color: white; padding: 10px 20px; border-radius: 30px; font-size: 14px; z-index: 1000; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+    ✅ تم التحديث بنجاح
+</div>
 
 <style>
-    .account-item a {
-        transition: all 0.2s ease;
+    .account-item { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--border, #eee); }
+    .account-info { flex: 1; display: flex; align-items: center; gap: 12px; }
+    .account-actions { display: flex; gap: 8px; }
+    .btn-edit, .btn-add, .btn-delete { padding: 5px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; border: none; transition: all 0.2s; }
+    .btn-edit { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+    .btn-add { background: #48bb78; color: white; }
+    .btn-delete { background: #dc3545; color: white; }
+    .btn-edit:hover, .btn-add:hover, .btn-delete:hover { transform: translateY(-2px); opacity: 0.9; }
+    .account-item a { transition: all 0.2s ease; text-decoration: none; cursor: pointer; }
+    .account-item a:hover { opacity: 0.8; text-decoration: underline !important; }
+    
+    /* دعم الوضع المظلم للقائمة المنسدلة */
+    body.dark select#themeSelect {
+        background: #2d3748;
+        color: #f7fafc;
+        border-color: #4a5568;
     }
-    .account-item a:hover {
-        opacity: 0.8;
-        text-decoration: underline !important;
+    
+    body.dark select#themeSelect option {
+        background: #2d3748;
+        color: #f7fafc;
     }
 </style>
+
+<script>
+    (function() {
+        // الحصول على التوكن من الرابط
+        const urlParams = new URLSearchParams(window.location.search);
+        const AUTH_TOKEN = urlParams.get('token');
+        
+        // متغير لتخزين رابط البايو الحالي
+        let currentBioUrl = '';
+        
+        const platformInfo = {
+            youtube: { name: 'يوتيوب', icon: 'fab fa-youtube', color: '#ff0000', baseUrl: 'https://youtube.com/@' },
+            instagram: { name: 'انستقرام', icon: 'fab fa-instagram', color: '#e1306c', baseUrl: 'https://instagram.com/' },
+            tiktok: { name: 'تيك توك', icon: 'fab fa-tiktok', color: '#000000', baseUrl: 'https://tiktok.com/@' },
+            facebook: { name: 'فيسبوك', icon: 'fab fa-facebook-f', color: '#1877f2', baseUrl: 'https://facebook.com/' },
+            snapchat: { name: 'سناب شات', icon: 'fab fa-snapchat', color: '#fffc00', baseUrl: 'https://snapchat.com/add/' }
+        };
+        
+        const platformOrder = ['youtube', 'instagram', 'tiktok', 'facebook', 'snapchat'];
+        
+        const achievementsConfig = {
+            first_analysis: { icon: '🎯', name: 'أول تحليل', desc: 'أجرى أول تحليل لحساب', color: '#667eea' },
+            ten_analyses: { icon: '📊', name: '10 تحليلات', desc: 'أجرى 10 تحليلات', color: '#48bb78' },
+            fifty_analyses: { icon: '🔥', name: '50 تحليلاً', desc: 'أجرى 50 تحليلاً', color: '#ed8936' },
+            premium: { icon: '👑', name: 'مشترك مميز', desc: 'اشترك في الخطة المميزة', color: '#e94560' },
+            first_recommendation: { icon: '🤖', name: 'أول توصية', desc: 'حصل على أول توصية AI', color: '#9b59b6' },
+            complete_profile: { icon: '✅', name: 'ملف كامل', desc: 'أكمل جميع حسابات التواصل', color: '#38a169' },
+            bio_page: { icon: '📄', name: 'صفحة بايو', desc: 'فعّل صفحة البايو الشخصية', color: '#f6d365' }
+        };
+        
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toastMessage');
+            if (!toast) return;
+            toast.textContent = message;
+            toast.style.background = isError ? '#dc3545' : '#28a745';
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 3000);
+        }
+        
+        // ========== دالة تبديل الوضع المظلم من داخل التبويب ==========
+        window.toggleThemeFromProfile = async function() {
+            // استدعاء دالة التبديل من base.html إذا كانت موجودة
+            if (typeof window.toggleTheme === 'function') {
+                await window.toggleTheme();
+            } else {
+                // إذا لم تكن موجودة، نقوم بالتبديل محلياً
+                const isDark = document.body.classList.contains('dark');
+                if (isDark) {
+                    document.body.classList.remove('dark');
+                    localStorage.setItem('theme_mode', 'light');
+                    document.getElementById('themeToggleBtn').innerHTML = '🌙';
+                } else {
+                    document.body.classList.add('dark');
+                    localStorage.setItem('theme_mode', 'dark');
+                    document.getElementById('themeToggleBtn').innerHTML = '☀️';
+                }
+                
+                // محاولة حفظ التفضيل في الخادم
+                try {
+                    await fetch('/api/save_theme_preference', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token: AUTH_TOKEN, theme: isDark ? 'light' : 'dark' })
+                    });
+                } catch(e) { console.error('Error saving theme:', e); }
+            }
+            
+            // تحديث أيقونة الزر
+            const isDarkNow = document.body.classList.contains('dark');
+            const toggleBtn = document.getElementById('themeToggleBtn');
+            if (toggleBtn) {
+                toggleBtn.innerHTML = isDarkNow ? '☀️' : '🌙';
+            }
+        };
+        
+        // تحديث أيقونة زر الوضع المظلم عند تحميل الصفحة
+        function updateThemeToggleIcon() {
+            const toggleBtn = document.getElementById('themeToggleBtn');
+            if (toggleBtn) {
+                const isDark = document.body.classList.contains('dark');
+                toggleBtn.innerHTML = isDark ? '☀️' : '🌙';
+            }
+        }
+        
+        // مشاهدة تغييرات الوضع المظلم
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.attributeName === 'class') {
+                    updateThemeToggleIcon();
+                }
+            });
+        });
+        observer.observe(document.body, { attributes: true });
+        
+        // ========== دالة التحديث اليدوية ==========
+        window.manualRefresh = async function() {
+            showToast('🔄 جاري تحديث البيانات...');
+            try {
+                const response = await fetch(`/api/user_data?token=${encodeURIComponent(AUTH_TOKEN)}`);
+                if (response.ok) {
+                    const newData = await response.json();
+                    window.userData = newData;
+                    window.updateProfileTab(newData);
+                    showToast('✅ تم تحديث البيانات بنجاح!');
+                } else {
+                    showToast('❌ فشل تحديث البيانات', true);
+                }
+            } catch (error) {
+                console.error('Error refreshing:', error);
+                showToast('❌ حدث خطأ أثناء التحديث', true);
+            }
+        };
+        
+        // ========== دالة تغيير الثيم ==========
+        window.changeTheme = async function() {
+            const themeSelect = document.getElementById('themeSelect');
+            const selectedTheme = themeSelect.value;
+            
+            const themeNames = { default: 'فاتح', dark: 'داكن', green: 'أخضر', pink: 'وردي', ocean: 'محيط' };
+            
+            try {
+                const response = await fetch('/webapp/api/action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${AUTH_TOKEN}` },
+                    body: JSON.stringify({ action: 'update_theme', theme: selectedTheme })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showToast(`✅ تم تغيير الثيم إلى ${themeNames[selectedTheme]} بنجاح!`);
+                } else {
+                    showToast('❌ فشل تغيير الثيم', true);
+                }
+            } catch (error) {
+                showToast('❌ حدث خطأ', true);
+            }
+        };
+        
+        // ========== دوال صفحة البايو ==========
+        window.editBioDisplayName = async function() {
+            const currentName = document.getElementById('bioDisplayName').innerText;
+            const newName = prompt('✏️ تعديل اسم العرض في صفحة البايو\n\nأدخل الاسم الجديد الذي سيظهر في صفحتك:', currentName);
+            if (newName && newName !== currentName) {
+                try {
+                    const response = await fetch('/webapp/api/action', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${AUTH_TOKEN}` },
+                        body: JSON.stringify({ action: 'update_name', name: newName })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        showToast('✅ تم تحديث اسم العرض بنجاح!\n💡 اضغط زر "تحديث البيانات" لتحديث العرض');
+                        window.dispatchEvent(new CustomEvent('refreshUserData'));
+                    } else {
+                        showToast('❌ فشل تحديث الاسم', true);
+                    }
+                } catch (error) {
+                    showToast('❌ حدث خطأ', true);
+                }
+            }
+        };
+        
+        window.editBioText = async function() {
+            const currentBio = prompt('✏️ تعديل النبذة في صفحة البايو\n\nأدخل النص الجديد (يمكنك استخدام الإيموجي والرموز):', window.currentBioText || '');
+            if (currentBio !== null) {
+                try {
+                    const response = await fetch('/webapp/api/action', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${AUTH_TOKEN}` },
+                        body: JSON.stringify({ action: 'update_bio', bio: currentBio })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        showToast('✅ تم تحديث النبذة بنجاح!\n💡 اضغط زر "تحديث البيانات" لتحديث العرض');
+                        window.currentBioText = currentBio;
+                        window.dispatchEvent(new CustomEvent('refreshUserData'));
+                    } else {
+                        showToast('❌ فشل تحديث النبذة', true);
+                    }
+                } catch (error) {
+                    showToast('❌ حدث خطأ', true);
+                }
+            }
+        };
+        
+        window.editBioAvatar = async function() {
+            const avatarUrl = prompt('🖼️ تعديل الصورة الشخصية في صفحة البايو\n\nأدخل رابط الصورة (URL):\n\n💡 يمكنك استخدام روابط من Imgur أو أي خدمة استضافة صور', '');
+            if (avatarUrl && (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://'))) {
+                try {
+                    const response = await fetch('/webapp/api/action', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${AUTH_TOKEN}` },
+                        body: JSON.stringify({ action: 'update_avatar', avatar_url: avatarUrl })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        showToast('✅ تم تحديث الصورة الشخصية بنجاح!\n💡 اضغط زر "تحديث البيانات" لتحديث العرض');
+                        window.dispatchEvent(new CustomEvent('refreshUserData'));
+                    } else {
+                        showToast('❌ فشل تحديث الصورة', true);
+                    }
+                } catch (error) {
+                    showToast('❌ حدث خطأ', true);
+                }
+            } else if (avatarUrl) {
+                showToast('❌ الرابط غير صالح! يجب أن يبدأ بـ http:// أو https://', true);
+            }
+        };
+        
+        window.copyBioLink = function() {
+            if (currentBioUrl) {
+                navigator.clipboard.writeText(currentBioUrl);
+                showToast('✅ تم نسخ رابط صفحة البايو!');
+            }
+        };
+        
+        // ========== دوال إدارة الحسابات ==========
+        window.deleteAccount = async function(platform, accountName) {
+            const confirmed = confirm(`⚠️ تحذير!\n\nهل أنت متأكد من حذف حساب ${platformInfo[platform].name} (@${accountName})؟\n\n🗑️ سيتم حذف الحساب من قاعدة البيانات نهائياً.\n❌ لن يعود موجوداً في قائمة حساباتك.\n📄 سيتم إزالته من صفحة البايو الخاصة بك.\n\n⚠️ هذا الإجراء لا يمكن التراجع عنه!`);
+            
+            if (confirmed) {
+                try {
+                    const response = await fetch('/webapp/api/action', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${AUTH_TOKEN}` },
+                        body: JSON.stringify({ action: 'delete_account', platform: platform })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        showToast(`✅ تم حذف حساب ${platformInfo[platform].name} بنجاح!\n💡 اضغط زر "تحديث البيانات" لتحديث العرض`);
+                        window.dispatchEvent(new CustomEvent('refreshUserData'));
+                    } else {
+                        showToast(`❌ فشل حذف الحساب: ${result.error || ''}`, true);
+                    }
+                } catch (error) {
+                    showToast(`❌ حدث خطأ أثناء حذف الحساب`, true);
+                }
+            }
+        };
+        
+        window.updateAccount = async function(platform, currentUsername) {
+            const cleanCurrent = currentUsername.replace(/^@/, '');
+            const newUsername = prompt(`✏️ تعديل حساب ${platformInfo[platform].name}\n\nالمعرف الحالي: @${cleanCurrent}\n\nأدخل المعرف الجديد (يمكنك إدخاله مع أو بدون @):`, cleanCurrent);
+            if (newUsername && newUsername !== cleanCurrent) {
+                let cleanNew = newUsername.replace(/^@/, '');
+                if (!cleanNew) {
+                    showToast('❌ المعرف لا يمكن أن يكون فارغاً', true);
+                    return;
+                }
+                try {
+                    const response = await fetch('/webapp/api/action', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${AUTH_TOKEN}` },
+                        body: JSON.stringify({ action: 'update_account', platform: platform, identifier: cleanNew })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        showToast(`✅ تم تحديث حساب ${platformInfo[platform].name} بنجاح!\n💡 اضغط زر "تحديث البيانات" لتحديث العرض`);
+                        window.dispatchEvent(new CustomEvent('refreshUserData'));
+                    } else {
+                        showToast(`❌ فشل تحديث الحساب: ${result.error || ''}`, true);
+                    }
+                } catch (error) {
+                    showToast(`❌ حدث خطأ أثناء تحديث الحساب`, true);
+                }
+            }
+        };
+        
+        window.addAccount = async function(platform) {
+            let newUsername = prompt(`➕ إضافة حساب ${platformInfo[platform].name}\n\nأدخل المعرف (يمكنك إدخاله مع أو بدون @):`, '');
+            if (newUsername) {
+                let cleanNew = newUsername.replace(/^@/, '');
+                if (!cleanNew) {
+                    showToast('❌ المعرف لا يمكن أن يكون فارغاً', true);
+                    return;
+                }
+                try {
+                    const response = await fetch('/webapp/api/action', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${AUTH_TOKEN}` },
+                        body: JSON.stringify({ action: 'add_account', platform: platform, identifier: cleanNew })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        showToast(`✅ تم إضافة حساب ${platformInfo[platform].name} بنجاح!\n💡 اضغط زر "تحديث البيانات" لتحديث العرض`);
+                        window.dispatchEvent(new CustomEvent('refreshUserData'));
+                    } else {
+                        showToast(`❌ فشل إضافة الحساب`, true);
+                    }
+                } catch (error) {
+                    showToast(`❌ حدث خطأ أثناء إضافة الحساب`, true);
+                }
+            }
+        };
+        
+        // ========== دالة تحديث التبويب ==========
+        window.updateProfileTab = function(data) {
+            if (!data) return;
+            window.userData = data;
+            
+            document.getElementById('userName').innerText = data.user?.first_name || '-';
+            document.getElementById('userHandle').innerText = data.user?.username ? `@${data.user.username}` : '-';
+            
+            const statusSpan = document.getElementById('userStatus');
+            if (statusSpan) {
+                if (data.is_premium) statusSpan.innerHTML = '<span class="success-badge">👑 مميز</span>';
+                else statusSpan.innerHTML = '<span class="warning-badge">🎁 مجاني</span>';
+            }
+            
+            // عرض آخر نشاط
+            const totalUses = data.stats?.total_uses || 0;
+            const totalGeminiUses = data.gemini_uses || 0;
+            document.getElementById('totalAnalyses').innerHTML = totalUses;
+            document.getElementById('totalRecommendations').innerHTML = totalGeminiUses;
+            
+            if (data.user?.updated_at) {
+                const lastActiveDate = new Date(data.user.updated_at);
+                const now = new Date();
+                const diffDays = Math.floor((now - lastActiveDate) / (1000 * 60 * 60 * 24));
+                if (diffDays === 0) {
+                    document.getElementById('lastActive').innerHTML = 'اليوم';
+                } else if (diffDays === 1) {
+                    document.getElementById('lastActive').innerHTML = 'أمس';
+                } else {
+                    document.getElementById('lastActive').innerHTML = `منذ ${diffDays} يوم`;
+                }
+            } else {
+                document.getElementById('lastActive').innerHTML = 'لا توجد تحليلات';
+            }
+            
+            const accounts = data.accounts || {};
+            let completedAccounts = 0;
+            for (const platform of platformOrder) {
+                if (accounts[platform]?.account_identifier) completedAccounts++;
+            }
+            
+            let extraPoints = 0;
+            if (data.user?.first_name) extraPoints += 10;
+            if (data.user?.username) extraPoints += 10;
+            if (data.is_premium) extraPoints += 20;
+            if (data.bio_page) extraPoints += 20;
+            const completionPercent = Math.min(100, Math.floor((completedAccounts / platformOrder.length) * 60 + extraPoints));
+            document.getElementById('completionPercent').innerHTML = `${completionPercent}%`;
+            document.getElementById('completionBar').style.width = `${completionPercent}%`;
+            
+            if (data.user?.created_at) {
+                const joinDate = new Date(data.user.created_at).toLocaleDateString('ar-EG');
+                document.getElementById('joinDate').innerHTML = joinDate;
+            }
+            
+            // عرض اللغة المفضلة
+            const langNames = {
+                'ar': 'العربية 🇸🇦',
+                'en': 'English 🇬🇧',
+                'fr': 'Français 🇫🇷',
+                'de': 'Deutsch 🇩🇪',
+                'tr': 'Türkçe 🇹🇷',
+                'ru': 'Русский 🇷🇺',
+                'es': 'Español 🇪🇸'
+            };
+            const userLang = data.user?.language_code || 'ar';
+            document.getElementById('userLanguage').innerHTML = langNames[userLang] || userLang;
+            
+            // تحديث صفحة البايو
+            const bioCard = document.getElementById('bioLinkCard');
+            if (bioCard) {
+                if (data.is_premium && data.bio_page) {
+                    bioCard.style.display = 'block';
+                    const fullUrl = `https://social-analyzer-flask.onrender.com/bio/${data.bio_page.page_url}`;
+                    currentBioUrl = fullUrl;
+                    const bioLink = document.getElementById('bioLink');
+                    if (bioLink) bioLink.href = fullUrl;
+                    const viewsSpan = document.getElementById('bioViews');
+                    if (viewsSpan) viewsSpan.innerHTML = data.bio_page.views_count || 0;
+                    const displayNameSpan = document.getElementById('bioDisplayName');
+                    if (displayNameSpan) displayNameSpan.innerHTML = data.user?.first_name || '-';
+                    window.currentBioText = data.bio_page.bio || '';
+                    
+                    const themeSelect = document.getElementById('themeSelect');
+                    if (themeSelect && data.bio_page.theme_name) {
+                        themeSelect.value = data.bio_page.theme_name;
+                    }
+                } else {
+                    bioCard.style.display = 'none';
+                }
+            }
+            
+            // عرض الحسابات المسجلة
+            const accountsList = document.getElementById('accountsList');
+            if (accountsList) {
+                let html = '';
+                let hasAny = false;
+                for (const platform of platformOrder) {
+                    const acc = accounts[platform];
+                    const info = platformInfo[platform];
+                    if (acc?.account_identifier) {
+                        hasAny = true;
+                        let username = acc.account_identifier.replace(/^@/, '');
+                        const profileUrl = `${info.baseUrl}${username}`;
+                        html += `
+                            <div class="account-item">
+                                <div class="account-info">
+                                    <div style="background: ${info.color}20; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="${info.icon}" style="color: ${info.color};"></i>
+                                    </div>
+                                    <div style="flex: 1;">
+                                        <strong>${info.name}</strong>
+                                        <div><a href="${profileUrl}" target="_blank" style="color: ${info.color}; cursor: pointer;">@${username} <i class="fas fa-external-link-alt" style="font-size: 9px;"></i></a></div>
+                                    </div>
+                                </div>
+                                <div class="account-actions">
+                                    <button class="btn-edit" onclick="updateAccount('${platform}', '${acc.account_identifier}')"><i class="fas fa-edit"></i></button>
+                                    <button class="btn-delete" onclick="deleteAccount('${platform}', '${username}')"><i class="fas fa-trash-alt"></i></button>
+                                </div>
+                            </div>`;
+                    } else {
+                        html += `
+                            <div class="account-item" style="opacity:0.7;">
+                                <div class="account-info">
+                                    <div style="background:#ccc; border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center;">
+                                        <i class="${info.icon}" style="color:white;"></i>
+                                    </div>
+                                    <div><strong>${info.name}</strong><div style="font-size:11px; color:#999;">غير مسجل</div></div>
+                                </div>
+                                <div class="account-actions">
+                                    <button class="btn-add" onclick="addAccount('${platform}')"><i class="fas fa-plus"></i> إضافة</button>
+                                </div>
+                            </div>`;
+                    }
+                }
+                if (!hasAny) html = '<div style="text-align:center; padding:20px; color:#888;">لا توجد حسابات مسجلة</div>';
+                accountsList.innerHTML = html;
+            }
+            
+            // عرض الإنجازات
+            const achievementsList = document.getElementById('achievementsList');
+            if (achievementsList) {
+                let achievements = [];
+                if (totalUses >= 1) achievements.push('first_analysis');
+                if (totalUses >= 10) achievements.push('ten_analyses');
+                if (totalUses >= 50) achievements.push('fifty_analyses');
+                if (data.is_premium) achievements.push('premium');
+                if (totalGeminiUses >= 1) achievements.push('first_recommendation');
+                if (completedAccounts === platformOrder.length) achievements.push('complete_profile');
+                if (data.bio_page) achievements.push('bio_page');
+                
+                if (achievements.length > 0) {
+                    achievementsList.innerHTML = achievements.map(ach => `
+                        <div style="background: linear-gradient(135deg, ${achievementsConfig[ach].color}20, ${achievementsConfig[ach].color}10); border-radius: 12px; padding: 8px 12px; text-align: center; min-width: 80px; border: 1px solid ${achievementsConfig[ach].color}30;">
+                            <div style="font-size: 24px;">${achievementsConfig[ach].icon}</div>
+                            <div style="font-size: 11px; font-weight: bold; color: ${achievementsConfig[ach].color};">${achievementsConfig[ach].name}</div>
+                            <div style="font-size: 9px; color: var(--text-light, #888);">${achievementsConfig[ach].desc}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    achievementsList.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-light, #888);"><i class="fas fa-medal"></i> لا توجد إنجازات بعد<br><small>ابدأ باستخدام البوت للحصول على إنجازاتك الأولى!</small></div>';
+                }
+            }
+            
+            // تحديث أيقونة زر الوضع المظلم
+            updateThemeToggleIcon();
+        };
+        
+        window.addEventListener('refreshUserData', () => {
+            if (window.userData) window.updateProfileTab(window.userData);
+        });
+        
+        // تحديث أولي
+        if (window.userData) {
+            window.updateProfileTab(window.userData);
+        }
+        
+        // تحديث أيقونة الزر بعد تحميل الصفحة
+        setTimeout(updateThemeToggleIcon, 100);
+    })();
+</script>
