@@ -207,7 +207,6 @@ def increment_usage(user_id, platform, analysis_results=None):
 
 
 def can_analyze(user_id):
-    """التحقق مما إذا كان المستخدم يمكنه التحليل"""
     user = get_user_info(user_id)
     if not user:
         return True, 0
@@ -221,12 +220,14 @@ def can_analyze(user_id):
     if user['status'] == 'premium':
         return True, 0
     
-    # للمستخدمين المجانيين - جلب daily_uses من جدول users مباشرة
+    # ✅ التعديل: جلب الحد اليومي من bot_settings_social
+    free_limit = int(get_bot_setting('free_limit', '2'))
+    
     try:
         response = supabase.table('users').select('daily_uses').eq('user_id', user_id).execute()
         daily_uses = response.data[0]['daily_uses'] if response.data else 0
         
-        if daily_uses >= FREE_LIMIT:
+        if daily_uses >= free_limit:
             return False, daily_uses
         return True, daily_uses
     except Exception as e:
@@ -235,7 +236,6 @@ def can_analyze(user_id):
 
 
 def get_remaining_analyses(user_id):
-    """الحصول على عدد التحليلات المتبقية للمستخدم"""
     user = get_user_info(user_id)
     if not user:
         return 0
@@ -243,14 +243,17 @@ def get_remaining_analyses(user_id):
     if user['status'] == 'premium':
         return -1
     
+    # ✅ التعديل: جلب الحد اليومي من bot_settings_social
+    free_limit = int(get_bot_setting('free_limit', '2'))
+    
     try:
         response = supabase.table('users').select('daily_uses').eq('user_id', user_id).execute()
         current_uses = response.data[0]['daily_uses'] if response.data else 0
-        remaining = FREE_LIMIT - current_uses
+        remaining = free_limit - current_uses
         return max(0, remaining)
     except Exception as e:
         logger.error(f"Error in get_remaining_analyses: {e}")
-        return FREE_LIMIT
+        return free_limit
 
 
 def get_total_analyses(user_id):
@@ -290,20 +293,36 @@ def get_user_account(user_id, platform):
 def save_user_account(user_id, platform, account_identifier, is_active=True):
     """حفظ أو تحديث حساب مستخدم"""
     try:
-        supabase.table('user_social_accounts').upsert({
-            'user_id': user_id,
-            'platform': platform,
-            'account_identifier': account_identifier,
-            'is_active': is_active,
-            'updated_at': datetime.now().isoformat()
-        }).execute()
+        # أولاً: التحقق من وجود الحساب
+        existing = supabase.table('user_social_accounts')\
+            .select('*')\
+            .eq('user_id', user_id)\
+            .eq('platform', platform)\
+            .execute()
         
-        logger.info(f"✅ تم حفظ حساب {platform} للمستخدم {user_id}")
+        if existing.data:
+            # تحديث الحساب الموجود
+            supabase.table('user_social_accounts').update({
+                'account_identifier': account_identifier,
+                'is_active': is_active,
+                'updated_at': datetime.now().isoformat()
+            }).eq('user_id', user_id).eq('platform', platform).execute()
+            logger.info(f"✅ تم تحديث حساب {platform} للمستخدم {user_id}")
+        else:
+            # إضافة حساب جديد
+            supabase.table('user_social_accounts').insert({
+                'user_id': user_id,
+                'platform': platform,
+                'account_identifier': account_identifier,
+                'is_active': is_active,
+                'updated_at': datetime.now().isoformat()
+            }).execute()
+            logger.info(f"✅ تم إضافة حساب {platform} للمستخدم {user_id}")
+        
         return True
     except Exception as e:
         logger.error(f"Error saving user account: {e}")
         return False
-
 
 def delete_user_account(user_id, platform):
     """حذف حساب مستخدم"""
@@ -314,8 +333,6 @@ def delete_user_account(user_id, platform):
     except Exception as e:
         logger.error(f"Error deleting user account: {e}")
         return False
-
-
 # ========== دوال Gemini API (قراءة/كتابة - supabase) ==========
 
 def get_gemini_usage(user_id):
@@ -333,6 +350,8 @@ def can_use_gemini(user_id):
     """التحقق مما إذا كان المستخدم يمكنه استخدام توصيات Gemini (شهرياً)"""
     try:
         user = get_user_info(user_id)
+        if not user:
+            return False, 0, "❌ حدث خطأ، يرجى المحاولة لاحقاً"
         
         # جلب الحد المسموح حسب نوع المستخدم
         if user['status'] == 'free':
@@ -349,7 +368,8 @@ def can_use_gemini(user_id):
         if usage and usage.get('last_use_month') != current_month:
             supabase.table('gemini_usage').update({
                 'monthly_recommendations': 0,
-                'last_use_month': current_month
+                'last_use_month': current_month,
+                'updated_at': datetime.now().isoformat()
             }).eq('user_id', user_id).execute()
             monthly_uses = 0
         elif usage:
@@ -364,7 +384,8 @@ def can_use_gemini(user_id):
             monthly_uses = 0
         
         if monthly_uses >= monthly_limit:
-            return False, monthly_limit, f"⚠️ لقد وصلت للحد الشهري لاستخدام التوصيات!\n\n📊 الحد المسموح: {monthly_limit} توصية شهرياً\n📅 سيتم تجديده في الشهر القادم"
+            message = f"⚠️ لقد وصلت للحد الشهري لاستخدام التوصيات!\n\n📊 الحد المسموح: {monthly_limit} توصية شهرياً\n✅ استخدمت هذا الشهر: {monthly_uses}\n📅 سيتم تجديده في الشهر القادم"
+            return False, monthly_limit, message
         
         remaining = monthly_limit - monthly_uses
         return True, remaining, None
@@ -1464,3 +1485,48 @@ def activate_extra_recs(user_id, extra_recs):
     except Exception as e:
         logger.error(f"Error activating extra recs: {e}")
         return False
+ # ========== الحصول على عدد التوصيات المتبقية للمستخدم ==========       
+def get_gemini_remaining(user_id):
+    """الحصول على عدد التوصيات المتبقية للمستخدم"""
+    try:
+        user = get_user_info(user_id)
+        if not user:
+            return 0
+        
+        # للمستخدمين المجانيين
+        if user['status'] == 'free':
+            monthly_limit = int(get_bot_setting('gemini_free_limit', '0'))
+            if monthly_limit <= 0:
+                return 0
+            
+            usage = get_gemini_usage(user_id)
+            today = date.today()
+            current_month = today.strftime('%Y-%m')
+            
+            if usage and usage.get('last_use_month') != current_month:
+                monthly_uses = 0
+            elif usage:
+                monthly_uses = usage.get('monthly_recommendations', 0)
+            else:
+                monthly_uses = 0
+            
+            return max(0, monthly_limit - monthly_uses)
+        
+        # للمستخدمين المميزين
+        monthly_limit = get_user_gemini_limit(user_id)
+        usage = get_gemini_usage(user_id)
+        today = date.today()
+        current_month = today.strftime('%Y-%m')
+        
+        if usage and usage.get('last_use_month') != current_month:
+            monthly_uses = 0
+        elif usage:
+            monthly_uses = usage.get('monthly_recommendations', 0)
+        else:
+            monthly_uses = 0
+        
+        return max(0, monthly_limit - monthly_uses)
+        
+    except Exception as e:
+        logger.error(f"Error in get_gemini_remaining: {e}")
+        return 0
