@@ -8,6 +8,9 @@
     <!-- الخطوط -->
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     
+    <!-- Font Awesome للأيقونات -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
     <!-- تحميل CSS الأساسي أولاً -->
     <link rel="preload" href="{{ url_for('static', filename='themes/' + theme_name + '.css') }}" as="style">
     <link rel="stylesheet" href="{{ url_for('static', filename='themes/' + theme_name + '.css') }}">
@@ -51,7 +54,7 @@
         .avatar {
             width: 100%;
             height: 100%;
-            object-fit: cover;  /* تغطي الإطار بالكامل مع الحفاظ على النسب */
+            object-fit: cover;
             object-position: center;
             transition: transform 0.3s ease;
             display: block;
@@ -107,6 +110,14 @@
             line-height: 1.7;
             font-size: 14px;
             text-align: center;
+            background: rgba(0,0,0,0.03);
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        
+        /* تحسين عرض النبذة عندما تكون فارغة */
+        .bio:empty {
+            display: none;
         }
         
         .divider {
@@ -149,50 +160,112 @@
             margin-top: 5px;
         }
         
-        /* أزرار الحسابات */
-.account-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    width: 85%;
-    margin: 12px auto;
-    padding: 12px 20px;
-    border-radius: 50px;
-    text-decoration: none;
-    font-size: 16px;
-    font-weight: bold;      /* نص عريض */
-    text-transform: uppercase; /* (اختياري) لجعل النص كبير */
-    transition: all 0.3s ease;
-    color: white;
-    border: none;
-    cursor: pointer;
-}
+        /* ===== أزرار الحسابات بتصميم احترافي ===== */
+        .account-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 85%;
+            margin: 12px auto;
+            padding: 12px 20px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            color: white;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .account-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.1);
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform 0.3s ease;
+        }
+        
+        .account-btn:hover::before {
+            transform: scaleX(1);
+            transform-origin: left;
+        }
         
         .account-btn:hover {
             transform: translateY(-3px);
-            opacity: 0.92;
+            filter: brightness(1.05);
         }
         
-        .account-icon {
+        .account-btn i {
+            font-size: 20px;
             width: 24px;
-            height: 24px;
+            text-align: center;
         }
         
-        /* ألوان المنصات (ثابتة لجميع القوالب) */
-        .youtube { background: #ff0000; }
-        .instagram { background: #e1306c; }
-        .tiktok { background: #000000; }
-        .facebook { background: #1877f2; }
-        .twitter { background: #1da1f2; }
-        .linkedin { background: #0077b5; }
-        .github { background: #333; }
-        .telegram { background: #0088cc; }
-        .whatsapp { background: #25d366; }
+        /* ألوان المنصات مع تحسين التدرجات */
+        .platform-youtube { 
+            background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+            box-shadow: 0 4px 15px rgba(255,0,0,0.3);
+        }
+        .platform-instagram { 
+            background: linear-gradient(135deg, #f77737 0%, #e1306c 50%, #833ab4 100%);
+            box-shadow: 0 4px 15px rgba(225,48,108,0.3);
+        }
+        .platform-tiktok { 
+            background: linear-gradient(135deg, #000000 0%, #161616 50%, #2d2d2d 100%);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .platform-tiktok i { 
+            color: #25f4ee;
+        }
+        .platform-facebook { 
+            background: linear-gradient(135deg, #1877f2 0%, #0d65d4 100%);
+            box-shadow: 0 4px 15px rgba(24,119,242,0.3);
+        }
+        .platform-snapchat { 
+            background: linear-gradient(135deg, #fffc00 0%, #ffe600 100%);
+            color: #000000 !important;
+            text-shadow: none;
+        }
+        .platform-snapchat i {
+            color: #000000;
+        }
+        .platform-snapchat:hover {
+            filter: brightness(0.95);
+        }
+        .platform-twitter { 
+            background: linear-gradient(135deg, #1da1f2 0%, #0d8bd9 100%);
+            box-shadow: 0 4px 15px rgba(29,161,242,0.3);
+        }
+        .platform-linkedin { 
+            background: linear-gradient(135deg, #0077b5 0%, #005e8c 100%);
+            box-shadow: 0 4px 15px rgba(0,119,181,0.3);
+        }
+        .platform-github { 
+            background: linear-gradient(135deg, #333333 0%, #242424 100%);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .platform-telegram { 
+            background: linear-gradient(135deg, #0088cc 0%, #006699 100%);
+            box-shadow: 0 4px 15px rgba(0,136,204,0.3);
+        }
+        .platform-whatsapp { 
+            background: linear-gradient(135deg, #25d366 0%, #128C7E 100%);
+            box-shadow: 0 4px 15px rgba(37,211,102,0.3);
+        }
         
         /* الروابط المخصصة */
         .custom-link {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 4px 15px rgba(102,126,234,0.3);
         }
         
         .footer {
@@ -303,23 +376,26 @@
         <!-- اليوزرنيم -->
         <div class="username">@{{ username }}</div>
         
-        <!-- النبذة -->
-        {% if bio %}
-        <div class="bio">{{ bio }}</div>
-        {% endif %}
+        <!-- النبذة - مع تحسين العرض -->
+        <div id="bioContainer" class="bio">
+            {% if bio and bio.strip() %}
+                {{ bio | safe }}
+            {% endif %}
+        </div>
         
-        <!-- أزرار الحسابات -->
+        <!-- أزرار الحسابات (مع دعم سناب شات وتحسين الأيقونات) -->
         {% for account in accounts %}
-        <a href="{{ account.url }}" class="account-btn {{ account.platform }}" target="_blank" rel="noopener noreferrer">
-            <img src="{{ account.icon }}" class="account-icon" alt="{{ account.name }}" onerror="this.style.display='none'; this.nextSibling.style.display='inline';">
-            <span style="display: inline-block;">{{ account.name }}</span>
+        <a href="{{ account.url }}" class="account-btn platform-{{ account.platform }}" target="_blank" rel="noopener noreferrer">
+            <i class="fab fa-{{ account.platform }}"></i>
+            <span>{{ account.name }}</span>
         </a>
         {% endfor %}
         
         <!-- الروابط المخصصة -->
         {% for link in custom_links %}
         <a href="{{ link.url }}" class="account-btn custom-link" target="_blank" rel="noopener noreferrer">
-            🔗 {{ link.title }}
+            <i class="fas fa-link"></i>
+            <span>{{ link.title }}</span>
         </a>
         {% endfor %}
         
@@ -344,7 +420,29 @@
                     loadingScreen.style.display = 'none';
                 }, 500);
             }
+            
+            // إصلاح مشكلة النبذة: التأكد من ظهورها بشكل صحيح
+            fixBioDisplay();
         });
+        
+        // دالة لإصلاح عرض النبذة
+        function fixBioDisplay() {
+            const bioContainer = document.getElementById('bioContainer');
+            if (bioContainer) {
+                const bioText = bioContainer.innerHTML.trim();
+                // إذا كانت النبذة فارغة أو تحتوي فقط على مسافات، نخفي الحاوية
+                if (!bioText || bioText === '' || bioText === 'None') {
+                    bioContainer.style.display = 'none';
+                } else {
+                    bioContainer.style.display = 'block';
+                    // تنظيف النص من أي علامات HTML غير مرغوب فيها
+                    // مع الاحتفاظ بالتباعد الطبيعي
+                    bioContainer.innerHTML = bioText
+                        .replace(/\\n/g, '<br>')
+                        .replace(/\n/g, '<br>');
+                }
+            }
+        }
         
         // تحسين عرض الصورة الشخصية
         (function() {
@@ -355,14 +453,11 @@
             
             // دالة إنشاء صورة احتياطية (أفاتار بالاسم)
             function createFallbackAvatar() {
-                // الحصول على الحرف الأول من الاسم
                 const firstLetter = displayName ? displayName.charAt(0) : '?';
-                // ألوان عشوائية متناسقة
                 const colors = [
                     '#667eea', '#48bb78', '#ed8936', '#e74c3c', '#3498db', 
                     '#9b59b6', '#1abc9c', '#e67e22', '#2ecc71', '#f39c12'
                 ];
-                // اختيار لون بناءً على طول الاسم
                 const colorIndex = displayName.length % colors.length;
                 const bgColor = colors[colorIndex];
                 
@@ -373,28 +468,37 @@
                 `;
             }
             
-            // إذا كان هناك رابط صورة
-            if (avatarUrl && avatarUrl.trim() !== '') {
-                // إضافة تأثير تحميل
+            // التحقق من صحة رابط الصورة
+            function isValidUrl(url) {
+                if (!url || url.trim() === '') return false;
+                try {
+                    const urlObj = new URL(url);
+                    return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+                } catch(e) {
+                    return false;
+                }
+            }
+            
+            // إذا كان هناك رابط صورة صالح
+            if (isValidUrl(avatarUrl)) {
                 avatarContainer.classList.add('loading');
                 
-                // إنشاء عنصر img
                 const img = new Image();
                 img.className = 'avatar';
                 img.alt = displayName;
-                img.style.display = 'none';  // مخفي حتى يتم التحميل
+                img.style.display = 'none';
+                img.crossOrigin = 'Anonymous'; // محاولة لتجنب مشاكل CORS
                 
                 img.onload = function() {
-                    // الصورة تحمّلت بنجاح
                     avatarContainer.classList.remove('loading');
                     img.style.display = 'block';
                     avatarContent.innerHTML = '';
                     avatarContent.appendChild(img);
+                    console.log('✅ تم تحميل الصورة بنجاح');
                 };
                 
                 img.onerror = function() {
-                    // فشل تحميل الصورة → استخدام الصورة الاحتياطية
-                    console.log('فشل تحميل الصورة من:', avatarUrl);
+                    console.log('❌ فشل تحميل الصورة من:', avatarUrl);
                     avatarContainer.classList.remove('loading');
                     createFallbackAvatar();
                 };
@@ -404,7 +508,7 @@
                 // مهلة زمنية (إذا استغرق التحميل أكثر من 5 ثوان)
                 setTimeout(function() {
                     if (avatarContainer.classList.contains('loading')) {
-                        console.log('انتهت مهلة تحميل الصورة');
+                        console.log('⏰ انتهت مهلة تحميل الصورة');
                         avatarContainer.classList.remove('loading');
                         if (!avatarContent.querySelector('img')) {
                             createFallbackAvatar();
@@ -412,10 +516,26 @@
                     }
                 }, 5000);
             } else {
-                // لا يوجد رابط صورة → استخدام الصورة الاحتياطية مباشرة
+                // لا يوجد رابط صورة صالح → استخدام الصورة الاحتياطية مباشرة
+                console.log('ℹ️ لا يوجد رابط صورة صالح، استخدام الصورة الاحتياطية');
                 createFallbackAvatar();
             }
         })();
+        
+        // إضافة تأثيرات إضافية للأزرار عند التحميل
+        document.addEventListener('DOMContentLoaded', function() {
+            const buttons = document.querySelectorAll('.account-btn');
+            buttons.forEach((btn, index) => {
+                btn.style.animation = `fadeInUp 0.3s ease-out ${index * 0.05}s forwards`;
+                btn.style.opacity = '0';
+                btn.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    btn.style.opacity = '1';
+                    btn.style.transform = 'translateY(0)';
+                }, index * 50);
+            });
+        });
     </script>
 </body>
 </html>
