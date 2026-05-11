@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Social Analyzer AI | منصة التحليل الذكي لحسابات التواصل الاجتماعي</title>
+    <meta name="description" content="منصة متكاملة لتحليل حسابات اليوتيوب وسناب شات وتيك توك، مع توصيات الذكاء الاصطناعي المخصصة ولوحة تحكم احترافية.">
+    <meta name="keywords" content="تحليل يوتيوب, تحليل سناب شات, ذكاء اصطناعي, توصيات AI, لوحة تحكم, بايو">
+    <meta name="author" content="@Alshabany_Ai">
+    <meta property="og:title" content="Social Analyzer AI - التحليل الذكي لحساباتك">
+    <meta property="og:description" content="اكتشف أداء حساباتك على يوتيوب وسناب شات مع توصيات الذكاء الاصطناعي.">
+    <meta property="og:image" content="https://social-analyzer-flask.onrender.com/static/og-image.png">
+    <meta property="og:url" content="https://social-analyzer-flask.onrender.com">
+    <meta name="twitter:card" content="summary_large_image">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', 'Tahoma', sans-serif;
+            background: linear-gradient(145deg, #f8fafc 0%, #eef2f6 100%);
+            color: #1e293b;
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* شريط التنقل */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            flex-wrap: wrap;
+            gap: 20px;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            font-size: 32px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #1e293b, #334155);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 28px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #475569;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: #667eea;
+        }
+
+        /* زر البوت الرئيسي */
+        .btn-telegram {
+            background: linear-gradient(95deg, #1E96C8, #2AABEE);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 40px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.2s;
+            box-shadow: 0 6px 14px rgba(42,171,238,0.25);
+        }
+
+        .btn-telegram:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 22px rgba(42,171,238,0.35);
+        }
+
+        /* الأقسام العامة */
+        .hero {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 40px;
+            padding: 60px 0 40px;
+        }
+
+        .hero-content {
+            flex: 1;
+            min-width: 280px;
+        }
+
+        .hero-badge {
+            background: #e0e7ff;
+            color: #4f46e5;
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .hero h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #1e293b, #4f46e5);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            color: #475569;
+            max-width: 550px;
+            margin-bottom: 30px;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 32px;
+            margin-top: 30px;
+        }
+
+        .stat {
+            text-align: right;
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .hero-image {
+            flex: 1;
+            text-align: center;
+        }
+
+        .hero-image img {
+            max-width: 100%;
+            border-radius: 32px;
+            box-shadow: 0 25px 45px -12px rgba(0,0,0,0.2);
+        }
+
+        /* البطاقات */
+        .section-title {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 48px;
+            color: #0f172a;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 28px;
+            margin: 48px 0;
+        }
+
+        .card {
+            background: white;
+            border-radius: 32px;
+            padding: 28px 22px;
+            transition: 0.25s;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            border-color: #cbd5e1;
+            box-shadow: 0 25px 35px -12px rgba(0,0,0,0.1);
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+
+        .card h3 {
+            font-size: 1.4rem;
+            margin-bottom: 12px;
+        }
+
+        .card p {
+            color: #475569;
+            line-height: 1.5;
+        }
+
+        /* جدول الخطط */
+        .pricing {
+            background: white;
+            border-radius: 48px;
+            padding: 48px 32px;
+            margin: 60px 0;
+            box-shadow: 0 20px 35px -10px rgba(0,0,0,0.05);
+        }
+
+        .pricing-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .plan {
+            background: #f8fafc;
+            border-radius: 32px;
+            padding: 28px;
+            flex: 1;
+            min-width: 220px;
+            text-align: center;
+            transition: 0.2s;
+            border: 1px solid #e2e8f0;
+        }
+
+        .plan.popular {
+            background: linear-gradient(145deg, #ffffff, #f1f5f9);
+            border: 1px solid #c7d2fe;
+            box-shadow: 0 12px 28px -8px rgba(79,70,229,0.2);
+        }
+
+        .plan-price {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #0f172a;
+            margin: 15px 0;
+        }
+
+        .plan ul {
+            text-align: right;
+            list-style: none;
+            margin: 20px 0;
+        }
+
+        .plan li {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-outline {
+            border: 2px solid #667eea;
+            background: transparent;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            color: #4f46e5;
+            transition: 0.2s;
+            display: inline-block;
+            text-decoration: none;
+        }
+
+        .btn-outline:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary {
+            background: linear-gradient(95deg, #667eea, #764ba2);
+            color: white;
+            padding: 14px 32px;
+            border-radius: 40px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: 0.2s;
+            box-shadow: 0 8px 18px rgba(102,126,234,0.3);
+        }
+
+        /* الشريط السفلي */
+        .footer {
+            background: #0f172a;
+            color: #cbd5e1;
+            padding: 48px 0 32px;
+            margin-top: 60px;
+            border-radius: 48px 48px 0 0;
+        }
+
+        .footer a {
+            color: #e2e8f0;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            color: white;
+            text-decoration: underline;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+
+        .copyright {
+            text-align: center;
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 800px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+            .navbar {
+                flex-direction: column;
+                text-align: center;
+            }
+            .hero-stats {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- شريط التنقل -->
+    <div class="navbar">
+        <div class="logo">
+            <i class="fas fa-chart-line logo-icon"></i>
+            <span class="logo-text">Social Analyzer AI</span>
+        </div>
+        <div class="nav-links">
+            <a href="#features">المميزات</a>
+            <a href="#pricing">الخطط</a>
+            <a href="/privacy">سياسة الخصوصية</a>
+            <a href="/terms">شروط الخدمة</a>
+            <a href="https://t.me/Social_Media_tools_bot" class="btn-telegram">
+                <i class="fab fa-telegram"></i> افتح البوت
+            </a>
+        </div>
+    </div>
+
+    <!-- القسم الرئيسي (Hero) -->
+    <div class="hero">
+        <div class="hero-content">
+            <div class="hero-badge">
+                <i class="fas fa-microchip"></i> الذكاء الاصطناعي للمحتوى
+            </div>
+            <h1>تحليل متقدم <br> لحسابات التواصل الاجتماعي</h1>
+            <p>منصة واحدة لتحليل يوتيوب، سناب شات، وتيك توك مع توصيات مخصصة من الذكاء الاصطناعي، ولوحة تحكم شاملة، وصفحة بايو احترافية.</p>
+            <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                <a href="https://t.me/Social_Media_tools_bot" class="btn-primary">
+                    <i class="fab fa-telegram"></i> ابدأ الآن مجاناً
+                </a>
+                <a href="#features" class="btn-outline">
+                    اكتشف المميزات <i class="fas fa-arrow-left"></i>
+                </a>
+            </div>
+            <div class="hero-stats">
+                <div class="stat">
+                    <div class="stat-number">+90</div>
+                    <div class="stat-label">تحليل شهرياً</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">+20</div>
+                    <div class="stat-label">توصية AI</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">4</div>
+                    <div class="stat-label">منصة مدعومة</div>
+                </div>
+            </div>
+        </div>
+        <div class="hero-image">
+            <img src="https://placehold.co/500x400/e2e8f0/475569?text=Dashboard+Preview" alt="لوحة التحكم">
+        </div>
+    </div>
+
+    <!-- مميزات البوت -->
+    <div id="features" style="scroll-margin-top: 80px;">
+        <div class="section-title">✨ ماذا تقدم المنصة؟</div>
+        <div class="cards-grid">
+            <div class="card">
+                <div class="card-icon">📺</div>
+                <h3>تحليل يوتيوب</h3>
+                <p>إحصائيات دقيقة للمشتركين، المشاهدات، أوقات النشر، أحدث الفيديوهات مع تقارير مفصلة قابلة للتنزيل.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">👻</div>
+                <h3>تحليل سناب شات</h3>
+                <p>باستخدام Snapchat Kit API الآمن، نعرض المتابعين، التفاعل، مشاهدات القصص دون تخزين بيانات خاصة.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">🎵</div>
+                <h3>تيك توك (قريباً)</h3>
+                <p>جاهزون للتكامل مع TikTok API لتحليل الفيديوهات، الهاشتاغات، ونمو الجمهور.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">🧠</div>
+                <h3>توصيات AI مخصصة</h3>
+                <p>ذكاء اصطناعي Gemini يحلل قناتك ويعطيك خطة تطوير، أفكار محتوى، وأوقات النشر المثالية.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">📊</div>
+                <h3>لوحة تحكم ذكية</h3>
+                <p>لوحة WebApp متكاملة تعرض إحصائياتك، اشتراكك، آخر التحليلات، وتوصياتك بشكل منظم.</p>
+            </div>
+            <div class="card">
+                <div class="card-icon">📄</div>
+                <h3>صفحة بايو احترافية</h3>
+                <p>للمستخدمين المميزين: صفحة شخصية لعرض حساباتك، نبذة، وصورة شخصية مع ثيمات متعددة.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- خطط الاشتراك -->
+    <div id="pricing" style="scroll-margin-top: 80px;">
+        <div class="pricing">
+            <div class="section-title" style="margin-bottom: 20px;">💎 خطط مرنة تناسب الجميع</div>
+            <div class="pricing-grid">
+                <div class="plan">
+                    <h3>مجاني</h3>
+                    <div class="plan-price">0$</div>
+                    <ul>
+                        <li><i class="fas fa-check-circle" style="color:#22c55e;"></i> 2 تحليل يوتيوب يومياً</li>
+                        <li><i class="fas fa-check-circle" style="color:#22c55e;"></i> صفحة بايو أساسية</li>
+                        <li><i class="fas fa-check-circle" style="color:#22c55e;"></i> وصول محدود للتوصيات</li>
+                        <li><i class="fas fa-check-circle" style="color:#22c55e;"></i> دعم المجتمع</li>
+                    </ul>
+                    <a href="https://t.me/Social_Media_tools_bot" class="btn-outline" style="margin-top: 20px;">تجربة مجانية</a>
+                </div>
+                <div class="plan popular">
+                    <h3>🌟 مميز شهري</h3>
+                    <div class="plan-price">10$ / شهر</div>
+                    <ul>
+                        <li><i class="fas fa-check-circle" style="color:#22c55e;"></i> تحليل غير محدود لجميع المنصات</li>
+                        <li><i class="fas fa-check-circle" style="color:#22c55e;"></i> 20 توصية AI شهرياً</li>
+                        <li><i class="fas fa-check-circle" style="color:#22c55e;"></i> صفحة بايو كاملة (ثيمات + صورة)</li>
+                        <li><i class="fas fa-check-circle" style="color:#22c55e;"></i> دعم أولوية 24/7</li>
+                    </ul>
+                    <a href="https://t.me/Social_Media_tools_bot" class="btn-primary" style="margin-top: 20px;">اشترك الآن</a>
+                </div>
+                <div class="plan">
+                    <h3>💎 مدى الحياة</h3>
+                    <div class="plan-price">100$ مرة واحدة</div>
+                    <ul>
+                        <li><i class="fas fa-check-circle" style="color:#22c55e;"></i> جميع مميزات المميز مدى الحياة</li>
+                        <li><i class="fas fa-check-circle" style="color:#22c55e;"></i> تحديثات مجانية للأبد</li>
+                        <li><i class="fas fa-check-circle" style="color:#22c55e;"></i> دعم VIP مخصص</li>
+                    </ul>
+                    <a href="https://t.me/Social_Media_tools_bot" class="btn-outline" style="margin-top: 20px;">تواصل مع المطور</a>
+                </div>
+            </div>
+            <p style="text-align: center; margin-top: 32px; font-size: 0.85rem; color: #475569;">
+                <i class="fab fa-telegram"></i> الدفع عبر نجوم Telegram أو التحويل البنكي – تفعيل فوري للحسابات المميزة.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- تذييل الصفحة (Footer) -->
+<div class="footer">
+    <div class="container">
+        <div class="footer-links">
+            <a href="https://t.me/Social_Media_tools_bot"><i class="fab fa-telegram"></i> البوت الرئيسي</a>
+            <a href="/privacy"><i class="fas fa-lock"></i> سياسة الخصوصية</a>
+            <a href="/terms"><i class="fas fa-file-contract"></i> شروط الخدمة</a>
+            <a href="https://t.me/Alshabany_Ai"><i class="fas fa-headset"></i> الدعم الفني</a>
+        </div>
+        <div class="copyright">
+            © 2026 Social Analyzer AI – تصميم وتطوير <strong>@Alshabany_Ai</strong><br>
+            منصة ذكاء اصطناعي لتحليل وتنمية حسابات التواصل الاجتماعي.
+        </div>
+    </div>
+</div>
+
+<script>
+    // سكربت بسيط لتتبع الأحداث أو إضافة أي تحسينات مستقبلية
+    console.log("Social Analyzer AI Landing Page - ready for TikTok & Snapchat review");
+</script>
+</body>
+</html>
