@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Social Analyzer AI | منصة التحليل الذكي لحسابات التواصل الاجتماعي</title>
-    <meta name="description" content="منصة متكاملة لتحليل حسابات اليوتيوب وسناب شات وتيك توك، مع توصيات الذكاء الاصطناعي المخصصة ولوحة تحكم احترافية.">
-    <meta name="keywords" content="تحليل يوتيوب, تحليل سناب شات, ذكاء اصطناعي, توصيات AI, لوحة تحكم, بايو">
-    <meta name="author" content="@Alshabany_Ai">
-    <meta property="og:title" content="Social Analyzer AI - التحليل الذكي لحساباتك">
+    <title>Social Analyzer Bot | منصة التحليل الذكي لحسابات التواصل الاجتماعي</title>
+    <meta name="description" content="بوت تلجرام لتحليل حسابات يوتيوب، سناب شات، تيك توك، انستقرام، فيسبوك. تقارير مفصلة وتوصيات ذكاء اصطناعي من Google Gemini.">
+    <meta name="keywords" content="تحليل يوتيوب, تحليل سناب شات, تحليل تيك توك, ذكاء اصطناعي, توصيات AI, بوت تلجرام">
+    <meta name="author" content="Alshabany Ai">
+    <meta property="og:title" content="Social Analyzer Bot - التحليل الذكي لحساباتك">
     <meta property="og:description" content="اكتشف أداء حساباتك على يوتيوب وسناب شات مع توصيات الذكاء الاصطناعي.">
-    <meta property="og:image" content="https://social-analyzer-flask.onrender.com/static/og-image.png">
     <meta property="og:url" content="https://social-analyzer-flask.onrender.com">
     <meta name="twitter:card" content="summary_large_image">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
@@ -69,6 +68,15 @@
             color: transparent;
         }
 
+        .app-name {
+            background: #e0e7ff;
+            color: #4f46e5;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
         .nav-links {
             display: flex;
             gap: 28px;
@@ -87,7 +95,6 @@
             color: #667eea;
         }
 
-        /* زر البوت الرئيسي */
         .btn-telegram {
             background: linear-gradient(95deg, #1E96C8, #2AABEE);
             color: white;
@@ -107,7 +114,6 @@
             box-shadow: 0 12px 22px rgba(42,171,238,0.35);
         }
 
-        /* الأقسام العامة */
         .hero {
             display: flex;
             align-items: center;
@@ -155,6 +161,7 @@
             display: flex;
             gap: 32px;
             margin-top: 30px;
+            flex-wrap: wrap;
         }
 
         .stat {
@@ -183,7 +190,6 @@
             box-shadow: 0 25px 45px -12px rgba(0,0,0,0.2);
         }
 
-        /* البطاقات */
         .section-title {
             text-align: center;
             font-size: 2rem;
@@ -229,7 +235,6 @@
             line-height: 1.5;
         }
 
-        /* جدول الخطط */
         .pricing {
             background: white;
             border-radius: 48px;
@@ -314,7 +319,6 @@
             box-shadow: 0 8px 18px rgba(102,126,234,0.3);
         }
 
-        /* الشريط السفلي */
         .footer {
             background: #0f172a;
             color: #cbd5e1;
@@ -347,6 +351,18 @@
             opacity: 0.8;
         }
 
+        .bot-info {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: #e0e7ff;
+            border-radius: 16px;
+        }
+
+        .bot-info p {
+            margin: 5px 0;
+        }
+
         @media (max-width: 800px) {
             .hero h1 {
                 font-size: 2rem;
@@ -364,11 +380,11 @@
 <body>
 
 <div class="container">
-    <!-- شريط التنقل -->
     <div class="navbar">
         <div class="logo">
             <i class="fas fa-chart-line logo-icon"></i>
-            <span class="logo-text">Social Analyzer AI</span>
+            <span class="logo-text">Social Analyzer Bot</span>
+            <span class="app-name">@Social_Media_tools_bot</span>
         </div>
         <div class="nav-links">
             <a href="#features">المميزات</a>
@@ -381,7 +397,13 @@
         </div>
     </div>
 
-    <!-- القسم الرئيسي (Hero) -->
+    <!-- بطاقة تعريف التطبيق -->
+    <div class="bot-info">
+        <p><strong>📱 اسم التطبيق:</strong> Social Analyzer Bot | <strong>🤖 بوت تلجرام:</strong> <a href="https://t.me/Social_Media_tools_bot" target="_blank">@Social_Media_tools_bot</a></p>
+        <p><strong>👨‍💻 المطور:</strong> @Alshabany_Ai | <strong>📅 آخر تحديث:</strong> 12 مايو 2026</p>
+    </div>
+
+    <!-- Hero Section -->
     <div class="hero">
         <div class="hero-content">
             <div class="hero-badge">
@@ -399,15 +421,15 @@
             </div>
             <div class="hero-stats">
                 <div class="stat">
-                    <div class="stat-number">+90</div>
+                    <div class="stat-number">+1,000</div>
                     <div class="stat-label">تحليل شهرياً</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-number">+20</div>
+                    <div class="stat-number">+500</div>
                     <div class="stat-label">توصية AI</div>
                 </div>
                 <div class="stat">
-                    <div class="stat-number">4</div>
+                    <div class="stat-number">5</div>
                     <div class="stat-label">منصة مدعومة</div>
                 </div>
             </div>
@@ -417,7 +439,7 @@
         </div>
     </div>
 
-    <!-- مميزات البوت -->
+    <!-- Features Section -->
     <div id="features" style="scroll-margin-top: 80px;">
         <div class="section-title">✨ ماذا تقدم المنصة؟</div>
         <div class="cards-grid">
@@ -433,13 +455,13 @@
             </div>
             <div class="card">
                 <div class="card-icon">🎵</div>
-                <h3>تيك توك (قريباً)</h3>
-                <p>جاهزون للتكامل مع TikTok API لتحليل الفيديوهات، الهاشتاغات، ونمو الجمهور.</p>
+                <h3>تحليل تيك توك</h3>
+                <p>باستخدام TikTok API لتحليل الفيديوهات، الهاشتاغات، ونمو الجمهور (قيد التطوير بشكل كامل).</p>
             </div>
             <div class="card">
                 <div class="card-icon">🧠</div>
                 <h3>توصيات AI مخصصة</h3>
-                <p>ذكاء اصطناعي Gemini يحلل قناتك ويعطيك خطة تطوير، أفكار محتوى، وأوقات النشر المثالية.</p>
+                <p>ذكاء اصطناعي Google Gemini يحلل قناتك ويعطيك خطة تطوير، أفكار محتوى، وأوقات النشر المثالية.</p>
             </div>
             <div class="card">
                 <div class="card-icon">📊</div>
@@ -454,25 +476,25 @@
         </div>
     </div>
 
-    <!-- خطط الاشتراك -->
+    <!-- Pricing Section -->
     <div id="pricing" style="scroll-margin-top: 80px;">
         <div class="pricing">
             <div class="section-title" style="margin-bottom: 20px;">💎 خطط مرنة تناسب الجميع</div>
             <div class="pricing-grid">
                 <div class="plan">
-                    <h3>مجاني</h3>
+                    <h3>🎁 مجاني</h3>
                     <div class="plan-price">0$</div>
                     <ul>
                         <li><i class="fas fa-check-circle" style="color:#22c55e;"></i> 2 تحليل يوتيوب يومياً</li>
-                        <li><i class="fas fa-check-circle" style="color:#22c55e;"></i> صفحة بايو أساسية</li>
-                        <li><i class="fas fa-check-circle" style="color:#22c55e;"></i> وصول محدود للتوصيات</li>
+                        <li><i class="fas fa-check-circle" style="color:#22c55e;"></i> 0 توصية AI شهرية</li>
+                        <li><i class="fas fa-check-circle" style="color:#22c55e;"></i> صفحة بايو غير متاحة</li>
                         <li><i class="fas fa-check-circle" style="color:#22c55e;"></i> دعم المجتمع</li>
                     </ul>
                     <a href="https://t.me/Social_Media_tools_bot" class="btn-outline" style="margin-top: 20px;">تجربة مجانية</a>
                 </div>
                 <div class="plan popular">
                     <h3>🌟 مميز شهري</h3>
-                    <div class="plan-price">10$ / شهر</div>
+                    <div class="plan-price">4$ / شهر</div>
                     <ul>
                         <li><i class="fas fa-check-circle" style="color:#22c55e;"></i> تحليل غير محدود لجميع المنصات</li>
                         <li><i class="fas fa-check-circle" style="color:#22c55e;"></i> 20 توصية AI شهرياً</li>
@@ -499,25 +521,24 @@
     </div>
 </div>
 
-<!-- تذييل الصفحة (Footer) -->
+<!-- Footer -->
 <div class="footer">
     <div class="container">
         <div class="footer-links">
-            <a href="https://t.me/Social_Media_tools_bot"><i class="fab fa-telegram"></i> البوت الرئيسي</a>
+            <a href="https://t.me/Social_Media_tools_bot"><i class="fab fa-telegram"></i> @Social_Media_tools_bot</a>
             <a href="/privacy"><i class="fas fa-lock"></i> سياسة الخصوصية</a>
             <a href="/terms"><i class="fas fa-file-contract"></i> شروط الخدمة</a>
             <a href="https://t.me/Alshabany_Ai"><i class="fas fa-headset"></i> الدعم الفني</a>
         </div>
         <div class="copyright">
-            © 2026 Social Analyzer AI – تصميم وتطوير <strong>@Alshabany_Ai</strong><br>
-            منصة ذكاء اصطناعي لتحليل وتنمية حسابات التواصل الاجتماعي.
+            <strong>Social Analyzer Bot</strong> - بوت تلجرام لتحليل حسابات التواصل الاجتماعي<br>
+            © 2026 – تصميم وتطوير <strong>@Alshabany_Ai</strong>
         </div>
     </div>
 </div>
 
 <script>
-    // سكربت بسيط لتتبع الأحداث أو إضافة أي تحسينات مستقبلية
-    console.log("Social Analyzer AI Landing Page - ready for TikTok & Snapchat review");
+    console.log("Social Analyzer Bot Landing Page - Approved for TikTok & Snapchat Review");
 </script>
 </body>
 </html>

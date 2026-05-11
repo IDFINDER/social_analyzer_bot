@@ -3,43 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سياسة الخصوصية - بوت تحليل الحسابات</title>
+    <title>سياسة الخصوصية - Social Analyzer Bot</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', 'Tahoma', Arial, sans-serif;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 40px 20px;
         }
         .container {
-            max-width: 850px;
+            max-width: 900px;
             margin: 0 auto;
             background: white;
-            border-radius: 24px;
-            padding: 45px;
+            border-radius: 32px;
+            padding: 48px;
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
         }
         h1 { 
-            color: #667eea; 
-            margin-bottom: 15px; 
-            border-bottom: 3px solid #667eea; 
-            padding-bottom: 15px;
-            font-size: 1.8rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+        .app-info {
+            background: #e0e7ff;
+            padding: 16px 20px;
+            border-radius: 16px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .app-info p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .app-name {
+            font-weight: bold;
+            color: #4f46e5;
         }
         .update-date {
-            color: #888;
+            color: #64748b;
             font-size: 13px;
             margin-bottom: 30px;
             padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #e2e8f0;
         }
         h2 { 
-            color: #2c3e50; 
+            color: #1e293b; 
             margin: 30px 0 15px 0; 
             font-size: 1.25rem;
             padding-right: 12px;
-            border-right: 3px solid #667eea;
+            border-right: 4px solid #667eea;
         }
         h3 {
             color: #4a5568;
@@ -50,31 +68,38 @@
         }
         p { 
             line-height: 1.8; 
-            color: #4a5568; 
+            color: #475569; 
             margin-bottom: 15px;
             text-align: justify;
         }
         ul { 
             margin: 15px 0 15px 30px; 
-            color: #4a5568;
+            color: #475569;
         }
         li { 
-            margin: 10px 0;
+            margin: 8px 0;
             line-height: 1.6;
         }
         .highlight {
             background: #f0f4ff;
-            padding: 15px;
-            border-radius: 12px;
+            padding: 20px;
+            border-radius: 16px;
             margin: 20px 0;
             border-right: 3px solid #667eea;
         }
         .snapchat-note {
             background: #fff8e7;
-            padding: 15px;
-            border-radius: 12px;
+            padding: 20px;
+            border-radius: 16px;
             margin: 20px 0;
             border-right: 3px solid #fffc00;
+        }
+        .tiktok-note {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 16px;
+            margin: 20px 0;
+            border-right: 3px solid #000000;
         }
         .contact-buttons {
             display: flex;
@@ -143,18 +168,26 @@
 <body>
     <div class="container">
         <h1>🔐 سياسة الخصوصية</h1>
-        <div class="update-date">📅 آخر تحديث: <span id="currentDate"></span></div>
+        
+        <!-- تعريف التطبيق -->
+        <div class="app-info">
+            <p><strong>📱 اسم التطبيق:</strong> <span class="app-name">Social Analyzer Bot</span></p>
+            <p><strong>🤖 بوت تلجرام:</strong> <span class="app-name">@Social_Media_tools_bot</span></p>
+            <p><strong>👨‍💻 المطور:</strong> @Alshabany_Ai</p>
+        </div>
+        
+        <div class="update-date">📅 آخر تحديث: 12 مايو 2026</div>
         
         <div class="highlight">
             <p style="margin-bottom: 0; font-size: 14px;">
-                نحن نلتزم بحماية خصوصيتك وسرية بياناتك. هذه السياسة توضح كيفية تعاملنا مع المعلومات.
+                باستخدامك لبوت <strong>Social Analyzer Bot (@Social_Media_tools_bot)</strong>، فإنك توافق على سياسة الخصوصية هذه. نحن نلتزم بحماية خصوصيتك وسرية بياناتك.
             </p>
         </div>
         
         <h2>1. المعلومات التي يتم تخزينها</h2>
         <p>لتشغيل خدمات البوت وتحسين تجربتك، نقوم بتخزين بعض المعلومات الأساسية:</p>
         <ul>
-            <li><strong>معرف المستخدم</strong> - للتعرف عليك وتقديم الخدمات المخصصة</li>
+            <li><strong>معرف المستخدم (User ID)</strong> - للتعرف عليك وتقديم الخدمات المخصصة</li>
             <li><strong>اسم المستخدم والاسم الأول</strong> - للترحيب بك وعرضه في صفحة البايو</li>
             <li><strong>حسابات التواصل الاجتماعي</strong> - التي تختار تسجيلها لعرضها في صفحة البايو (يوتيوب، انستقرام، تيك توك، فيسبوك، سناب شات)</li>
             <li><strong>سجل التحليلات</strong> - لتتبع تطور حساباتك وتحسين التوصيات</li>
@@ -165,16 +198,16 @@
         <ul>
             <li>تقديم خدمة تحليل حسابات التواصل الاجتماعي</li>
             <li>إنشاء وإدارة صفحة البايو الشخصية الخاصة بك</li>
-            <li>تقديم توصيات ذكاء اصطناعي مخصصة لتحسين قنواتك</li>
+            <li>تقديم توصيات ذكاء اصطناعي مخصصة (Google Gemini) لتحسين قنواتك</li>
             <li>تحسين أداء البوت وتجربة المستخدم</li>
         </ul>
         
-        <!-- ========== قسم سناب شات الجديد ========== -->
+        <!-- ========== قسم سناب شات ========== -->
         <h2>3. تكامل سناب شات (Snapchat Kit)</h2>
         <div class="snapchat-note">
             <p style="margin-bottom: 10px;"><strong>📸 تكامل سناب شات آمن</strong></p>
             <p style="font-size: 13px;">
-                يوفر بوتنا ميزة تحليل حسابات سناب شات من خلال Snapchat Kit API. هذه الميزة تتطلب موافقة صريحة منك.
+                يوفر بوتنا ميزة تحليل حسابات سناب شات من خلال Snapchat Kit API. هذه الميزة تتطلب موافقة صريحة منك عبر OAuth 2.0.
             </p>
         </div>
         
@@ -217,18 +250,29 @@
         </ul>
         <!-- ========== نهاية قسم سناب شات ========== -->
         
-        <h2>4. مشاركة المعلومات</h2>
-        <p>نحن لا نبيع أو نشارك معلوماتك الشخصية مع أي طرف ثالث. يتم تخزين جميع البيانات بشكل آمن على خوادم Supabase مع تطبيق أعلى معايير الأمان.</p>
+        <!-- ========== قسم تيك توك ========== -->
+        <h2>4. تكامل تيك توك (TikTok API)</h2>
+        <div class="tiktok-note">
+            <p style="margin-bottom: 10px;"><strong>🎵 تكامل تيك توك قيد التطوير</strong></p>
+            <p style="font-size: 13px;">
+                بوتنا في طور التكامل مع TikTok API لتحليل حسابات تيك توك. سيتم تحديث هذه السياسة عند اكتمال التكامل.
+            </p>
+        </div>
+        <!-- ========== نهاية قسم تيك توك ========== -->
         
-        <h2>5. حماية البيانات</h2>
+        <h2>5. مشاركة المعلومات</h2>
+        <p>نحن لا نبيع أو نشارك معلوماتك الشخصية مع أي طرف ثالث. يتم تخزين جميع البيانات بشكل آمن على خوادم Supabase مع تطبيق أعلى معايير الأمان (تشفير SSL، سياسات RLS).</p>
+        
+        <h2>6. حماية البيانات</h2>
         <p>نحن نتخذ إجراءات أمنية صارمة لحماية معلوماتك، بما في ذلك:</p>
         <ul>
-            <li>تشفير البيانات أثناء النقل والتخزين</li>
-            <li>سياسات التحكم في الوصول (RLS) على مستوى الصفوف</li>
-            <li>مراقبة مستمرة للأنظمة</li>
+            <li>تشفير البيانات أثناء النقل (TLS/SSL) والتخزين</li>
+            <li>سياسات التحكم في الوصول (RLS) على مستوى الصفوف في Supabase</li>
+            <li>مراقبة مستمرة للأنظمة وسجلات الوصول</li>
+            <li>توكنات مؤقتة للمصادقة (صلاحية ساعة واحدة)</li>
         </ul>
         
-        <h2>6. صلاحية البيانات</h2>
+        <h2>7. صلاحية البيانات</h2>
         <p>يمكنك في أي وقت:</p>
         <ul>
             <li>طلب نسخة من بياناتك المخزنة</li>
@@ -239,13 +283,13 @@
         </ul>
         <p>للقيام بذلك، استخدم الأوامر المتاحة في البوت أو تواصل مع فريق الدعم.</p>
         
-        <h2>7. الخدمات الخارجية</h2>
+        <h2>8. الخدمات الخارجية</h2>
         <p>قد تحتوي صفحة البايو الخاصة بك على روابط إلى مواقع خارجية (يوتيوب، انستقرام، فيسبوك، تيك توك، سناب شات). نحن لسنا مسؤولين عن ممارسات الخصوصية أو محتوى تلك المواقع. ننصحك بمراجعة سياسات الخصوصية الخاصة بها.</p>
         
-        <h2>8. خصوصية الأطفال</h2>
+        <h2>9. خصوصية الأطفال</h2>
         <p>خدماتنا موجهة للمستخدمين الذين تبلغ أعمارهم 13 عاماً أو أكثر. نحن لا نجمع عمداً معلومات شخصية من الأطفال دون سن 13 عاماً.</p>
         
-        <h2>9. التغييرات على السياسة</h2>
+        <h2>10. التغييرات على السياسة</h2>
         <p>قد نقوم بتحديث سياسة الخصوصية هذه من وقت لآخر. سيتم إخطارك بأي تغييرات جوهرية عبر البوت أو من خلال قناة التحديثات. استمرارك في استخدام الخدمة بعد هذه التغييرات يعني موافقتك على السياسة المحدثة.</p>
         
         <div class="contact-buttons">
@@ -255,26 +299,20 @@
             <a href="https://t.me/Social_Media_Analysis" target="_blank" class="contact-btn channel">
                 <i class="fas fa-bullhorn"></i> 📢 قناة التحديثات
             </a>
+            <a href="https://t.me/Social_Media_tools_bot" target="_blank" class="contact-btn developer" style="background: #2AABEE;">
+                <i class="fab fa-telegram"></i> 🤖 البوت الرئيسي
+            </a>
         </div>
         
         <div class="footer-links">
             <a href="/terms" class="footer-link">📜 شروط الخدمة</a>
+            <a href="/" class="footer-link">🏠 الصفحة الرئيسية</a>
         </div>
         
         <div class="copyright">
-            © 2026 بوت تحليل الحسابات الاجتماعية - جميع الحقوق محفوظة
+            <strong>Social Analyzer Bot</strong> - بوت تلجرام لتحليل حسابات التواصل الاجتماعي<br>
+            © 2026 - جميع الحقوق محفوظة
         </div>
     </div>
-    
-    <script>
-        // تاريخ اليوم بالتنسيق العربي
-        const today = new Date();
-        const arabicMonths = ['يناير', 'فبراير', 'مارس', 'إبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-        const formattedDate = `${today.getDate()} ${arabicMonths[today.getMonth()]} ${today.getFullYear()}`;
-        document.getElementById('currentDate').innerText = formattedDate;
-    </script>
-    
-    <!-- إضافة Font Awesome للأيقونات -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </body>
 </html>

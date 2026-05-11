@@ -3,78 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>شروط الخدمة - Social Media Analyzer</title>
+    <title>شروط الخدمة - Social Analyzer Bot</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', 'Tahoma', Arial, sans-serif;
+            font-family: 'Inter', 'Segoe UI', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 40px 20px;
         }
         .container {
-            max-width: 850px;
+            max-width: 900px;
             margin: 0 auto;
             background: white;
-            border-radius: 24px;
-            padding: 45px;
+            border-radius: 32px;
+            padding: 48px;
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
         }
         h1 { 
-            color: #667eea; 
-            margin-bottom: 15px; 
-            border-bottom: 3px solid #667eea; 
-            padding-bottom: 15px;
-            font-size: 1.8rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 10px;
+            font-size: 2rem;
+        }
+        .app-info {
+            background: #e0e7ff;
+            padding: 16px 20px;
+            border-radius: 16px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .app-info p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .app-name {
+            font-weight: bold;
+            color: #4f46e5;
         }
         .update-date {
-            color: #888;
+            color: #64748b;
             font-size: 13px;
             margin-bottom: 30px;
             padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #e2e8f0;
         }
         h2 { 
-            color: #2c3e50; 
+            color: #1e293b; 
             margin: 30px 0 15px 0; 
             font-size: 1.25rem;
             padding-right: 12px;
-            border-right: 3px solid #667eea;
+            border-right: 4px solid #667eea;
         }
         h3 {
             color: #4a5568;
             margin: 20px 0 10px 0;
             font-size: 1.1rem;
             padding-right: 10px;
-            border-right: 2px solid #fffc00;
+            border-right: 2px solid #48bb78;
         }
         p { 
             line-height: 1.8; 
-            color: #4a5568; 
+            color: #475569; 
             margin-bottom: 15px;
             text-align: justify;
         }
         ul { 
             margin: 15px 0 15px 30px; 
-            color: #4a5568;
+            color: #475569;
         }
         li { 
-            margin: 10px 0;
+            margin: 8px 0;
             line-height: 1.6;
         }
         .highlight {
             background: #f0f4ff;
-            padding: 15px;
-            border-radius: 12px;
+            padding: 20px;
+            border-radius: 16px;
             margin: 20px 0;
             border-right: 3px solid #667eea;
-        }
-        .snapchat-box {
-            background: #fff8e7;
-            padding: 15px;
-            border-radius: 12px;
-            margin: 20px 0;
-            border-right: 3px solid #fffc00;
         }
         .contact-buttons {
             display: flex;
@@ -97,16 +108,13 @@
             background: #667eea;
             color: white;
         }
-        .contact-btn.developer:hover {
-            background: #5a67d8;
-            transform: translateY(-2px);
-        }
         .contact-btn.channel {
             background: linear-gradient(135deg, #48bb78, #38a169);
             color: white;
         }
-        .contact-btn.channel:hover {
-            transform: translateY(-2px);
+        .contact-btn.bot {
+            background: #2AABEE;
+            color: white;
         }
         .footer-links {
             margin-top: 35px;
@@ -143,71 +151,92 @@
 <body>
     <div class="container">
         <h1>📜 شروط الخدمة</h1>
-        <div class="update-date">📅 آخر تحديث: <span id="currentDate"></span></div>
+        
+        <!-- تعريف التطبيق -->
+        <div class="app-info">
+            <p><strong>📱 اسم التطبيق:</strong> <span class="app-name">Social Analyzer Bot</span></p>
+            <p><strong>🤖 بوت تلجرام:</strong> <span class="app-name">@Social_Media_tools_bot</span></p>
+            <p><strong>👨‍💻 المطور:</strong> @Alshabany_Ai</p>
+        </div>
+        
+        <div class="update-date">📅 آخر تحديث: 12 مايو 2026</div>
         
         <div class="highlight">
             <p style="margin-bottom: 0; font-size: 14px;">
-                باستخدامك لبوت Social Media Analyzer، فإنك توافق على الالتزام بشروط الخدمة هذه.
+                باستخدامك لبوت <strong>Social Analyzer Bot (@Social_Media_tools_bot)</strong>، فإنك توافق على الالتزام بشروط الخدمة هذه. إذا كنت لا توافق على أي جزء من هذه الشروط، يرجى عدم استخدام البوت.
             </p>
         </div>
-
-        <h2>1. قبول الشروط</h2>
-        <p>باستخدامك لبوت Social Media Analyzer، فإنك توافق على الالتزام بشروط الخدمة هذه. إذا كنت لا توافق على أي جزء من هذه الشروط، يرجى عدم استخدام البوت.</p>
-
-        <h2>2. وصف الخدمة</h2>
+        
+        <h2>1. وصف الخدمة</h2>
         <p>يقدم البوت خدمات تحليل حسابات التواصل الاجتماعي (يوتيوب، تيك توك، انستقرام، فيسبوك، سناب شات) بما في ذلك:</p>
         <ul>
-            <li>📺 <strong>تحليل قنوات يوتيوب</strong> (المشتركين، الفيديوهات، المشاهدات، أوقات النشر)</li>
-            <li>📸 <strong>تحليل حسابات سناب شات</strong> (المتابعين، مشاهدات القصص، معدلات التفاعل) - عبر Snapchat Kit API</li>
-            <li>🎵 <strong>تحليل حسابات تيك توك</strong> (الملف الشخصي، الإحصائيات، الفيديوهات) - قيد التطوير</li>
-            <li>📘 <strong>تحليل حسابات فيسبوك</strong> - قيد التطوير</li>
-            <li>📷 <strong>تحليل حسابات انستقرام</strong> - قيد التطوير</li>
-            <li>📄 <strong>إنشاء صفحة بايو شخصية</strong> للمستخدمين المميزين</li>
+            <li>📺 تحليل قنوات يوتيوب (المشتركين، الفيديوهات، المشاهدات، أوقات النشر)</li>
+            <li>📸 تحليل حسابات سناب شات (المتابعين، مشاهدات القصص، معدلات التفاعل) - عبر Snapchat Kit API</li>
+            <li>🎵 تحليل حسابات تيك توك (الملف الشخصي، الإحصائيات، الفيديوهات) - قيد التطوير</li>
+            <li>📘 تحليل حسابات فيسبوك - قيد التطوير</li>
+            <li>📷 تحليل حسابات انستقرام - قيد التطوير</li>
+            <li>📄 إنشاء صفحة بايو شخصية للمستخدمين المميزين</li>
+            <li>🤖 توصيات ذكاء اصطناعي مخصصة عبر Google Gemini API</li>
         </ul>
-
-        <h2>3. تكامل سناب شات (Snapchat Kit)</h2>
-        <div class="snapchat-box">
-            <p><strong>📸 شروط خاصة باستخدام ميزة سناب شات:</strong></p>
-            <ul>
-                <li>ميزة تحليل سناب شات تتطلب موافقة صريحة منك عبر OAuth 2.0</li>
-                <li>نحن نحصل فقط على البيانات العامة للملف الشخصي وإحصائيات الأداء الأساسية</li>
-                <li><strong>لا نصل أبداً إلى:</strong> الرسائل الخاصة، المحادثات، أو المحتوى غير العام</li>
-                <li>يمكنك إلغاء صلاحية التطبيق في أي وقت من إعدادات سناب شات</li>
-                <li>نلتزم بسياسات واستخدامات Snapchat Kit API</li>
-            </ul>
-        </div>
-
+        
+        <h2>2. تكامل سناب شات (Snapchat Kit)</h2>
+        <p><strong>شروط خاصة باستخدام ميزة سناب شات:</strong></p>
+        <ul>
+            <li>ميزة تحليل سناب شات تتطلب موافقة صريحة منك عبر OAuth 2.0</li>
+            <li>نحن نحصل فقط على البيانات العامة للملف الشخصي وإحصائيات الأداء الأساسية</li>
+            <li>لا نصل أبداً إلى: الرسائل الخاصة، المحادثات، أو المحتوى غير العام</li>
+            <li>يمكنك إلغاء صلاحية التطبيق في أي وقت من إعدادات سناب شات</li>
+            <li>نلتزم بسياسات واستخدامات Snapchat Kit API</li>
+        </ul>
+        
+        <h2>3. تكامل تيك توك (TikTok API)</h2>
+        <p><strong>شروط خاصة باستخدام ميزة تيك توك (قيد التطوير):</strong></p>
+        <ul>
+            <li>سيتم تطبيق نفس معايير الخصوصية والأمان عند اكتمال التكامل</li>
+            <li>نلتزم بسياسات واستخدامات TikTok API</li>
+        </ul>
+        
         <h2>4. حسابات المستخدمين</h2>
         <p>أنت مسؤول عن الحفاظ على سرية بيانات حسابك في تلجرام. جميع الأنشطة التي تحدث عبر حسابك هي مسؤوليتك وحدك.</p>
-
+        
         <h2>5. الاستخدام المقبول</h2>
-        <p>أنت توافق على استخدام البوت فقط للأغراض القانونية وبما يتوافق مع قوانين بلدك. لا يجوز استخدام البوت لنشر محتوى غير قانوني أو ضار، أو محاولة استخراج البيانات بطرق غير مصرح بها.</p>
-
-        <h2>6. حدود المسؤولية</h2>
-        <p>لن يكون مطور البوت مسؤولاً عن أي أضرار مباشرة أو غير مباشرة ناتجة عن استخدام أو عدم القدرة على استخدام البوت، بما في ذلك فقدان البيانات أو الأرباح.</p>
-
-        <h2>7. خدمات الطرف الثالث</h2>
+        <p>أنت توافق على استخدام البوت فقط للأغراض القانونية وبما يتوافق مع قوانين بلدك. لا يجوز استخدام البوت لنشر محتوى غير قانوني أو ضار، أو محاولة استخراج البيانات بطرق غير مصرح بها، أو محاولة اختراق أو تعطيل الخدمة.</p>
+        
+        <h2>6. خطط الاشتراك والدفع</h2>
+        <p>يقدم البوت خطة مجانية وخطط اشتراك مميزة.</p>
+        <ul>
+            <li><strong>الخطة المجانية:</strong> 2 تحليل يوتيوب يومياً، 0 توصية AI</li>
+            <li><strong>الخطة المميزة:</strong> تحليل غير محدود، توصيات AI، صفحة بايو شخصية، دعم أولوية</li>
+            <li><strong>الدفع:</strong> يتم عبر نجوم Telegram أو التحويل البنكي</li>
+            <li><strong>سياسة الاسترجاع:</strong> الاشتراكات المميزة غير قابلة للاسترجاع بعد التفعيل</li>
+        </ul>
+        
+        <h2>7. حدود المسؤولية</h2>
+        <p>لن يكون مطور البوت مسؤولاً عن أي أضرار مباشرة أو غير مباشرة ناتجة عن استخدام أو عدم القدرة على استخدام البوت، بما في ذلك فقدان البيانات أو الأرباح. يتم تقديم الخدمة "كما هي" دون أي ضمانات.</p>
+        
+        <h2>8. خدمات الطرف الثالث</h2>
         <p>يعتمد البوت على واجهات برمجة تطبيقات (APIs) من:</p>
         <ul>
             <li><strong>Google YouTube API v3</strong> - لتحليل قنوات يوتيوب</li>
             <li><strong>Snapchat Kit API</strong> - لتحليل حسابات سناب شات</li>
             <li><strong>Google Gemini API</strong> - لتوصيات الذكاء الاصطناعي</li>
+            <li><strong>Supabase</strong> - لتخزين البيانات</li>
         </ul>
         <p>أنت توافق على الالتزام بشروط استخدام هذه الخدمات عند استخدام البوت.</p>
-
-        <h2>8. التعديلات على الخدمة</h2>
+        
+        <h2>9. التعديلات على الخدمة</h2>
         <p>نحتفظ بالحق في تعديل أو إيقاف الخدمة في أي وقت دون إشعار مسبق. سنبذل جهداً معقولاً لإخطار المستخدمين بأي تغييرات جوهرية.</p>
-
-        <h2>9. التعديلات على الشروط</h2>
+        
+        <h2>10. التعديلات على الشروط</h2>
         <p>قد نقوم بتحديث شروط الخدمة هذه من وقت لآخر. سنقوم بإخطارك بأي تغييرات جوهرية عبر البوت أو عبر قناة التحديثات. استمرار استخدامك للبوت بعد التغييرات يعني موافقتك على الشروط المحدثة.</p>
-
-        <h2>10. إنهاء الخدمة</h2>
-        <p>نحتفظ بالحق في إنهاء أو تعليق وصولك إلى البوت فوراً، دون إشعار مسبق، لأي سبب كان، بما في ذلك انتهاك شروط الخدمة.</p>
-
-        <h2>11. قانون التحكيم</h2>
+        
+        <h2>11. إنهاء الخدمة</h2>
+        <p>نحتفظ بالحق في إنهاء أو تعليق وصولك إلى البوت فوراً، دون إشعار مسبق، لأي سبب كان، بما في ذلك انتهاك شروط الخدمة. يمكنك أيضاً حذف بياناتك وإلغاء اشتراكك في أي وقت.</p>
+        
+        <h2>12. قانون التحكيم</h2>
         <p>تخضع هذه الشروط وتفسر وفقًا لقوانين الجمهورية اليمنية. يتم حل أي نزاعات من خلال محاكم صنعاء.</p>
-
-        <h2>12. اتصل بنا</h2>
+        
+        <h2>13. اتصل بنا</h2>
         <p>إذا كان لديك أي أسئلة حول شروط الخدمة، يمكنك التواصل معنا عبر:</p>
         
         <div class="contact-buttons">
@@ -217,26 +246,20 @@
             <a href="https://t.me/Social_Media_Analysis" target="_blank" class="contact-btn channel">
                 <i class="fas fa-bullhorn"></i> 📢 قناة التحديثات
             </a>
+            <a href="https://t.me/Social_Media_tools_bot" target="_blank" class="contact-btn bot">
+                <i class="fab fa-telegram"></i> 🤖 البوت الرئيسي
+            </a>
         </div>
-
+        
         <div class="footer-links">
             <a href="/privacy" class="footer-link">🔐 سياسة الخصوصية</a>
+            <a href="/" class="footer-link">🏠 الصفحة الرئيسية</a>
         </div>
         
         <div class="copyright">
-            © 2026 بوت تحليل الحسابات الاجتماعية - جميع الحقوق محفوظة
+            <strong>Social Analyzer Bot</strong> - بوت تلجرام لتحليل حسابات التواصل الاجتماعي<br>
+            © 2026 - جميع الحقوق محفوظة
         </div>
     </div>
-    
-    <script>
-        // تاريخ اليوم بالتنسيق العربي
-        const today = new Date();
-        const arabicMonths = ['يناير', 'فبراير', 'مارس', 'إبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-        const formattedDate = `${today.getDate()} ${arabicMonths[today.getMonth()]} ${today.getFullYear()}`;
-        document.getElementById('currentDate').innerText = formattedDate;
-    </script>
-    
-    <!-- إضافة Font Awesome للأيقونات -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </body>
 </html>
