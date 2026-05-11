@@ -193,6 +193,10 @@ def terms_of_service():
 # =================================================================================
 
 @app.route('/')
+def home():
+    """الصفحة الرئيسية (صفحة هبوط للزوار ولتكامل تيك توك وسناب شات)"""
+    return render_template('landing.html')
+
 @app.route('/health')
 @app.route('/healthcheck')
 def health():
