@@ -414,60 +414,149 @@ def bio_page(page_url):
         return f"Internal error: {e}", 500
 
 # =================================================================================
-# القسم 10: API المصادقة مع Snapchat OAuth
+# القسم 10: API المصادقة مع Snapchat OAuth (نسخة محسنة)
 # =================================================================================
 
 @app.route('/snapchat/callback')
 def snapchat_callback():
     code = request.args.get('code')
     user_id = request.args.get('state')
+    
+    # تحسين: التحقق من وجود المتغيرات
     if not code or not user_id:
+        logger.error(f"Missing code or user_id: code={code}, user_id={user_id}")
         return "Missing code or user_id", 400
     
-    async def exchange_code():
-        async with aiohttp.ClientSession() as session:
-            async with session.post('https://accounts.snapchat.com/login/oauth2/access_token', data={
-                'grant_type': 'authorization_code',
-                'code': code,
-                'redirect_uri': os.environ.get('SNAPCHAT_REDIRECT_URI', 'https://social-analyzer-flask.onrender.com/snapchat/callback'),
-                'client_id': os.environ.get('SNAPCHAT_CLIENT_ID'),
-                'client_secret': os.environ.get('SNAPCHAT_CLIENT_SECRET')
-            }) as response:
-                if response.status == 200:
-                    return await response.json()
-                else:
-                    logger.error(f"Token exchange failed: {await response.text()}")
-                    return None
+    try:
+        user_id = int(user_id)
+    except ValueError:
+        logger.error(f"Invalid user_id: {user_id}")
+        return "Invalid user_id", 400
     
+    # الحصول على رابط إعادة التوجيه من متغير البيئة أو استخدام الافتراضي
+    redirect_uri = os.environ.get('SNAPCHAT_REDIRECT_URI', 'https://social-analyzer-flask.onrender.com/snapchat/callback')
+    
+    async def exchange_code():
+        try:
+            async with aiohttp.ClientSession() as session:
+                # تحسين: إضافة timeout
+                async with session.post(
+                    'https://accounts.snapchat.com/login/oauth2/access_token',
+                    data={
+                        'grant_type': 'authorization_code',
+                        'code': code,
+                        'redirect_uri': redirect_uri,
+                        'client_id': os.environ.get('SNAPCHAT_CLIENT_ID'),
+                        'client_secret': os.environ.get('SNAPCHAT_CLIENT_SECRET')
+                    },
+                    timeout=aiohttp.ClientTimeout(total=30)
+                ) as response:
+                    if response.status == 200:
+                        return await response.json()
+                    else:
+                        error_text = await response.text()
+                        logger.error(f"Token exchange failed with status {response.status}: {error_text}")
+                        return None
+        except asyncio.TimeoutError:
+            logger.error("Token exchange timeout")
+            return None
+        except Exception as e:
+            logger.error(f"Token exchange exception: {e}")
+            return None
+    
+    # تشغيل الدالة غير المتزامنة
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     token_data = loop.run_until_complete(exchange_code())
     loop.close()
+    
     if not token_data:
         return "Failed to exchange code", 500
-    save_token(int(user_id), token_data)
+    
+    # حفظ التوكن
+    if not save_token(user_id, token_data):
+        logger.error(f"Failed to save token for user {user_id}")
+        return "Failed to save token", 500
+    
+    # إرسال إشعار للمستخدم
     TOKEN = os.environ.get('TELEGRAM_TOKEN')
-    try:
-        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", json={'chat_id': user_id, 'text': "✅ تم تفعيل تحليل Snapchat بنجاح!\n\n📸 يمكنك الآن استخدام زر 'تحليل سناب شات' لتحليل حسابك.", 'parse_mode': 'HTML'})
-    except Exception as e:
-        logger.error(f"Failed to notify user: {e}")
+    if TOKEN:
+        try:
+            requests.post(
+                f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                json={
+                    'chat_id': user_id,
+                    'text': "✅ تم تفعيل تحليل Snapchat بنجاح!\n\n📸 يمكنك الآن استخدام زر 'تحليل سناب شات' لتحليل حسابك.",
+                    'parse_mode': 'HTML'
+                },
+                timeout=5
+            )
+        except Exception as e:
+            logger.error(f"Failed to notify user {user_id}: {e}")
+    
+    # صفحة النجاح
     return """
     <!DOCTYPE html>
     <html dir="rtl" lang="ar">
-    <head><meta charset="UTF-8"><title>تم التفعيل بنجاح</title>
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box;}
-        body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px;}
-        .card{background:white;border-radius:24px;padding:40px;text-align:center;max-width:400px;box-shadow:0 20px 40px rgba(0,0,0,0.2);}
-        .icon{font-size:64px;margin-bottom:20px;}
-        h1{color:#2c3e50;margin-bottom:10px;}
-        p{color:#666;line-height:1.6;}
-        .btn{display:inline-block;background:#667eea;color:white;padding:12px 24px;border-radius:30px;text-decoration:none;margin-top:20px;}
-    </style>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>تم التفعيل بنجاح - Social Analyzer Bot</title>
+        <style>
+            *{margin:0;padding:0;box-sizing:border-box;}
+            body{
+                font-family:'Segoe UI',sans-serif;
+                background:linear-gradient(135deg,#667eea,#764ba2);
+                min-height:100vh;
+                display:flex;
+                justify-content:center;
+                align-items:center;
+                padding:20px;
+            }
+            .card{
+                background:white;
+                border-radius:24px;
+                padding:40px;
+                text-align:center;
+                max-width:400px;
+                box-shadow:0 20px 40px rgba(0,0,0,0.2);
+                animation:fadeInUp 0.5s ease;
+            }
+            .icon{font-size:64px;margin-bottom:20px;}
+            h1{color:#2c3e50;margin-bottom:10px;}
+            p{color:#666;line-height:1.6;}
+            .btn{
+                display:inline-block;
+                background:#667eea;
+                color:white;
+                padding:12px 24px;
+                border-radius:30px;
+                text-decoration:none;
+                margin-top:20px;
+                transition:0.3s;
+            }
+            .btn:hover{
+                transform:translateY(-2px);
+                background:#5a67d8;
+            }
+            @keyframes fadeInUp{
+                from{opacity:0;transform:translateY(30px);}
+                to{opacity:1;transform:translateY(0);}
+            }
+        </style>
     </head>
     <body>
-    <div class="card"><div class="icon">✅</div><h1>تم التفعيل بنجاح!</h1><p>يمكنك الآن العودة إلى البوت واستخدام ميزة تحليل Snapchat.</p><a href="https://t.me/Social_Media_tools_bot" class="btn">🚀 العودة إلى البوت</a></div>
-    <script>setTimeout(() => { window.location.href = 'https://t.me/Social_Media_tools_bot'; }, 3000);</script>
+        <div class="card">
+            <div class="icon">✅</div>
+            <h1>تم التفعيل بنجاح!</h1>
+            <p>يمكنك الآن العودة إلى البوت واستخدام ميزة تحليل Snapchat.</p>
+            <a href="https://t.me/Social_Media_tools_bot" class="btn">🚀 العودة إلى البوت</a>
+        </div>
+        <script>
+            setTimeout(function(){
+                window.location.href = 'https://t.me/Social_Media_tools_bot';
+            }, 5000);
+        </script>
     </body>
     </html>
     """
