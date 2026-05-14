@@ -1,7 +1,7 @@
 <div class="card">
     <h3><i class="fas fa-user-circle"></i> ملفي الشخصي</h3>
     
-    <!-- صف الأزرار العلوية: زر التحديث + زر الوضع المظلم -->
+    <!-- صف الأزرار العلوية: زر التحديث + زر الوضع المظلم + زر الترقية -->
     <div style="display: flex; gap: 10px; margin-bottom: 15px;">
         <button onclick="manualRefresh()" style="flex: 2; background: linear-gradient(135deg, #48bb78, #38a169); color: white; border: none; padding: 10px; border-radius: 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 8px;">
             <i class="fas fa-sync-alt"></i> تحديث البيانات
@@ -9,8 +9,12 @@
         <button id="themeToggleBtn" onclick="toggleThemeFromProfile()" style="width: 50px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center;">
             🌙
         </button>
+        <!-- زر الترقية - يظهر فقط للمستخدمين المجانيين -->
+        <button id="upgradeBtn" class="upgrade-btn" onclick="showUpgradeOptions()" style="width: 50px; background: linear-gradient(135deg, #f59e0b, #e94560); color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; display: none;">
+            💎
+        </button>
     </div>
-    <p style="font-size: 10px; color: #888; text-align: center; margin-top: -8px; margin-bottom: 6px;">💡 بعد تعديل أي حساب، اضغط تحديث البيانات</p>
+    <p style="font-size: 10px; color: var(--text-light, #888); text-align: center; margin-top: -8px; margin-bottom: 6px;">💡 بعد تعديل أي حساب، اضغط تحديث البيانات</p>
     
     <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
         <div style="flex: 1;">
@@ -67,10 +71,13 @@
     </div>
 </div>
 
-<!-- ========== بطاقة الإنجازات ========== -->
-<div class="card">
-    <h3><i class="fas fa-trophy"></i> إنجازاتي 🏆</h3>
-    <div id="achievementsList" style="display: flex; flex-wrap: wrap; gap: 10px;"></div>
+<!-- ========== بطاقة الإنجازات (مصغرة) ========== -->
+<div class="card" style="padding: 12px 15px;">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+        <h3 style="margin: 0; font-size: 0.95rem;"><i class="fas fa-trophy"></i> إنجازاتي 🏆</h3>
+        <span id="achievementsCount" style="font-size: 11px; color: var(--text-light, #888);">0 إنجاز</span>
+    </div>
+    <div id="achievementsList" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;"></div>
 </div>
 
 <!-- ========== بطاقة صفحة البايو المتطورة ========== -->
@@ -130,6 +137,7 @@
     </p>
 </div>
 
+<!-- ========== حساباتي المسجلة ========== -->
 <div class="card">
     <h3><i class="fas fa-link"></i> حساباتي المسجلة</h3>
     <div style="background: #e8f0fe; border-radius: 12px; padding: 8px 12px; margin-bottom: 12px; font-size: 11px; color: #667eea; display: flex; align-items: center; gap: 8px;">
@@ -138,10 +146,60 @@
     <div id="accountsList"></div>
 </div>
 
+<!-- ========== 🔍 فحص توافر اليوزرنيم (للمميزين فقط) ========== -->
+<div id="usernameCheckerCard" class="card premium-only" style="display: none;">
+    <h3><i class="fas fa-search"></i> 🔍 فحص توافر اليوزرنيم</h3>
+    <div style="background: linear-gradient(135deg, #667eea10, #764ba210); border-radius: 12px; padding: 12px; margin-bottom: 10px;">
+        <p style="font-size: 12px; margin-bottom: 10px; color: var(--text, #2d3748);">
+            <i class="fas fa-info-circle"></i> تحقق من توافر اسم مستخدم على يوتيوب قبل اتخاذ القرار
+        </p>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <div style="flex: 3;">
+                <div style="position: relative;">
+                    <span style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #888;">@</span>
+                    <input type="text" id="usernameToCheck" placeholder="اسم المستخدم" style="width: 100%; padding: 10px 30px 10px 12px; border: 1px solid var(--border, #ddd); border-radius: 12px; background: var(--input-bg, white); color: var(--text, #2d3748); font-size: 14px;">
+                </div>
+            </div>
+            <div style="flex: 1;">
+                <button id="checkUsernameBtn" onclick="checkUsernameAvailability()" style="width: 100%; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 10px; border-radius: 12px; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    <i class="fas fa-search"></i> فحص
+                </button>
+            </div>
+        </div>
+        <div id="usernameResult" style="margin-top: 12px; padding: 10px; border-radius: 12px; display: none;">
+            <div id="usernameResultIcon" style="font-size: 18px; margin-left: 8px;"></div>
+            <div id="usernameResultText" style="font-size: 13px;"></div>
+        </div>
+    </div>
+</div>
+
 <div style="height: 80px;"></div>
 
 <div id="toastMessage" style="position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #28a745; color: white; padding: 10px 20px; border-radius: 30px; font-size: 14px; z-index: 1000; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
     ✅ تم التحديث بنجاح
+</div>
+
+<!-- ========== نافذة اختيار طريقة الدفع (Modal) ========== -->
+<div id="upgradeModal" class="modal" onclick="closeUpgradeModal()">
+    <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 350px; text-align: center;">
+        <h3 style="color: var(--primary, #667eea); margin-bottom: 15px;">
+            <i class="fas fa-gem"></i> ترقية الحساب
+        </h3>
+        <p style="margin-bottom: 20px; color: var(--text, #2d3748);">
+            اختر طريقة الدفع المناسبة لك
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <button onclick="upgradeViaStars()" style="background: linear-gradient(135deg, #f5b042, #f59e0b); color: white; border: none; padding: 14px; border-radius: 16px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <i class="fas fa-star"></i> ⭐ دفع عبر نجوم Telegram
+            </button>
+            <button onclick="upgradeViaBank()" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 14px; border-radius: 16px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; gap: 10px;">
+                <i class="fas fa-university"></i> 🏦 تحويل بنكي
+            </button>
+        </div>
+        <button onclick="closeUpgradeModal()" style="margin-top: 20px; background: transparent; color: var(--text-light, #888); border: none; padding: 10px; cursor: pointer; font-size: 14px;">
+            إلغاء
+        </button>
+    </div>
 </div>
 
 <style>
@@ -167,6 +225,43 @@
         background: #2d3748;
         color: #f7fafc;
     }
+    
+    /* تحسينات بطاقة الإنجازات المصغرة */
+    #achievementsList .achievement-badge {
+        background: linear-gradient(135deg, var(--primary, #667eea)15, var(--secondary, #764ba2)15);
+        border-radius: 20px;
+        padding: 4px 10px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        border: 1px solid var(--primary, #667eea)30;
+    }
+    
+    #achievementsList .achievement-badge i {
+        font-size: 12px;
+    }
+    
+    /* زر الترقية */
+    .upgrade-btn {
+        animation: pulseGlow 2s infinite;
+    }
+    
+    @keyframes pulseGlow {
+        0% {
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+        }
+    }
+    
+    .upgrade-btn:hover {
+        transform: scale(1.05);
+    }
 </style>
 
 <script>
@@ -189,13 +284,13 @@
         const platformOrder = ['youtube', 'instagram', 'tiktok', 'facebook', 'snapchat'];
         
         const achievementsConfig = {
-            first_analysis: { icon: '🎯', name: 'أول تحليل', desc: 'أجرى أول تحليل لحساب', color: '#667eea' },
+            first_analysis: { icon: '🎯', name: 'أول تحليل', desc: 'أجرى أول تحليل', color: '#667eea' },
             ten_analyses: { icon: '📊', name: '10 تحليلات', desc: 'أجرى 10 تحليلات', color: '#48bb78' },
             fifty_analyses: { icon: '🔥', name: '50 تحليلاً', desc: 'أجرى 50 تحليلاً', color: '#ed8936' },
-            premium: { icon: '👑', name: 'مشترك مميز', desc: 'اشترك في الخطة المميزة', color: '#e94560' },
-            first_recommendation: { icon: '🤖', name: 'أول توصية', desc: 'حصل على أول توصية AI', color: '#9b59b6' },
-            complete_profile: { icon: '✅', name: 'ملف كامل', desc: 'أكمل جميع حسابات التواصل', color: '#38a169' },
-            bio_page: { icon: '📄', name: 'صفحة بايو', desc: 'فعّل صفحة البايو الشخصية', color: '#f6d365' }
+            premium: { icon: '👑', name: 'مشترك مميز', desc: 'اشترك مميز', color: '#e94560' },
+            first_recommendation: { icon: '🤖', name: 'أول توصية', desc: 'حصل على توصية AI', color: '#9b59b6' },
+            complete_profile: { icon: '✅', name: 'ملف كامل', desc: 'أكمل جميع الحسابات', color: '#38a169' },
+            bio_page: { icon: '📄', name: 'صفحة بايو', desc: 'فعّل صفحة البايو', color: '#f6d365' }
         };
         
         function showToast(message, isError = false) {
@@ -207,7 +302,49 @@
             setTimeout(() => { toast.style.display = 'none'; }, 3000);
         }
         
-        // ========== دالة تبديل الوضع المظلم من داخل التبويب ==========
+        // ========== دوال الترقية ==========
+        window.showUpgradeOptions = function() {
+            const modal = document.getElementById('upgradeModal');
+            if (modal) {
+                modal.style.display = 'flex';
+            }
+        };
+        
+        window.closeUpgradeModal = function() {
+            const modal = document.getElementById('upgradeModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        };
+        
+        window.upgradeViaStars = function() {
+    closeUpgradeModal();
+    const botUsername = 'Social_Media_tools_bot';
+    window.open(`https://t.me/${botUsername}?start=premium`, '_blank');
+    showToast('⭐ تم توجيهك إلى البوت لعرض خطط الاشتراك', false);
+};
+        
+        window.upgradeViaBank = function() {
+    closeUpgradeModal();
+    const token = new URLSearchParams(window.location.search).get('token');
+    // استخدام location.href بدلاً من window.open
+    window.location.href = `/payment?token=${encodeURIComponent(token)}`;
+    showToast('🏦 تم توجيهك إلى صفحة الدفع البنكي', false);
+};
+        
+        // ========== إظهار/إخفاء زر الترقية حسب حالة المستخدم ==========
+        function updateUpgradeButton() {
+            const upgradeBtn = document.getElementById('upgradeBtn');
+            if (upgradeBtn) {
+                if (window.userData && !window.userData.is_premium) {
+                    upgradeBtn.style.display = 'flex';
+                } else {
+                    upgradeBtn.style.display = 'none';
+                }
+            }
+        }
+        
+        // ========== دالة تبديل الوضع المظلم ==========
         window.toggleThemeFromProfile = async function() {
             // استدعاء دالة التبديل من base.html إذا كانت موجودة
             if (typeof window.toggleTheme === 'function') {
@@ -224,15 +361,6 @@
                     localStorage.setItem('theme_mode', 'dark');
                     document.getElementById('themeToggleBtn').innerHTML = '☀️';
                 }
-                
-                // محاولة حفظ التفضيل في الخادم
-                try {
-                    await fetch('/api/save_theme_preference', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ token: AUTH_TOKEN, theme: isDark ? 'light' : 'dark' })
-                    });
-                } catch(e) { console.error('Error saving theme:', e); }
             }
             
             // تحديث أيقونة الزر
@@ -262,6 +390,83 @@
         });
         observer.observe(document.body, { attributes: true });
         
+        // ========== دالة فحص اليوزرنيم ==========
+        window.checkUsernameAvailability = async function() {
+            const usernameInput = document.getElementById('usernameToCheck');
+            const username = usernameInput.value.trim();
+            
+            if (!username) {
+                showToast('📝 الرجاء إدخال اسم المستخدم', true);
+                return;
+            }
+            
+            let cleanUsername = username.replace(/^@/, '').replace(/\s/g, '');
+            
+            if (!cleanUsername) {
+                showToast('❌ اسم المستخدم غير صالح', true);
+                return;
+            }
+            
+            const resultDiv = document.getElementById('usernameResult');
+            const resultIcon = document.getElementById('usernameResultIcon');
+            const resultText = document.getElementById('usernameResultText');
+            const checkBtn = document.getElementById('checkUsernameBtn');
+            
+            resultDiv.style.display = 'flex';
+            resultDiv.style.alignItems = 'center';
+            resultDiv.style.gap = '10px';
+            resultDiv.style.background = 'rgba(102,126,234,0.1)';
+            resultIcon.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            resultText.innerHTML = 'جاري فحص التوافر...';
+            checkBtn.disabled = true;
+            checkBtn.style.opacity = '0.6';
+            
+            try {
+                const response = await fetch('/api/check-username', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: AUTH_TOKEN, username: cleanUsername })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    if (result.available) {
+                        resultDiv.style.background = 'rgba(72,187,120,0.15)';
+                        resultIcon.innerHTML = '<i class="fas fa-check-circle" style="color: #48bb78; font-size: 20px;"></i>';
+                        resultText.innerHTML = `✅ <strong>@${cleanUsername}</strong> متاح! يمكنك استخدام هذا الاسم.`;
+                    } else {
+                        resultDiv.style.background = 'rgba(229,62,62,0.15)';
+                        resultIcon.innerHTML = '<i class="fas fa-times-circle" style="color: #dc3545; font-size: 20px;"></i>';
+                        resultText.innerHTML = `❌ <strong>@${cleanUsername}</strong> غير متاح. يرجى اختيار اسم آخر.`;
+                    }
+                } else {
+                    resultDiv.style.background = 'rgba(229,62,62,0.15)';
+                    resultIcon.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: #ed8936; font-size: 20px;"></i>';
+                    resultText.innerHTML = `⚠️ ${result.error || 'حدث خطأ أثناء الفحص'}`;
+                }
+            } catch (error) {
+                resultDiv.style.background = 'rgba(229,62,62,0.15)';
+                resultIcon.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: #ed8936; font-size: 20px;"></i>';
+                resultText.innerHTML = `⚠️ خطأ في الاتصال: ${error.message}`;
+            } finally {
+                checkBtn.disabled = false;
+                checkBtn.style.opacity = '1';
+            }
+        };
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const usernameInput = document.getElementById('usernameToCheck');
+            if (usernameInput) {
+                usernameInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        checkUsernameAvailability();
+                    }
+                });
+            }
+        });
+        
         // ========== دالة التحديث اليدوية ==========
         window.manualRefresh = async function() {
             showToast('🔄 جاري تحديث البيانات...');
@@ -285,7 +490,6 @@
         window.changeTheme = async function() {
             const themeSelect = document.getElementById('themeSelect');
             const selectedTheme = themeSelect.value;
-            
             const themeNames = { default: 'فاتح', dark: 'داكن', green: 'أخضر', pink: 'وردي', ocean: 'محيط' };
             
             try {
@@ -399,7 +603,7 @@
                         showToast(`✅ تم حذف حساب ${platformInfo[platform].name} بنجاح!\n💡 اضغط زر "تحديث البيانات" لتحديث العرض`);
                         window.dispatchEvent(new CustomEvent('refreshUserData'));
                     } else {
-                        showToast(`❌ فشل حذف الحساب: ${result.error || ''}`, true);
+                        showToast(`❌ فشل حذف الحساب`, true);
                     }
                 } catch (error) {
                     showToast(`❌ حدث خطأ أثناء حذف الحساب`, true);
@@ -427,7 +631,7 @@
                         showToast(`✅ تم تحديث حساب ${platformInfo[platform].name} بنجاح!\n💡 اضغط زر "تحديث البيانات" لتحديث العرض`);
                         window.dispatchEvent(new CustomEvent('refreshUserData'));
                     } else {
-                        showToast(`❌ فشل تحديث الحساب: ${result.error || ''}`, true);
+                        showToast(`❌ فشل تحديث الحساب`, true);
                     }
                 } catch (error) {
                     showToast(`❌ حدث خطأ أثناء تحديث الحساب`, true);
@@ -554,6 +758,16 @@
                 }
             }
             
+            // ========== تفعيل/إخفاء بطاقة فحص اليوزرنيم (للمميزين فقط) ==========
+            const usernameCheckerCard = document.getElementById('usernameCheckerCard');
+            if (usernameCheckerCard) {
+                if (data.is_premium) {
+                    usernameCheckerCard.style.display = 'block';
+                } else {
+                    usernameCheckerCard.style.display = 'none';
+                }
+            }
+            
             // عرض الحسابات المسجلة
             const accountsList = document.getElementById('accountsList');
             if (accountsList) {
@@ -597,12 +811,13 @@
                             </div>`;
                     }
                 }
-                if (!hasAny) html = '<div style="text-align:center; padding:20px; color:#888;">لا توجد حسابات مسجلة</div>';
+                if (!hasAny) html = '<div style="text-align:center; padding:20px; color:var(--text-light, #888);">لا توجد حسابات مسجلة</div>';
                 accountsList.innerHTML = html;
             }
             
-            // عرض الإنجازات
+            // عرض الإنجازات (مصغرة)
             const achievementsList = document.getElementById('achievementsList');
+            const achievementsCountSpan = document.getElementById('achievementsCount');
             if (achievementsList) {
                 let achievements = [];
                 if (totalUses >= 1) achievements.push('first_analysis');
@@ -613,20 +828,25 @@
                 if (completedAccounts === platformOrder.length) achievements.push('complete_profile');
                 if (data.bio_page) achievements.push('bio_page');
                 
+                if (achievementsCountSpan) {
+                    achievementsCountSpan.innerHTML = `${achievements.length} إنجاز`;
+                }
+                
                 if (achievements.length > 0) {
                     achievementsList.innerHTML = achievements.map(ach => `
-                        <div style="background: linear-gradient(135deg, ${achievementsConfig[ach].color}20, ${achievementsConfig[ach].color}10); border-radius: 12px; padding: 8px 12px; text-align: center; min-width: 80px; border: 1px solid ${achievementsConfig[ach].color}30;">
-                            <div style="font-size: 24px;">${achievementsConfig[ach].icon}</div>
-                            <div style="font-size: 11px; font-weight: bold; color: ${achievementsConfig[ach].color};">${achievementsConfig[ach].name}</div>
-                            <div style="font-size: 9px; color: var(--text-light, #888);">${achievementsConfig[ach].desc}</div>
+                        <div class="achievement-badge" style="background: linear-gradient(135deg, ${achievementsConfig[ach].color}20, ${achievementsConfig[ach].color}10); border-radius: 20px; padding: 4px 10px; display: inline-flex; align-items: center; gap: 6px; font-size: 11px; border: 1px solid ${achievementsConfig[ach].color}40;">
+                            <span style="font-size: 14px;">${achievementsConfig[ach].icon}</span>
+                            <span style="font-weight: bold; color: ${achievementsConfig[ach].color};">${achievementsConfig[ach].name}</span>
                         </div>
                     `).join('');
                 } else {
-                    achievementsList.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-light, #888);"><i class="fas fa-medal"></i> لا توجد إنجازات بعد<br><small>ابدأ باستخدام البوت للحصول على إنجازاتك الأولى!</small></div>';
+                    achievementsList.innerHTML = '<div style="text-align:center; padding:8px; color:var(--text-light, #888); font-size: 11px;">لا توجد إنجازات بعد</div>';
                 }
             }
             
-            // تحديث أيقونة زر الوضع المظلم
+            // تحديث زر الترقية
+            updateUpgradeButton();
+            
             updateThemeToggleIcon();
         };
         
@@ -634,12 +854,10 @@
             if (window.userData) window.updateProfileTab(window.userData);
         });
         
-        // تحديث أولي
         if (window.userData) {
             window.updateProfileTab(window.userData);
         }
         
-        // تحديث أيقونة الزر بعد تحميل الصفحة
         setTimeout(updateThemeToggleIcon, 100);
     })();
 </script>

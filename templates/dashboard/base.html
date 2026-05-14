@@ -1659,11 +1659,77 @@
     `;
     document.head.appendChild(styleElem);
     
-    // تهيئة
+    // ========== دالة تنسيق الأرقام (للإحصائيات) ==========
+    function formatNumber(num) {
+        if (!num && num !== 0) return '0';
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+        return num.toString();
+    }
+    
+    // ========== جلب أول تحليل (نقطة البداية) ==========
+    async function loadFirstAnalysis() {
+        const card = document.getElementById('firstAnalysisCard');
+        const container = document.getElementById('firstAnalysisContent');
+        
+        if (!card || !container) {
+            console.log('First analysis card not found');
+            return;
+        }
+        
+        try {
+            const token = new URLSearchParams(window.location.search).get('token');
+            if (!token) {
+                card.style.display = 'none';
+                return;
+            }
+            
+            const response = await fetch(`/api/analysis/first-analysis?token=${encodeURIComponent(token)}`);
+            const result = await response.json();
+            
+            if (!result.success || !result.data) {
+                card.style.display = 'none';
+                return;
+            }
+            
+            const analysis = result.data;
+            card.style.display = 'block';
+            
+            const analysisDate = new Date(analysis.analysis_date).toLocaleDateString('ar-EG', { year: 'numeric', month: 'numeric', day: 'numeric' });
+            
+            container.innerHTML = `
+                <div style="background: linear-gradient(135deg, #667eea10, #764ba210); border-radius: 16px; padding: 15px;">
+                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+                        <div><strong>📺 القناة:</strong> ${analysis.account_name || '-'}</div>
+                        <div><strong>📅 التاريخ:</strong> ${analysisDate}</div>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px;">
+                        <span class="stat-mini">👥 ${formatNumber(analysis.subscribers)} مشترك</span>
+                        <span class="stat-mini">👁️ ${formatNumber(analysis.total_views)} مشاهدة</span>
+                        <span class="stat-mini">📹 ${analysis.total_posts || 0} فيديو</span>
+                        <span class="stat-mini">📈 ${formatNumber(analysis.avg_views_per_post)} متوسط</span>
+                    </div>
+                </div>
+            `;
+            
+        } catch (error) {
+            console.error('Error loading first analysis:', error);
+            if (card) card.style.display = 'none';
+        }
+    }
+    
+    // ========== استماع لتحديث البيانات ==========
+    window.addEventListener('refreshUserData', function() {
+        loadFirstAnalysis();
+    });
+    
+        // ========== التهيئة النهائية ==========
     document.addEventListener('DOMContentLoaded', () => {
         initTheme();
         fixIcons();
         refreshPermissions();
+        // تحميل نقطة البداية بعد تأخير بسيط
+        setTimeout(loadFirstAnalysis, 1000);
     });
     
     loadUserData();

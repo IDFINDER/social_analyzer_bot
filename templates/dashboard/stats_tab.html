@@ -14,6 +14,15 @@
     <p style="font-size: 11px; color: var(--text-light, #888); text-align: center; margin-top: 10px;">📅 آخر 7 أيام</p>
 </div>
 
+<!-- ========== بطاقة نقطة البداية (أول تحليل مرجعي) ========== -->
+<div id="firstAnalysisCard" class="card" style="display: none;">
+    <h3><i class="fas fa-flag-checkered"></i> 🎯 نقطة البداية (أول تحليل)</h3>
+    <div id="firstAnalysisContent"></div>
+    <p style="font-size: 11px; color: var(--text-light, #888); margin-top: 10px;">
+        📌 هذا هو تحليلك الأول والذي يستخدم كنقطة مرجعية لقياس نمو قناتك
+    </p>
+</div>
+
 <!-- مساحة فارغة أسفل الصفحة -->
 <div style="height: 80px;"></div>
 
@@ -230,6 +239,83 @@
         }
     }
     
+        // ========== جلب أول تحليل (نقطة البداية) ==========
+    async function loadFirstAnalysis() {
+        const card = document.getElementById('firstAnalysisCard');
+        const container = document.getElementById('firstAnalysisContent');
+        
+        if (!card || !container) return;
+        
+        try {
+            const token = new URLSearchParams(window.location.search).get('token');
+            if (!token) {
+                card.style.display = 'none';
+                return;
+            }
+            
+            const response = await fetch(`/api/analysis/first-analysis?token=${encodeURIComponent(token)}`);
+            const result = await response.json();
+            
+            if (!result.success || !result.data) {
+                card.style.display = 'none';
+                return;
+            }
+            
+            const analysis = result.data;
+            card.style.display = 'block';
+            
+            const analysisDate = new Date(analysis.analysis_date).toLocaleDateString('ar-EG', { year: 'numeric', month: 'numeric', day: 'numeric' });
+            
+            // ✅ بناء HTML مع عرض جميع البيانات
+            let statsHtml = `
+                <div class="analysis-stats" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px;">
+                    <span class="stat-mini">👥 ${formatNumber(analysis.subscribers)} مشترك</span>
+                    <span class="stat-mini">👁️ ${formatNumber(analysis.total_views)} مشاهدة</span>
+                    <span class="stat-mini">📹 ${analysis.total_posts || 0} فيديو</span>
+                    <span class="stat-mini">📈 ${formatNumber(analysis.avg_views_per_post)} متوسط</span>
+            `;
+            
+            // ✅ إضافة engagement_rate إذا كان موجوداً
+            if (analysis.engagement_rate) {
+                statsHtml += `<span class="stat-mini">❤️ نسبة التفاعل: ${analysis.engagement_rate}%</span>`;
+            }
+            
+            // ✅ إضافة best_posting_hour إذا كان موجوداً
+            if (analysis.best_posting_hour) {
+                statsHtml += `<span class="stat-mini">⏰ أفضل وقت: ${analysis.best_posting_hour}:00</span>`;
+            }
+            
+            // ✅ إضافة avg_posts_per_week إذا كان موجوداً
+            if (analysis.avg_posts_per_week) {
+                statsHtml += `<span class="stat-mini">📅 منشورات/أسبوع: ${analysis.avg_posts_per_week}</span>`;
+            }
+            
+            statsHtml += `</div>`;
+            
+            container.innerHTML = `
+                <div style="background: linear-gradient(135deg, #667eea10, #764ba210); border-radius: 16px; padding: 15px;">
+                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+                        <div><strong>📺 القناة:</strong> ${analysis.account_name || '-'}</div>
+                        <div><strong>📅 التاريخ:</strong> ${analysisDate}</div>
+                        ${analysis.analysis_number ? `<div><strong>🔢 رقم التحليل:</strong> #${analysis.analysis_number}</div>` : ''}
+                    </div>
+                    ${statsHtml}
+                </div>
+            `;
+            
+        } catch (error) {
+            console.error('Error loading first analysis:', error);
+            card.style.display = 'none';
+        }
+    }
+    
+    function formatNumber(num) {
+        if (!num && num !== 0) return '0';
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+        return num.toString();
+    }
+    
     // ========== دالة تحديث ألوان الرسوم البيانية عند تغيير الوضع ==========
     function updateChartsTheme() {
         if (platformChartInstance) {
@@ -276,6 +362,12 @@
     // تحديث الألوان عند تحميل الصفحة
     document.addEventListener('DOMContentLoaded', function() {
         setTimeout(updateChartsTheme, 200);
+        loadFirstAnalysis();
+    });
+    
+    // استدعاء loadFirstAnalysis عند تحديث البيانات
+    window.addEventListener('refreshUserData', function() {
+        loadFirstAnalysis();
     });
 </script>
 
@@ -339,5 +431,19 @@
     
     body.dark .stats-grid .stat-label {
         color: #a0aec0;
+    }
+    
+    /* نمط نقطة البداية */
+    .stat-mini {
+        background: #f0f4ff;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        color: #667eea;
+    }
+    
+    body.dark .stat-mini {
+        background: #1a202c;
+        color: #9b59b6;
     }
 </style>
