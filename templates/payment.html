@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الاشتراك المميز - بوت تحليل الحسابات</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Tahoma', 'Arial', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #2c3e50;
+        }
+        
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+        
+        /* اختيار الخطة */
+        .plan-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .plan-option {
+            flex: 1;
+            min-width: 110px;
+            padding: 12px 8px;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9fa;
+            border: 2px solid #e2e8f0;
+        }
+        
+        .plan-option.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea15, #764ba215);
+            transform: scale(1.02);
+        }
+        
+        .plan-option:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .plan-name { font-weight: bold; font-size: 16px; margin-bottom: 5px; }
+        .plan-price { color: #48bb78; font-weight: bold; font-size: 20px; }
+        .plan-price small { font-size: 12px; font-weight: normal; }
+        .plan-duration { font-size: 10px; color: #718096; margin-top: 5px; }
+        .plan-stars { font-size: 12px; color: #f59e0b; margin-top: 5px; }
+        
+        .price {
+            font-size: 2.5em;
+            color: #48bb78;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        
+        .price small { font-size: 14px; font-weight: normal; color: #718096; }
+        
+        .features {
+            text-align: right;
+            margin: 30px 0;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+        }
+        
+        .features li {
+            margin: 12px 0;
+            list-style: none;
+            font-size: 1em;
+        }
+        
+        .features li::before { content: "✅ "; color: #48bb78; }
+        
+        .payment-methods {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .method {
+            display: inline-block;
+            background: #e9ecef;
+            padding: 8px 15px;
+            border-radius: 25px;
+            margin: 5px;
+            font-size: 0.9em;
+        }
+        
+        .bank-info {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .number {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #48bb78;
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 15px;
+            margin: 15px 0;
+            direction: ltr;
+            letter-spacing: 2px;
+        }
+        
+        .copy-btn {
+            background: #48bb78;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s;
+        }
+        
+        .copy-btn:hover { background: #38a169; transform: scale(1.02); }
+        
+        .warning {
+            background: #fff3cd;
+            border-right: 3px solid #ffc107;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: right;
+            color: #856404;
+        }
+        
+        .button {
+            display: inline-block;
+            background: #48bb78;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 10px;
+            text-decoration: none;
+            margin: 10px;
+            transition: all 0.3s;
+            cursor: pointer;
+            border: none;
+            font-size: 14px;
+        }
+        
+        .button:hover { background: #38a169; transform: scale(1.02); }
+        
+        .stars-btn {
+            background: linear-gradient(135deg, #f5b042, #f59e0b);
+        }
+        
+        .stars-btn:hover { background: linear-gradient(135deg, #f5a623, #e67e22); }
+        
+        .back-btn { background: #6c757d; }
+        .back-btn:hover { background: #5a6268; }
+        
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            color: #6c757d;
+            font-size: 0.8rem;
+        }
+        
+        .footer a { color: #667eea; text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #667eea;
+        }
+        
+        .loading i { animation: spin 1s linear infinite; margin-left: 10px; }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #48bb78;
+            color: white;
+            text-align: center;
+            border-radius: 8px;
+            padding: 12px;
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            font-size: 14px;
+        }
+        
+        .toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
+        
+        @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 30px; opacity: 1; } }
+        @keyframes fadeout { from { bottom: 30px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+        
+        @media (max-width: 600px) {
+            .container { padding: 10px; }
+            .card { padding: 20px; }
+            .number { font-size: 1.2em; }
+            .price { font-size: 1.8em; }
+            .plan-option { min-width: 90px; padding: 8px 4px; }
+            .plan-name { font-size: 13px; }
+            .plan-price { font-size: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card" id="mainCard">
+            <div class="loading" id="loadingIndicator">
+                <i class="fas fa-spinner fa-spin"></i> جاري تحميل بيانات الخطط...
+            </div>
+            
+            <div id="paymentContent" style="display: none;">
+                <!-- اختيار الخطة -->
+                <div class="plan-selector" id="planSelector"></div>
+                
+                <h1>💎 الاشتراك المميز</h1>
+                <div class="price" id="priceDisplay"></div>
+                
+                <div class="features">
+                    <li>📊 تحليل غير محدود للحسابات</li>
+                    <li>🤖 توصيات الذكاء الاصطناعي (Gemini AI)</li>
+                    <li>📄 صفحة بايو شخصية مع ثيمات متعددة</li>
+                    <li>🔍 فحص توافر اليوزرنيم</li>
+                    <li>⚡ دعم أولوية في المعالجة</li>
+                    <li>💬 مساعد ذكي (50 سؤال/يوم للمميزين)</li>
+                </div>
+                
+                <div class="payment-methods">
+                    <h3>طرق الدفع المتاحة:</h3>
+                    <span class="method">⭐ نجوم Telegram</span>
+                    <span class="method">💳 تحويل بنكي</span>
+                    <span class="method">📱 جيب (Jib)</span>
+                    <span class="method">💵 ونكاش (OneCash)</span>
+                </div>
+                
+                <!-- قسم الدفع البنكي -->
+                <div id="bankSection">
+                    <div class="bank-info">
+                        <h3><i class="fas fa-university"></i> التحويل البنكي</h3>
+                        <p><strong>🏦 البنك:</strong> اليمن بنك - Yemen Bank</p>
+                        <p><strong>📁 اسم الحساب:</strong> أحمد الشعباني</p>
+                        <p><strong>🔢 رقم الحساب:</strong></p>
+                        <div class="number" id="paymentNumber">772130931</div>
+                        <button class="copy-btn" onclick="copyNumber()">📋 نسخ الرقم</button>
+                    </div>
+                    
+                    <div class="warning">
+                        ⚠️ <strong>تنبيه:</strong> بعد التحويل، تواصل مع المطور على تلجرام لإرسال صورة الإيصال وتفعيل الاشتراك.
+                    </div>
+                </div>
+                
+                <!-- أزرار الدفع -->
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 20px;">
+                    <button id="starsPayBtn" class="button stars-btn" onclick="payWithStars()">
+                        <i class="fas fa-star"></i> ⭐ دفع بالنجوم
+                    </button>
+                    <button id="bankPayBtn" class="button" onclick="payWithBank()">
+                        <i class="fas fa-university"></i> 🏦 دفع بنكي
+                    </button>
+                </div>
+                
+                <a href="#" onclick="closeWindow()" class="button back-btn">🏠 العودة للوحة التحكم</a>
+                
+                <div class="footer">
+                    <p>👨‍💻 للمساعدة: <a href="https://t.me/Alshabany_Ai" target="_blank">@Alshabany_Ai</a></p>
+                    <p>🚀 اشتراك واحد - جميع البوتات - استخدام غير محدود</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast" class="toast">✅ تم نسخ الرقم!</div>
+    
+    <script>
+        // استخراج التوكن من الرابط
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        
+        // مصفوفة الخطط
+        let plans = [];
+        let selectedPlanId = null;
+        let paymentNumber = '772130931';
+        
+        // ========== جلب الأسعار من قاعدة البيانات ==========
+        async function loadPlans() {
+            try {
+                const response = await fetch('/api/prices');
+                const result = await response.json();
+                
+                if (result.success) {
+                    // بناء مصفوفة الخطط من البيانات المستلمة
+                    plans = [
+                        {
+                            id: 'monthly',
+                            name: '🌙 شهري',
+                            price: result.price_monthly || 4,
+                            duration: result.duration_monthly || 30,
+                            stars: result.stars_monthly || 2,
+                            desc: 'شهرياً'
+                        },
+                        {
+                            id: 'half_yearly',
+                            name: '📅 نصف سنوي',
+                            price: result.price_half_yearly || 30,
+                            duration: result.duration_half_yearly || 180,
+                            stars: result.stars_half_yearly || 500,
+                            desc: 'لمدة 6 أشهر'
+                        },
+                        {
+                            id: 'yearly',
+                            name: '🎉 سنوي',
+                            price: result.price_yearly || 48,
+                            duration: result.duration_yearly || 365,
+                            stars: result.stars_yearly || 800,
+                            desc: 'لمدة سنة'
+                        },
+                        {
+                            id: 'lifetime',
+                            name: '💎 مدى الحياة',
+                            price: result.price_lifetime || 100,
+                            duration: result.duration_lifetime || 36500,
+                            stars: result.stars_lifetime || 2000,
+                            desc: 'مدى الحياة'
+                        }
+                    ];
+                    
+                    paymentNumber = result.payment_number || '772130931';
+                    document.getElementById('paymentNumber').innerText = paymentNumber;
+                    
+                    // عرض الخطط
+                    renderPlans();
+                    
+                    // إخفاء التحميل وإظهار المحتوى
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                    document.getElementById('paymentContent').style.display = 'block';
+                    
+                    // اختيار الخطة الافتراضية (نصف سنوي)
+                    selectPlan('half_yearly');
+                } else {
+                    throw new Error('Failed to load prices');
+                }
+            } catch (error) {
+                console.error('Error loading plans:', error);
+                document.getElementById('loadingIndicator').innerHTML = `
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    خطأ في تحميل البيانات. يرجى تحديث الصفحة
+                    <button onclick="location.reload()" style="display: block; margin: 20px auto; background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer;">إعادة المحاولة</button>
+                `;
+            }
+        }
+        
+        // ========== عرض الخطط ==========
+        function renderPlans() {
+            const container = document.getElementById('planSelector');
+            container.innerHTML = plans.map(plan => `
+                <div class="plan-option" data-plan="${plan.id}" onclick="selectPlan('${plan.id}')">
+                    <div class="plan-name">${plan.name}</div>
+                    <div class="plan-price">$${plan.price}</div>
+                    <div class="plan-duration">${plan.duration > 365 ? 'مدى الحياة' : plan.duration + ' يوم'}</div>
+                    <div class="plan-stars"><i class="fas fa-star"></i> ${plan.stars} نجمة</div>
+                </div>
+            `).join('');
+        }
+        
+        // ========== اختيار الخطة ==========
+        function selectPlan(planId) {
+            selectedPlanId = planId;
+            const plan = plans.find(p => p.id === planId);
+            
+            if (!plan) return;
+            
+            // تحديث الواجهة
+            document.querySelectorAll('.plan-option').forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.dataset.plan === planId) {
+                    opt.classList.add('selected');
+                }
+            });
+            
+            // تحديث عرض السعر
+            const durationText = plan.duration > 365 ? 'مدى الحياة' : `لمدة ${plan.duration} يوماً`;
+            document.getElementById('priceDisplay').innerHTML = `$${plan.price} <small>${durationText}</small>`;
+        }
+        
+        // ========== الدفع بالنجوم ==========
+        function payWithStars() {
+            const plan = plans.find(p => p.id === selectedPlanId);
+            if (!plan) return;
+            
+            const botUsername = 'Social_Media_tools_bot';
+            const startParam = `premium_${selectedPlanId}_${token || ''}`;
+            
+            window.open(`https://t.me/${botUsername}?start=${startParam}`, '_blank');
+            showToast('⭐ تم توجيهك إلى البوت لإتمام الدفع بالنجوم');
+        }
+        
+        // ========== الدفع البنكي ==========
+        function payWithBank() {
+            const plan = plans.find(p => p.id === selectedPlanId);
+            if (!plan) return;
+            
+            const userId = token ? token.split(':')[0] : 'غير معروف';
+            const message = `💰 طلب ترقية حساب\n\n🆔 المعرف: ${userId}\n📋 الباقة: ${plan.name}\n💰 المبلغ: $${plan.price}\n📅 المدة: ${plan.duration > 365 ? 'مدى الحياة' : plan.duration + ' يوماً'}\n\n✅ تم التحويل، يرجى التفعيل`;
+            const encodedMessage = encodeURIComponent(message);
+            
+            window.open(`https://t.me/Alshabany_Ai?text=${encodedMessage}`, '_blank');
+            showToast('📤 تم توجيهك إلى المطور. أرسل صورة الإيداع مع المعرف الخاص بك');
+        }
+        
+        // ========== نسخ الرقم ==========
+        function copyNumber() {
+            const number = document.getElementById('paymentNumber').innerText;
+            navigator.clipboard.writeText(number);
+            showToast('✅ تم نسخ الرقم!');
+        }
+        
+        // ========== إشعار مؤقت ==========
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast show';
+            setTimeout(() => {
+                toast.className = 'toast';
+            }, 3000);
+        }
+        
+        // ========== إغلاق النافذة ==========
+        function closeWindow() {
+            if (window.Telegram?.WebApp) {
+                window.Telegram.WebApp.close();
+            } else {
+                window.close();
+            }
+        }
+        
+        // ========== التحميل ==========
+        loadPlans();
+    </script>
+</body>
+</html>
