@@ -1,39 +1,35 @@
 # -*- coding: utf-8 -*-
 """
-دوال تحليل حسابات تيك توك (TikTok API) - للبوت
+دوال تحليل حسابات تيك توك المحدثة (TikTok API V2) - للبوت
+تطوير: @Alshabany_Ai
 """
 
 import os
 import logging
 import aiohttp
-import asyncio
+import json
 from datetime import datetime
 from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
-# ========== إعدادات TikTok API ==========
+# ========== إعدادات TikTok API المحدثة ==========
 TIKTOK_CLIENT_KEY = os.environ.get('TIKTOK_CLIENT_KEY')
 TIKTOK_CLIENT_SECRET = os.environ.get('TIKTOK_CLIENT_SECRET')
-RENDER_URL = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
-TIKTOK_REDIRECT_URI = f"https://{RENDER_URL}/callback/tiktok"
+# استخدام الرابط من رندر أو المتغير مباشرة
+TIKTOK_REDIRECT_URI = os.environ.get('TIKTOK_REDIRECT_URI')
 
+# الروابط الجديدة للإصدار الثاني V2
+BASE_URL_V2 = "https://open.tiktokapis.com/v2"
 
 def get_tiktok_auth_url(user_id: int) -> str:
-    """
-    إنشاء رابط مصادقة TikTok OAuth
-    
-    المعاملات:
-    - user_id: معرف المستخدم (سيتم استخدامه كـ state)
-    
-    الإرجاع:
-    - رابط مصادقة TikTok
-    """
+    """إنشاء رابط مصادقة TikTok V2"""
     import secrets
     import urllib.parse
     
-    state = secrets.token_urlsafe(32)
+    state = f"{user_id}_{secrets.token_urlsafe(16)}"
     
+    # Scopes المحدثة لـ V2
     scope = [
         'user.info.basic',
         'user.info.profile',
@@ -46,21 +42,18 @@ def get_tiktok_auth_url(user_id: int) -> str:
         'scope': ','.join(scope),
         'response_type': 'code',
         'redirect_uri': TIKTOK_REDIRECT_URI,
-        'state': f"{user_id}_{state}"
+        'state': state
     }
     
+    # رابط المصادقة V2
     auth_url = f"https://www.tiktok.com/v2/auth/authorize/?{urllib.parse.urlencode(params)}"
-    
     return auth_url
 
 
 async def exchange_code_for_token(code: str, user_id: int) -> Optional[Dict]:
-    """استبدال رمز التفويض بـ Access Token"""
-    if not TIKTOK_CLIENT_KEY or not TIKTOK_CLIENT_SECRET:
-        logger.error("TikTok API credentials not configured")
-        return None
+    """استبدال الرمز بـ Access Token باستخدام V2"""
+    TOKEN_URL = f"{BASE_URL_V2}/oauth/token/"
     
-    # ✅ استخدام البيانات الصحيحة فقط (بدون معاملات إضافية)
     data = {
         'client_key': TIKTOK_CLIENT_KEY,
         'client_secret': TIKTOK_CLIENT_SECRET,
@@ -69,45 +62,98 @@ async def exchange_code_for_token(code: str, user_id: int) -> Optional[Dict]:
         'redirect_uri': TIKTOK_REDIRECT_URI
     }
     
-    # ✅ طباعة البيانات للتصحيح (بدون الـ secret)
-    logger.info(f"Token exchange request for user {user_id}")
-    logger.info(f"Redirect URI: {TIKTOK_REDIRECT_URI}")
-    
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                'https://open-api.tiktok.com/oauth/access_token/',
-                data=data,  # ✅ استخدام data وليس json
-                headers={'Content-Type': 'application/x-www-form-urlencoded'},
-                timeout=aiohttp.ClientTimeout(total=30)
+                TOKEN_URL,
+                data=data,
+                headers={'Content-Type': 'application/x-www-form-urlencoded'}
             ) as response:
-                response_text = await response.text()
-                logger.info(f"TikTok response: {response_text}")
+                res_text = await response.text()
+                logger.info(f"TikTok Token Response: {res_text}")
                 
                 if response.status == 200:
-                    result = json.loads(response_text)
-                    
-                    if result.get('data', {}).get('access_token'):
-                        token_data = {
-                            'access_token': result['data']['access_token'],
-                            'open_id': result['data']['open_id'],
-                            'refresh_token': result['data'].get('refresh_token'),
-                            'expires_in': result['data'].get('expires_in', 86400),
+                    result = json.loads(res_text)
+                    if 'access_token' in result:
+                        return {
+                            'access_token': result['access_token'],
+                            'open_id': result.get('open_id'),
+                            'refresh_token': result.get('refresh_token'),
+                            'expires_in': result.get('expires_in', 86400),
                             'created_at': datetime.now().isoformat()
                         }
-                        logger.info(f"✅ TikTok token obtained for user {user_id}")
-                        return token_data
-                    else:
-                        logger.error(f"Token exchange failed: {result}")
-                        return None
-                else:
-                    logger.error(f"Token exchange error: {response.status} - {response_text}")
-                    return None
-                    
+                return None
     except Exception as e:
-        logger.error(f"TikTok token exchange exception: {e}")
+        logger.error(f"Error exchanging token: {e}")
         return None
 
+
+async def get_user_info(access_token: str) -> Optional[Dict]:
+    """جلب معلومات المستخدم V2 - تطلب Fields محددة"""
+    URL = f"{BASE_URL_V2}/user/info/"
+    
+    # تحديد الحقول المطلوبة بدقة كما في V2
+    fields = "open_id,union_id,avatar_url,display_name,bio_description,is_verified,follower_count,following_count,video_count,like_count"
+    
+    headers = {'Authorization': f'Bearer {access_token}'}
+    params = {'fields': fields}
+    
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(URL, headers=headers, params=params) as response:
+                result = await response.json()
+                if response.status == 200 and 'data' in result:
+                    u = result['data'].get('user', {})
+                    return {
+                        'display_name': u.get('display_name'),
+                        'username': u.get('display_name'), # V2 قد لا يعيد unique_id إلا بـ scope خاص
+                        'bio_description': u.get('bio_description', ''),
+                        'follower_count': u.get('follower_count', 0),
+                        'following_count': u.get('following_count', 0),
+                        'video_count': u.get('video_count', 0),
+                        'like_count': u.get('like_count', 0),
+                        'is_verified': u.get('is_verified', False)
+                    }
+                return None
+    except Exception as e:
+        logger.error(f"Error fetching user info: {e}")
+        return None
+
+
+async def get_user_videos(access_token: str, limit: int = 5) -> list:
+    """جلب قائمة الفيديوهات V2"""
+    URL = f"{BASE_URL_V2}/video/list/"
+    headers = {'Authorization': f'Bearer {access_token}'}
+    
+    # الحقول المطلوبة للفيديو في V2
+    fields = "id,title,play_count,like_count,comment_count,share_count,cover_image_url,share_url,create_time"
+    
+    data = {
+        'max_count': min(limit, 20)
+    }
+    params = {'fields': fields}
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            # ملاحظة: في V2 طلب الفيديو أحياناً يكون POST
+            async with session.post(URL, headers=headers, params=params, json=data) as response:
+                result = await response.json()
+                if response.status == 200 and 'data' in result:
+                    videos_list = result['data'].get('videos', [])
+                    return [{
+                        'title': v.get('title', 'بدون عنوان'),
+                        'play_count': v.get('play_count', 0),
+                        'like_count': v.get('like_count', 0),
+                        'comment_count': v.get('comment_count', 0),
+                        'create_time': v.get('create_time', 0)
+                    } for v in videos_list]
+                return []
+    except Exception as e:
+        logger.error(f"Error fetching videos: {e}")
+        return []
+
+# دالة الحفظ والجلب (تبقى كما هي لأنها تتعامل مع Supabase)
+# ... (save_tiktok_token و get_tiktok_token تبقى كما هي في كودك الأصلي)
 
 def save_tiktok_token(user_id: int, token_data: Dict) -> bool:
     """حفظ توكن TikTok في قاعدة البيانات"""
