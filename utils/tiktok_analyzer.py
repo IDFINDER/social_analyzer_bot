@@ -236,29 +236,40 @@ def get_tiktok_token(user_id: int) -> Optional[Dict]:
         return None
 
 
-async def get_user_info(access_token: str, open_id: str) -> Optional[Dict]:
-    """جلب معلومات المستخدم من TikTok"""
+async def get_user_info(access_token: str) -> Optional[Dict]:
+    # 1. الرابط الجديد المعتمد لـ V2
+    URL = "https://open.tiktokapis.com/v2/user/info/"
+    
+    # 2. تحديد الحقول (Fields) إلزامي في V2 لجلب الأرقام (متابعين، إعجابات...)
+    fields = "open_id,union_id,avatar_url,display_name,bio_description,is_verified,follower_count,following_count,video_count,like_count"
+    
+    # 3. في V2 التوكن يرسل في الـ Headers وليس في الرابط
+    headers = {
+        'Authorization': f'Bearer {access_token}'
+    }
+    
+    params = {
+        'fields': fields
+    }
+    
     try:
-        params = {
-            'access_token': access_token,
-            'open_id': open_id
-        }
-        
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                'https://open-api.tiktok.com/user/info/',
-                params=params,
+                URL,
+                headers=headers, # التوكن هنا
+                params=params,   # الحقول هنا
                 timeout=aiohttp.ClientTimeout(total=30)
             ) as response:
+                response_text = await response.text()
+                logger.info(f"TikTok V2 Response: {response_text}")
+                
                 if response.status == 200:
                     result = await response.json()
-                    
-                    if result.get('data'):
-                        user_data = result['data'].get('user', {})
+                    if 'data' in result and 'user' in result['data']:
+                        user_data = result['data']['user']
                         return {
-                            'open_id': open_id,
-                            'username': user_data.get('unique_id', ''),
-                            'display_name': user_data.get('display_name', ''),
+                            'display_name': user_data.get('display_name', 'مستخدم تيك توك'),
+                            'username': user_data.get('display_name'), 
                             'bio_description': user_data.get('bio_description', ''),
                             'follower_count': user_data.get('follower_count', 0),
                             'following_count': user_data.get('following_count', 0),
@@ -266,43 +277,57 @@ async def get_user_info(access_token: str, open_id: str) -> Optional[Dict]:
                             'like_count': user_data.get('like_count', 0),
                             'is_verified': user_data.get('is_verified', False)
                         }
-                    else:
-                        logger.error(f"Failed to get user info: {result}")
-                        return None
-                else:
-                    error_text = await response.text()
-                    logger.error(f"Get user info error: {response.status} - {error_text}")
-                    return None
+                
+                logger.error(f"Failed to get V2 info: {response.status} - {response_text}")
+                return None
                     
     except Exception as e:
-        logger.error(f"Get user info exception: {e}")
+        logger.error(f"TikTok V2 Exception: {e}")
         return None
 
 
-async def get_user_videos(access_token: str, open_id: str, limit: int = 5) -> Optional[list]:
-    """جلب فيديوهات المستخدم من TikTok"""
+async def get_user_videos(access_token: str, limit: int = 5) -> list:
+    """جلب فيديوهات المستخدم باستخدام TikTok API V2"""
+    # 1. الرابط الجديد المعتمد (V2 يستخدم POST لجلب قائمة الفيديوهات)
+    URL = "https://open.tiktokapis.com/v2/video/list/"
+    
+    # 2. التوكن في الهيدرز (إلزامي في V2)
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Content-Type': 'application/json'
+    }
+    
+    # 3. تحديد الحقول المطلوبة (Fields)
+    # ملاحظة: بدون هذه الحقول لن تعود إليك أي بيانات للفيديو
+    fields = "id,title,play_count,like_count,comment_count,share_count,share_url,create_time"
+    params = {'fields': fields}
+    
+    # 4. جسم الطلب (Body) يحدد العدد المطلوب
+    data = {
+        "max_count": min(limit, 20)
+    }
+    
     try:
-        params = {
-            'access_token': access_token,
-            'open_id': open_id,
-            'max_count': min(limit, 20)
-        }
-        
         async with aiohttp.ClientSession() as session:
-            async with session.get(
-                'https://open-api.tiktok.com/video/list/',
+            # 💡 ملاحظة: تيك توك V2 يطلب استخدام POST لهذا المسار
+            async with session.post(
+                URL,
+                headers=headers,
                 params=params,
+                json=data,
                 timeout=aiohttp.ClientTimeout(total=30)
             ) as response:
+                res_text = await response.text()
+                logger.info(f"TikTok Videos V2 Response: {res_text}")
+                
                 if response.status == 200:
                     result = await response.json()
-                    
-                    if result.get('data'):
+                    if 'data' in result and 'videos' in result['data']:
                         videos = []
                         for video in result['data'].get('videos', []):
                             videos.append({
                                 'id': video.get('id', ''),
-                                'title': video.get('title', ''),
+                                'title': video.get('title', 'بدون عنوان'),
                                 'play_count': video.get('play_count', 0),
                                 'like_count': video.get('like_count', 0),
                                 'comment_count': video.get('comment_count', 0),
@@ -311,13 +336,12 @@ async def get_user_videos(access_token: str, open_id: str, limit: int = 5) -> Op
                                 'create_time': video.get('create_time', 0)
                             })
                         return videos
-                    else:
-                        return []
-                else:
-                    return []
+                
+                logger.error(f"Failed to get videos: {response.status} - {res_text}")
+                return []
                     
     except Exception as e:
-        logger.error(f"Get videos exception: {e}")
+        logger.error(f"Get videos V2 exception: {e}")
         return []
 
 
