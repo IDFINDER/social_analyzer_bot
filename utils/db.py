@@ -157,46 +157,9 @@ def increment_usage(user_id, platform, analysis_results=None):
         supabase.table('users').update(update_data).eq('user_id', user_id).execute()
         
         # ========== حفظ سجل التحليل مع تحويل الأرقام ==========
-        if analysis_results:
-            def parse_number(value):
-                if value is None:
-                    return None
-                if isinstance(value, (int, float)):
-                    return int(value)
-                if not isinstance(value, str):
-                    return None
-                try:
-                    value = value.upper().strip()
-                    if 'M' in value:
-                        return int(float(value.replace('M', '')) * 1_000_000)
-                    elif 'K' in value:
-                        return int(float(value.replace('K', '')) * 1_000)
-                    else:
-                        return int(float(value))
-                except (ValueError, TypeError):
-                    return None
-            
-            subscribers_raw = analysis_results.get('subscribers')
-            subscribers_clean = parse_number(subscribers_raw)
-            
-            total_posts_raw = analysis_results.get('total_posts')
-            total_posts_clean = parse_number(total_posts_raw)
-            
-            supabase.table('analysis_history').insert({
-                'user_id': user_id,
-                'username': username,
-                'first_name': first_name,
-                'platform': platform,
-                'analysis_date': datetime.now().isoformat(),
-                'account_name': analysis_results.get('account_name'),
-                'subscribers': subscribers_clean,
-                'total_posts': total_posts_clean,
-                'top_posts': analysis_results.get('top_posts'),
-                'top_comments': analysis_results.get('top_comments'),
-                'ai_recommendations': analysis_results.get('ai_recommendations'),
-                'is_premium': user['status'] == 'premium',
-                'analysis_duration': analysis_results.get('duration')
-            }).execute()
+        # ========== حفظ سجل التحليل - تم تعطيله (يتم الحفظ من app.py فقط) ==========
+        # if analysis_results:
+        #     ... تم الإزالة لتجنب التكرار ...
         
         logger.info(f"✅ Usage incremented for user {user_id} on platform {platform}")
         return True
@@ -207,31 +170,63 @@ def increment_usage(user_id, platform, analysis_results=None):
 
 
 def can_analyze(user_id):
+    """
+    التحقق مما إذا كان المستخدم المجاني يمكنه إجراء تحليل جديد
+    إرجاع (can_analyze, current_uses)
+    """
     user = get_user_info(user_id)
     if not user:
         return True, 0
     
     # التحقق من انتهاء الاشتراك المميز
     if user['status'] == 'premium' and user.get('premium_until'):
-        if datetime.strptime(user['premium_until'], '%Y-%m-%d').date() < date.today():
-            supabase.table('users').update({'status': 'free', 'premium_until': None}).eq('user_id', user_id).execute()
-            user['status'] = 'free'
+        try:
+            if datetime.strptime(user['premium_until'], '%Y-%m-%d').date() < date.today():
+                supabase.table('users').update({'status': 'free', 'premium_until': None}).eq('user_id', user_id).execute()
+                user['status'] = 'free'
+        except:
+            pass
     
+    # المستخدم المميز لا حدود له
     if user['status'] == 'premium':
         return True, 0
     
-    # ✅ التعديل: جلب الحد اليومي من bot_settings_social
+    # جلب الحد اليومي من bot_settings_social
     free_limit = int(get_bot_setting('free_limit', '2'))
     
     try:
-        response = supabase.table('users').select('daily_uses').eq('user_id', user_id).execute()
-        daily_uses = response.data[0]['daily_uses'] if response.data else 0
+        # جلب daily_uses و last_use_date معاً
+        response = supabase.table('users').select('daily_uses, last_use_date').eq('user_id', user_id).execute()
         
+        if not response.data:
+            # مستخدم جديد (لم يظهر بعد في جدول users)
+            return True, 0
+        
+        data = response.data[0]
+        daily_uses = data.get('daily_uses', 0)
+        last_use_date = data.get('last_use_date')
+        
+        today = date.today().isoformat()
+        
+        # ✅ التصحيح: التحقق من تاريخ آخر استخدام
+        # إذا كان آخر استخدام ليس اليوم، نعيد تعيين العداد
+        if last_use_date != today:
+            # يوم جديد - إعادة تعيين العداد في قاعدة البيانات
+            supabase.table('users')\
+                .update({'daily_uses': 0, 'last_use_date': today})\
+                .eq('user_id', user_id)\
+                .execute()
+            return True, 0
+        
+        # نفس اليوم - التحقق من الحد
         if daily_uses >= free_limit:
             return False, daily_uses
-        return True, daily_uses
+        else:
+            return True, daily_uses
+            
     except Exception as e:
         logger.error(f"Error in can_analyze: {e}")
+        # في حالة الخطأ، نسمح بالتحليل (آمن)
         return True, 0
 
 
@@ -1530,3 +1525,153 @@ def get_gemini_remaining(user_id):
     except Exception as e:
         logger.error(f"Error in get_gemini_remaining: {e}")
         return 0
+
+def save_youtube_analysis_complete(user_id, channel_details, channel_clean, is_premium):
+    """
+    دالة مركزية لحفظ تحليل يوتيوب في قاعدة البيانات
+    تستخدم من (app.py) و (bot.py)
+    """
+    try:
+        import json
+        from datetime import datetime, date, timezone, timedelta
+        
+        latest_videos = channel_details.get('latest_videos', [])
+        subscribers_raw = channel_details.get('subscribers_raw', 0)
+        total_views_raw = channel_details.get('total_views_raw', 0)
+        total_videos_raw = channel_details.get('total_videos_raw', 0)
+        avg_views_raw = channel_details.get('avg_views_raw', 0)
+        
+        # حساب engagement_rate
+        engagement_rate = None
+        if subscribers_raw > 0 and avg_views_raw > 0:
+            engagement_rate = round((avg_views_raw / subscribers_raw) * 100, 2)
+        
+        # حساب best_posting_hour
+        best_posting_hour = None
+        hour_counts = {}
+        for video in latest_videos:
+            published_at = video.get('published_at', '')
+            if published_at and 'T' in published_at:
+                try:
+                    hour = int(published_at.split('T')[1].split(':')[0])
+                    hour_counts[hour] = hour_counts.get(hour, 0) + 1
+                except:
+                    pass
+        if hour_counts:
+            best_posting_hour = max(hour_counts, key=hour_counts.get)
+        
+        # حساب best_posting_day
+        best_posting_day = None
+        day_counts = {}
+        days_map = {
+            'Monday': 'الإثنين', 'Tuesday': 'الثلاثاء', 'Wednesday': 'الأربعاء',
+            'Thursday': 'الخميس', 'Friday': 'الجمعة', 'Saturday': 'السبت', 'Sunday': 'الأحد'
+        }
+        for video in latest_videos:
+            published_at = video.get('published_at', '')
+            if published_at:
+                try:
+                    from datetime import datetime
+                    dt = datetime.strptime(published_at[:10], '%Y-%m-%d')
+                    day_name = dt.strftime('%A')
+                    day_counts[day_name] = day_counts.get(day_name, 0) + 1
+                except:
+                    pass
+        if day_counts:
+            best_day_en = max(day_counts, key=day_counts.get)
+            best_posting_day = days_map.get(best_day_en, best_day_en)
+        
+        # حساب avg_posts_per_week
+        avg_posts_per_week = None
+        if latest_videos:
+            dates = []
+            for video in latest_videos:
+                pub_date = video.get('published_at', '')[:10]
+                if pub_date and len(pub_date) >= 10:
+                    dates.append(pub_date)
+            if len(dates) >= 2:
+                try:
+                    from datetime import datetime
+                    d1 = datetime.strptime(min(dates), '%Y-%m-%d')
+                    d2 = datetime.strptime(max(dates), '%Y-%m-%d')
+                    weeks = max(1, (d2 - d1).days / 7)
+                    avg_posts_per_week = round(len(latest_videos) / weeks, 1)
+                except:
+                    pass
+        
+        # حساب إجمالي الإعجابات والتعليقات
+        total_likes = sum(v.get('likes', 0) for v in latest_videos)
+        total_comments = sum(v.get('comments', 0) for v in latest_videos)
+        avg_likes_per_post = round(total_likes / len(latest_videos), 2) if latest_videos else 0
+        avg_comments_per_post = round(total_comments / len(latest_videos), 2) if latest_videos else 0
+        
+        # حساب analysis_number
+        max_number_result = supabase.table('analysis_history')\
+            .select('analysis_number')\
+            .eq('user_id', user_id)\
+            .order('analysis_number', desc=True)\
+            .limit(1)\
+            .execute()
+        
+        next_number = 1
+        if max_number_result.data and max_number_result.data[0].get('analysis_number'):
+            next_number = max_number_result.data[0]['analysis_number'] + 1
+        
+        # التحقق مما إذا كان هذا أول تحليل
+        first_check = supabase.table('analysis_history')\
+            .select('id')\
+            .eq('user_id', user_id)\
+            .eq('account_name', channel_details.get('title'))\
+            .execute()
+        is_first_analysis = (first_check.count == 0)
+        
+        # بناء سجل التحليل
+        local_tz = timezone(timedelta(hours=3))
+        local_now = datetime.now(local_tz)
+        
+        analysis_record = {
+            'user_id': user_id,
+            'username': None,
+            'first_name': None,
+            'platform': 'youtube',
+            'analyzed_user_id': channel_details.get('channel_id'),
+            'analyzed_username': channel_clean,
+            'account_name': channel_details.get('title'),
+            'analysis_type': 'latest',  # ✅ نحفظ latest فقط
+            'analysis_date': local_now.isoformat(),
+            'subscribers': subscribers_raw,
+            'total_views': total_views_raw,
+            'total_posts': total_videos_raw,
+            'avg_views_per_post': avg_views_raw,
+            'top_posts': latest_videos if latest_videos else None,
+            'engagement_rate': engagement_rate,
+            'best_posting_hour': best_posting_hour,
+            'best_posting_day': best_posting_day,
+            'avg_posts_per_week': avg_posts_per_week,
+            'total_videos': total_videos_raw,
+            'total_likes': total_likes,
+            'total_comments': total_comments,
+            'followers': subscribers_raw,
+            'following': 0,
+            'avg_likes_per_post': avg_likes_per_post,
+            'avg_comments_per_post': avg_comments_per_post,
+            'avg_video_duration': 600,
+            'best_video_length': 0,
+            'best_video_category': None,
+            'analysis_duration': 0,
+            'country': channel_details.get('country'),
+            'published_at': channel_details.get('published_at'),
+            'is_premium': is_premium,
+            'analysis_number': next_number,
+            'is_first_analysis': is_first_analysis,
+            'updated_at': local_now.isoformat(),
+        }
+        
+        result = supabase.table('analysis_history').insert(analysis_record).execute()
+        return result.data[0] if result.data else None
+        
+    except Exception as e:
+        logger.error(f"Error saving analysis: {e}")
+        import traceback
+        traceback.print_exc()
+        return None

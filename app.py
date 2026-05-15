@@ -414,7 +414,7 @@ def bio_page(page_url):
         return f"Internal error: {e}", 500
 
 # =================================================================================
-# القسم 10: API المصادقة مع Snapchat OAuth
+# القسم 10: API المصادقة مع Snapchat OAuth (نسخة محسنة)
 # =================================================================================
 
 @app.route('/snapchat/callback')
@@ -424,49 +424,134 @@ def snapchat_callback():
     
     # تحسين: التحقق من وجود المتغيرات
     if not code or not user_id:
+        logger.error(f"Missing code or user_id: code={code}, user_id={user_id}")
         return "Missing code or user_id", 400
     
+    try:
+        user_id = int(user_id)
+    except ValueError:
+        logger.error(f"Invalid user_id: {user_id}")
+        return "Invalid user_id", 400
+    
+    # الحصول على رابط إعادة التوجيه من متغير البيئة أو استخدام الافتراضي
+    redirect_uri = os.environ.get('SNAPCHAT_REDIRECT_URI', 'https://social-analyzer-flask.onrender.com/snapchat/callback')
+    
     async def exchange_code():
-        async with aiohttp.ClientSession() as session:
-            async with session.post('https://accounts.snapchat.com/login/oauth2/access_token', data={
-                'grant_type': 'authorization_code',
-                'code': code,
-                'redirect_uri': os.environ.get('SNAPCHAT_REDIRECT_URI', 'https://social-analyzer-flask.onrender.com/snapchat/callback'),
-                'client_id': os.environ.get('SNAPCHAT_CLIENT_ID'),
-                'client_secret': os.environ.get('SNAPCHAT_CLIENT_SECRET')
-            }) as response:
-                if response.status == 200:
-                    return await response.json()
-                else:
-                    logger.error(f"Token exchange failed: {await response.text()}")
-                    return None
+        try:
+            async with aiohttp.ClientSession() as session:
+                # تحسين: إضافة timeout
+                async with session.post(
+                    'https://accounts.snapchat.com/login/oauth2/access_token',
+                    data={
+                        'grant_type': 'authorization_code',
+                        'code': code,
+                        'redirect_uri': redirect_uri,
+                        'client_id': os.environ.get('SNAPCHAT_CLIENT_ID'),
+                        'client_secret': os.environ.get('SNAPCHAT_CLIENT_SECRET')
+                    },
+                    timeout=aiohttp.ClientTimeout(total=30)
+                ) as response:
+                    if response.status == 200:
+                        return await response.json()
+                    else:
+                        error_text = await response.text()
+                        logger.error(f"Token exchange failed with status {response.status}: {error_text}")
+                        return None
+        except asyncio.TimeoutError:
+            logger.error("Token exchange timeout")
+            return None
+        except Exception as e:
+            logger.error(f"Token exchange exception: {e}")
+            return None
     
     channel_details, error = asyncio.run(get_channel_details(channel_clean))
     if not token_data:
         return "Failed to exchange code", 500
-    save_token(int(user_id), token_data)
+    
+    # حفظ التوكن
+    if not save_token(user_id, token_data):
+        logger.error(f"Failed to save token for user {user_id}")
+        return "Failed to save token", 500
+    
+    # إرسال إشعار للمستخدم
     TOKEN = os.environ.get('TELEGRAM_TOKEN')
-    try:
-        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", json={'chat_id': user_id, 'text': "✅ تم تفعيل تحليل Snapchat بنجاح!\n\n📸 يمكنك الآن استخدام زر 'تحليل سناب شات' لتحليل حسابك.", 'parse_mode': 'HTML'})
-    except Exception as e:
-        logger.error(f"Failed to notify user: {e}")
+    if TOKEN:
+        try:
+            requests.post(
+                f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                json={
+                    'chat_id': user_id,
+                    'text': "✅ تم تفعيل تحليل Snapchat بنجاح!\n\n📸 يمكنك الآن استخدام زر 'تحليل سناب شات' لتحليل حسابك.",
+                    'parse_mode': 'HTML'
+                },
+                timeout=5
+            )
+        except Exception as e:
+            logger.error(f"Failed to notify user {user_id}: {e}")
+    
+    # صفحة النجاح
     return """
     <!DOCTYPE html>
     <html dir="rtl" lang="ar">
-    <head><meta charset="UTF-8"><title>تم التفعيل بنجاح</title>
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box;}
-        body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px;}
-        .card{background:white;border-radius:24px;padding:40px;text-align:center;max-width:400px;box-shadow:0 20px 40px rgba(0,0,0,0.2);}
-        .icon{font-size:64px;margin-bottom:20px;}
-        h1{color:#2c3e50;margin-bottom:10px;}
-        p{color:#666;line-height:1.6;}
-        .btn{display:inline-block;background:#667eea;color:white;padding:12px 24px;border-radius:30px;text-decoration:none;margin-top:20px;}
-    </style>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>تم التفعيل بنجاح - Social Analyzer Bot</title>
+        <style>
+            *{margin:0;padding:0;box-sizing:border-box;}
+            body{
+                font-family:'Segoe UI',sans-serif;
+                background:linear-gradient(135deg,#667eea,#764ba2);
+                min-height:100vh;
+                display:flex;
+                justify-content:center;
+                align-items:center;
+                padding:20px;
+            }
+            .card{
+                background:white;
+                border-radius:24px;
+                padding:40px;
+                text-align:center;
+                max-width:400px;
+                box-shadow:0 20px 40px rgba(0,0,0,0.2);
+                animation:fadeInUp 0.5s ease;
+            }
+            .icon{font-size:64px;margin-bottom:20px;}
+            h1{color:#2c3e50;margin-bottom:10px;}
+            p{color:#666;line-height:1.6;}
+            .btn{
+                display:inline-block;
+                background:#667eea;
+                color:white;
+                padding:12px 24px;
+                border-radius:30px;
+                text-decoration:none;
+                margin-top:20px;
+                transition:0.3s;
+            }
+            .btn:hover{
+                transform:translateY(-2px);
+                background:#5a67d8;
+            }
+            @keyframes fadeInUp{
+                from{opacity:0;transform:translateY(30px);}
+                to{opacity:1;transform:translateY(0);}
+            }
+        </style>
     </head>
     <body>
-    <div class="card"><div class="icon">✅</div><h1>تم التفعيل بنجاح!</h1><p>يمكنك الآن العودة إلى البوت واستخدام ميزة تحليل Snapchat.</p><a href="https://t.me/Social_Media_tools_bot" class="btn">🚀 العودة إلى البوت</a></div>
-    <script>setTimeout(() => { window.location.href = 'https://t.me/Social_Media_tools_bot'; }, 3000);</script>
+        <div class="card">
+            <div class="icon">✅</div>
+            <h1>تم التفعيل بنجاح!</h1>
+            <p>يمكنك الآن العودة إلى البوت واستخدام ميزة تحليل Snapchat.</p>
+            <a href="https://t.me/Social_Media_tools_bot" class="btn">🚀 العودة إلى البوت</a>
+        </div>
+        <script>
+            setTimeout(function(){
+                window.location.href = 'https://t.me/Social_Media_tools_bot';
+            }, 5000);
+        </script>
     </body>
     </html>
     """
@@ -1499,13 +1584,12 @@ def api_analyze():
             }
             
             # إدراج في قاعدة البيانات
-            result = supabase.table('analysis_history').insert(analysis_record).execute()
-            logger.info(f"✅ Analysis saved for user {user_id}: {channel_details.get('title')} (Analysis #{next_number})")
+            supabase.table('analysis_history').insert(analysis_record).execute()
+            logger.info(f"Saved analysis for user {user_id}: {channel_details.get('title')}")
             
         except Exception as e:
             logger.error(f"Error saving analysis to history: {e}")
-            import traceback
-            traceback.print_exc()
+            # لا نريد إفشال الطلب بسبب خطأ في الحفظ
             pass
         
         # تحديث إحصائيات المستخدم (للحد اليومي)
@@ -1604,17 +1688,12 @@ def api_analyze():
 
 
 # =================================================================================
-# API لجلب تاريخ التحليلات (لـ WebApp) - النسخة المحسنة
+# API لجلب تاريخ التحليلات (لـ WebApp)
 # =================================================================================
 
 @app.route('/api/analysis/history')
 def get_analysis_history():
-    """
-    جلب آخر التحليلات للمستخدم
-    - يعرض فقط التحليلات الكاملة (حيث top_posts ليس null)
-    - يزيل التكرارات (نفس account_name يظهر مرة واحدة فقط)
-    - يعرض آخر 3 تحليلات افتراضياً
-    """
+    """جلب آخر التحليلات للمستخدم"""
     token = request.args.get('token')
     if not token:
         return jsonify({'success': False, 'error': 'Missing token'}), 401
@@ -1624,47 +1703,20 @@ def get_analysis_history():
     except:
         return jsonify({'success': False, 'error': 'Invalid token'}), 401
     
-    # الحد الأقصى للنتائج (افتراضي 10، لكننا سنأخذ آخر 3 فقط بعد الفلترة)
     limit = int(request.args.get('limit', 10))
     
     try:
-        # جلب التحليلات الكاملة فقط (حيث top_posts ليس null)
+        # جلب آخر التحليلات من جدول analysis_history
         response = supabase.table('analysis_history')\
             .select('*')\
             .eq('user_id', user_id)\
-            .not_.is_('top_posts', 'null')\
             .order('analysis_date', desc=True)\
             .limit(limit)\
             .execute()
         
-        # إزالة التكرارات (نفس account_name يظهر مرة واحدة فقط)
-        # نأخذ أحدث تحليل لكل حساب
-        unique_analyses = {}
-        for item in (response.data or []):
-            account_name = item.get('account_name', '')
-            if not account_name:
-                continue
-            
-            # إذا لم نشاهد هذا الحساب من قبل، أو هذا التحليل أحدث
-            if account_name not in unique_analyses:
-                unique_analyses[account_name] = item
-            else:
-                existing_date = unique_analyses[account_name].get('analysis_date', '')
-                current_date = item.get('analysis_date', '')
-                if current_date > existing_date:
-                    unique_analyses[account_name] = item
-        
-        # تحويل البيانات إلى صيغة مناسبة (نأخذ آخر 3 تحليلات فقط)
+        # تحويل البيانات إلى صيغة مناسبة
         analyses = []
-        for item in list(unique_analyses.values())[:3]:  # آخر 3 تحليلات فريدة
-            # معالجة top_posts (تحويل JSON إلى array)
-            top_posts = item.get('top_posts')
-            if top_posts and isinstance(top_posts, str):
-                try:
-                    top_posts = json.loads(top_posts)
-                except:
-                    top_posts = []
-            
+        for item in (response.data or []):
             analyses.append({
                 'id': item.get('id'),
                 'platform': item.get('platform'),
@@ -1675,15 +1727,12 @@ def get_analysis_history():
                 'total_views': item.get('total_views', 0),
                 'total_posts': item.get('total_posts', 0),
                 'avg_views_per_post': item.get('avg_views_per_post', 0),
-                'top_posts': top_posts,
+                'top_posts': item.get('top_posts'),
                 'country': item.get('country'),
-                'published_at': item.get('published_at'),
-                'is_first_analysis': item.get('is_first_analysis', False),
-                'analysis_number': item.get('analysis_number')  # ✅ جديد
+                'published_at': item.get('published_at')
             })
         
         return jsonify({'success': True, 'data': analyses})
-        
     except Exception as e:
         logger.error(f"Error fetching analysis history: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -1712,15 +1761,6 @@ def get_analysis_details():
         
         if response.data:
             item = response.data[0]
-            
-            # معالجة top_posts
-            top_posts = item.get('top_posts')
-            if top_posts and isinstance(top_posts, str):
-                try:
-                    top_posts = json.loads(top_posts)
-                except:
-                    top_posts = []
-            
             details = {
                 'id': item.get('id'),
                 'platform': item.get('platform'),
@@ -1731,10 +1771,9 @@ def get_analysis_details():
                 'total_views': item.get('total_views', 0),
                 'total_posts': item.get('total_posts', 0),
                 'avg_views_per_post': item.get('avg_views_per_post', 0),
-                'top_posts': top_posts,
+                'top_posts': item.get('top_posts'),
                 'country': item.get('country'),
-                'published_at': item.get('published_at'),
-                'is_first_analysis': item.get('is_first_analysis', False)
+                'published_at': item.get('published_at')
             }
             return jsonify({'success': True, 'data': details})
         else:
@@ -2054,8 +2093,11 @@ def send_report_to_bot():
         is_premium = user_info.get('status') == 'premium' if user_info else False
         remaining_analyses = None
         
-                # استخدام دالة البوت الأصلية للحصول على التقرير المفصل
-        channel_details, error = asyncio.run(get_channel_details(channel_username))
+        # استخدام دالة البوت الأصلية للحصول على التقرير المفصل
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        channel_details, error = loop.run_until_complete(get_channel_details(channel_username))
+        loop.close()
         
         if error or not channel_details:
             return jsonify({'success': False, 'error': error or 'لم يتم العثور على القناة'}), 404
@@ -2163,18 +2205,31 @@ def api_recommendations():
     
     account_identifier = youtube_account['account_identifier'].replace('@', '')
     
-        # ✅ استخدام asyncio.run() لتشغيل الدوال غير المتزامنة
+    # ✅ استخدام asyncio.run() لتشغيل الدوال غير المتزامنة
+    async def fetch_data():
+        channel_details, error = await get_channel_details(account_identifier)
+        return channel_details, error
+    
     try:
-        channel_details, error = asyncio.run(get_channel_details(account_identifier))
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        channel_details, error = loop.run_until_complete(fetch_data())
+        loop.close()
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
     
     if error or not channel_details:
         return jsonify({'success': False, 'error': error or 'لم يتم العثور على القناة'}), 404
     
-        # ✅ تشغيل دالة التوصيات غير المتزامنة
+    # ✅ تشغيل دالة التوصيات غير المتزامنة
+    async def fetch_recommendations():
+        return await get_advanced_recommendations(channel_details)
+    
     try:
-        recommendations = asyncio.run(get_advanced_recommendations(channel_details))
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        recommendations = loop.run_until_complete(fetch_recommendations())
+        loop.close()
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
     
