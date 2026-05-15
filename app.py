@@ -1829,6 +1829,23 @@ def api_analyze():
         
         if not tiktok_token_data:
             # لا يوجد توكن → عرض رابط التفعيل
+            elif platform == 'tiktok':
+        from utils.tiktok_analyzer import get_tiktok_token, format_tiktok_report
+        from utils.db import get_user_info, increment_usage, get_remaining_analyses
+        from datetime import datetime
+        import asyncio
+        
+        # تنظيف اسم المستخدم (إزالة @ والرابط)
+        username_clean = identifier
+        username_clean = username_clean.replace('https://tiktok.com/@', '')
+        username_clean = username_clean.replace('https://www.tiktok.com/@', '')
+        if username_clean.startswith('@'):
+            username_clean = username_clean[1:]
+        
+        # التحقق من وجود توكن TikTok للمستخدم
+        tiktok_token_data = get_tiktok_token(user_id)
+        
+        if not tiktok_token_data:
             from utils.tiktok_analyzer import get_tiktok_auth_url
             auth_url = get_tiktok_auth_url(user_id)
             return jsonify({
@@ -1840,25 +1857,26 @@ def api_analyze():
         
         # يوجد توكن → تنفيذ التحليل
         try:
-            # استدعاء دالة التقرير الموجودة
-            report_text = await format_tiktok_report(user_id, username_clean)
+            # استخدام asyncio.run() بدلاً من await
+            result = asyncio.run(format_tiktok_report(user_id, username_clean))
             
-            if not report_text or "❌" in report_text:
+            if not result.get('success'):
                 return jsonify({
                     'success': False,
-                    'error': report_text or 'فشل في تحليل حساب TikTok'
+                    'error': result.get('report_text', 'فشل في تحليل حساب TikTok')
                 }), 500
             
-            # تحديث عداد الاستخدام
-            increment_usage(user_id, 'tiktok', {
-                'account_name': username_clean,
-                'platform': 'tiktok'
-            })
+            report_text = result.get('report_text')
+            analysis_data = result.get('data')
+            
+            # تحديث عداد الاستخدام (بدون حفظ مكرر لأن format_tiktok_report يحفظ بالفعل)
+            increment_usage(user_id, 'tiktok', analysis_data)
             
             # حساب عدد التحليلات المتبقية
             remaining_analyses = None
             if not is_premium:
-                remaining = get_remaining_analyses(user_id)
+                from utils.db import get_remaining_analyses
+                remaining = get_remaining_analyses(user_id, 'tiktok')
                 remaining_analyses = remaining if remaining > 0 else 0
             else:
                 remaining_analyses = "غير محدود"
@@ -1887,7 +1905,7 @@ def api_analyze():
                 'identifier': username_clean,
                 'report': report_text,
                 'file_content': report_text,
-                'account_name': username_clean,
+                'account_name': analysis_data.get('display_name') if analysis_data else username_clean,
                 'remaining_analyses': remaining_analyses
             })
             
