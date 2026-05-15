@@ -84,7 +84,7 @@ def get_user_info(user_id):
 
 
 def get_user_usage(user_id):
-    """الحصول على استخدامات المستخدم من جدول users"""
+    """الحصول على استخدامات المستخدم من جدول users (يدعم جميع المنصات)"""
     try:
         response = supabase.table('users').select(
             'daily_uses, total_uses, youtube_uses, instagram_uses, tiktok_uses, facebook_uses, last_use_date'
@@ -96,89 +96,25 @@ def get_user_usage(user_id):
         logger.error(f"Error getting user usage: {e}")
         return None
 
-
-def increment_usage(user_id, platform, analysis_results=None):
-    """زيادة عدد استخدامات المستخدم حسب المنصة (مع حفظ سجل التحليل)"""
-    try:
-        user = get_user_info(user_id)
-        if not user:
-            return False
-        
-        username = user.get('username', '')
-        first_name = user.get('first_name', '')
-        today = date.today().isoformat()
-        
-        # جلب الاستخدامات الحالية من جدول users
-        usage_response = supabase.table('users').select(
-            'daily_uses, total_uses, youtube_uses, instagram_uses, tiktok_uses, facebook_uses, last_use_date'
-        ).eq('user_id', user_id).execute()
-        usage = usage_response.data[0] if usage_response.data else None
-        
-        platform_column_map = {
-            'youtube': 'youtube_uses',
-            'instagram': 'instagram_uses',
-            'tiktok': 'tiktok_uses',
-            'facebook': 'facebook_uses'
-        }
-        platform_column = platform_column_map.get(platform, 'youtube_uses')
-        
-        # إعادة تعيين daily_uses إذا كان اليوم مختلفاً (للمجانيين فقط)
-        if usage and usage.get('last_use_date') != today:
-            if user['status'] == 'free':
-                supabase.table('users').update({
-                    'daily_uses': 0,
-                    'last_use_date': today
-                }).eq('user_id', user_id).execute()
-                # إعادة جلب البيانات بعد التحديث
-                usage_response = supabase.table('users').select(
-                    'daily_uses, total_uses, youtube_uses, instagram_uses, tiktok_uses, facebook_uses, last_use_date'
-                ).eq('user_id', user_id).execute()
-                usage = usage_response.data[0] if usage_response.data else None
-        
-        # الحصول على القيم الحالية
-        current_platform_uses = usage.get(platform_column, 0) if usage else 0
-        current_daily_uses = usage.get('daily_uses', 0) if usage else 0
-        current_total_uses = usage.get('total_uses', 0) if usage else 0
-        
-        # حساب القيم الجديدة (نزيد daily_uses للجميع)
-        new_platform_uses = current_platform_uses + 1
-        new_daily_uses = current_daily_uses + 1  # ✅ تغيير: نزيد للجميع
-        new_total_uses = current_total_uses + 1
-        
-        # تحديث جدول users (نحدث daily_uses و last_use_date للجميع)
-        update_data = {
-            'total_uses': new_total_uses,
-            'updated_at': datetime.now().isoformat(),
-            platform_column: new_platform_uses,
-            'daily_uses': new_daily_uses,
-            'last_use_date': today
-        }
-        
-        supabase.table('users').update(update_data).eq('user_id', user_id).execute()
-        
-        # ========== حفظ سجل التحليل مع تحويل الأرقام ==========
-        # ========== حفظ سجل التحليل - تم تعطيله (يتم الحفظ من app.py فقط) ==========
-        # if analysis_results:
-        #     ... تم الإزالة لتجنب التكرار ...
-        
-        logger.info(f"✅ Usage incremented for user {user_id} on platform {platform}")
-        return True
-        
-    except Exception as e:
-        logger.error(f"Error incrementing usage: {e}")
-        return False
-
-
-def can_analyze(user_id):
+# =================================================================================
+def can_analyze(user_id, platform='youtube'):
     """
-    التحقق مما إذا كان المستخدم المجاني يمكنه إجراء تحليل جديد
-    إرجاع (can_analyze, current_uses)
+    التحقق مما إذا كان المستخدم يمكنه إجراء تحليل جديد
+    
+    Args:
+        user_id: معرف المستخدم
+        platform: المنصة (youtube, tiktok, instagram, facebook, snapchat)
+    
+    Returns:
+        (can_analyze, current_uses)
     """
     user = get_user_info(user_id)
     if not user:
         return True, 0
     
+    # =================================================================================
     # التحقق من انتهاء الاشتراك المميز
+    # =================================================================================
     if user['status'] == 'premium' and user.get('premium_until'):
         try:
             if datetime.strptime(user['premium_until'], '%Y-%m-%d').date() < date.today():
@@ -187,79 +123,263 @@ def can_analyze(user_id):
         except:
             pass
     
+    # =================================================================================
     # المستخدم المميز لا حدود له
+    # =================================================================================
     if user['status'] == 'premium':
         return True, 0
     
+    # =================================================================================
     # جلب الحد اليومي من bot_settings_social
+    # =================================================================================
     free_limit = int(get_bot_setting('free_limit', '2'))
     
+    # =================================================================================
+    # تحديد العمود المستخدم حسب المنصة
+    # =================================================================================
+    if platform == 'tiktok':
+        uses_column = 'tiktok_uses_today'
+        date_column = 'tiktok_last_use_date'
+    else:
+        uses_column = 'daily_uses'
+        date_column = 'last_use_date'
+    
     try:
-        # جلب daily_uses و last_use_date معاً
-        response = supabase.table('users').select('daily_uses, last_use_date').eq('user_id', user_id).execute()
+        # جلب الاستخدامات والتاريخ معاً
+        response = supabase.table('users').select(f'{uses_column}, {date_column}').eq('user_id', user_id).execute()
         
         if not response.data:
-            # مستخدم جديد (لم يظهر بعد في جدول users)
+            # مستخدم جديد
             return True, 0
         
         data = response.data[0]
-        daily_uses = data.get('daily_uses', 0)
-        last_use_date = data.get('last_use_date')
+        current_uses = data.get(uses_column, 0)
+        last_use_date = data.get(date_column)
         
         today = date.today().isoformat()
         
-        # ✅ التصحيح: التحقق من تاريخ آخر استخدام
-        # إذا كان آخر استخدام ليس اليوم، نعيد تعيين العداد
+        # =================================================================================
+        # التحقق من تاريخ آخر استخدام
+        # =================================================================================
         if last_use_date != today:
-            # يوم جديد - إعادة تعيين العداد في قاعدة البيانات
+            # يوم جديد - إعادة تعيين العداد
             supabase.table('users')\
-                .update({'daily_uses': 0, 'last_use_date': today})\
+                .update({uses_column: 0, date_column: today})\
                 .eq('user_id', user_id)\
                 .execute()
             return True, 0
         
         # نفس اليوم - التحقق من الحد
-        if daily_uses >= free_limit:
-            return False, daily_uses
+        if current_uses >= free_limit:
+            return False, current_uses
         else:
-            return True, daily_uses
+            return True, current_uses
             
     except Exception as e:
-        logger.error(f"Error in can_analyze: {e}")
+        logger.error(f"Error in can_analyze for {platform}: {e}")
         # في حالة الخطأ، نسمح بالتحليل (آمن)
         return True, 0
+# =================================================================================
 
 
-def get_remaining_analyses(user_id):
+# =================================================================================
+def can_analyze(user_id, platform='youtube'):
+    """
+    التحقق مما إذا كان المستخدم يمكنه إجراء تحليل جديد
+    
+    Args:
+        user_id: معرف المستخدم
+        platform: المنصة (youtube, tiktok, instagram, facebook, snapchat)
+    
+    Returns:
+        (can_analyze, current_uses)
+    """
+    user = get_user_info(user_id)
+    if not user:
+        return True, 0
+    
+    # =================================================================================
+    # التحقق من انتهاء الاشتراك المميز
+    # =================================================================================
+    if user['status'] == 'premium' and user.get('premium_until'):
+        try:
+            if datetime.strptime(user['premium_until'], '%Y-%m-%d').date() < date.today():
+                supabase.table('users').update({'status': 'free', 'premium_until': None}).eq('user_id', user_id).execute()
+                user['status'] = 'free'
+        except:
+            pass
+    
+    # =================================================================================
+    # المستخدم المميز لا حدود له
+    # =================================================================================
+    if user['status'] == 'premium':
+        return True, 0
+    
+    # =================================================================================
+    # جلب الحد اليومي من bot_settings_social
+    # =================================================================================
+    free_limit = int(get_bot_setting('free_limit', '2'))
+    
+    # =================================================================================
+    # تحديد العمود المستخدم حسب المنصة
+    # =================================================================================
+    if platform == 'tiktok':
+        uses_column = 'tiktok_uses_today'
+        date_column = 'tiktok_last_use_date'
+    else:
+        uses_column = 'daily_uses'
+        date_column = 'last_use_date'
+    
+    try:
+        # جلب الاستخدامات والتاريخ معاً
+        response = supabase.table('users').select(f'{uses_column}, {date_column}').eq('user_id', user_id).execute()
+        
+        if not response.data:
+            # مستخدم جديد
+            return True, 0
+        
+        data = response.data[0]
+        current_uses = data.get(uses_column, 0)
+        last_use_date = data.get(date_column)
+        
+        today = date.today().isoformat()
+        
+        # =================================================================================
+        # التحقق من تاريخ آخر استخدام
+        # =================================================================================
+        if last_use_date != today:
+            # يوم جديد - إعادة تعيين العداد
+            supabase.table('users')\
+                .update({uses_column: 0, date_column: today})\
+                .eq('user_id', user_id)\
+                .execute()
+            return True, 0
+        
+        # نفس اليوم - التحقق من الحد
+        if current_uses >= free_limit:
+            return False, current_uses
+        else:
+            return True, current_uses
+            
+    except Exception as e:
+        logger.error(f"Error in can_analyze for {platform}: {e}")
+        # في حالة الخطأ، نسمح بالتحليل (آمن)
+        return True, 0
+# =================================================================================
+
+
+# =================================================================================
+def get_remaining_analyses(user_id, platform='youtube'):
+    """
+    حساب عدد التحليلات المتبقية للمستخدم اليوم
+    
+    Args:
+        user_id: معرف المستخدم
+        platform: المنصة (youtube, tiktok)
+    
+    Returns:
+        int: عدد التحليلات المتبقية (-1 للمميز غير المحدود)
+    """
     user = get_user_info(user_id)
     if not user:
         return 0
     
+    # =================================================================================
+    # المستخدم المميز - غير محدود
+    # =================================================================================
     if user['status'] == 'premium':
         return -1
     
-    # ✅ التعديل: جلب الحد اليومي من bot_settings_social
+    # =================================================================================
+    # جلب الحد اليومي من bot_settings_social
+    # =================================================================================
     free_limit = int(get_bot_setting('free_limit', '2'))
     
+    # =================================================================================
+    # تحديد العمود حسب المنصة
+    # =================================================================================
+    if platform == 'tiktok':
+        uses_column = 'tiktok_uses_today'
+        date_column = 'tiktok_last_use_date'
+    else:
+        uses_column = 'daily_uses'
+        date_column = 'last_use_date'
+    
     try:
-        response = supabase.table('users').select('daily_uses').eq('user_id', user_id).execute()
-        current_uses = response.data[0]['daily_uses'] if response.data else 0
+        response = supabase.table('users').select(f'{uses_column}, {date_column}').eq('user_id', user_id).execute()
+        
+        if not response.data:
+            return free_limit
+        
+        data = response.data[0]
+        current_uses = data.get(uses_column, 0)
+        last_use_date = data.get(date_column)
+        
+        today = date.today().isoformat()
+        
+        # إذا كان اليوم مختلفاً، العداد صفر
+        if last_use_date != today:
+            return free_limit
+        
         remaining = free_limit - current_uses
         return max(0, remaining)
+        
     except Exception as e:
-        logger.error(f"Error in get_remaining_analyses: {e}")
+        logger.error(f"Error in get_remaining_analyses for {platform}: {e}")
         return free_limit
+# =================================================================================
 
 
-def get_total_analyses(user_id):
-    """الحصول على إجمالي تحليلات المستخدم"""
+# =================================================================================
+def get_total_analyses(user_id, platform=None):
+    """
+    الحصول على إجمالي تحليلات المستخدم
+    
+    Args:
+        user_id: معرف المستخدم
+        platform: اسم المنصة (اختياري، إذا None يرجع إجمالي الكل)
+    
+    Returns:
+        int: عدد التحليلات
+    """
     try:
-        response = supabase.table('users').select('total_uses').eq('user_id', user_id).execute()
-        return response.data[0]['total_uses'] if response.data else 0
+        if platform:
+            # إجمالي منصة محددة
+            if platform == 'tiktok':
+                response = supabase.table('tiktok_analysis_logs')\
+                    .select('id', count='exact')\
+                    .eq('user_id', user_id)\
+                    .execute()
+                return response.count if hasattr(response, 'count') else 0
+            else:
+                # يوتيوب ومنصات أخرى
+                response = supabase.table('analysis_history')\
+                    .select('id', count='exact')\
+                    .eq('user_id', user_id)\
+                    .eq('platform', platform)\
+                    .execute()
+                return response.count if hasattr(response, 'count') else 0
+        else:
+            # إجمالي جميع المنصات
+            tiktok_count = supabase.table('tiktok_analysis_logs')\
+                .select('id', count='exact')\
+                .eq('user_id', user_id)\
+                .execute()
+            youtube_count = supabase.table('analysis_history')\
+                .select('id', count='exact')\
+                .eq('user_id', user_id)\
+                .eq('platform', 'youtube')\
+                .execute()
+            
+            tiktok_total = tiktok_count.count if hasattr(tiktok_count, 'count') else 0
+            youtube_total = youtube_count.count if hasattr(youtube_count, 'count') else 0
+            
+            return tiktok_total + youtube_total
+            
     except Exception as e:
         logger.error(f"Error in get_total_analyses: {e}")
         return 0
-
+# =================================================================================
 
 # ========== دوال حسابات المستخدمين (قراءة/كتابة - supabase) ==========
 

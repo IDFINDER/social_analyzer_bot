@@ -1798,12 +1798,11 @@ def api_analyze():
             'avg_views': channel_details.get('avg_views'),
             'avg_views_raw': channel_details.get('avg_views_raw', 0)
         })
-    
+
     # ========== منصات أخرى (قيد التطوير) ==========
-    elif platform in ['instagram', 'tiktok', 'facebook', 'snapchat']:
+    elif platform in ['instagram', 'facebook', 'snapchat']:
         platform_names = {
             'instagram': 'انستقرام',
-            'tiktok': 'تيك توك', 
             'facebook': 'فيسبوك',
             'snapchat': 'سناب شات'
         }
@@ -1811,6 +1810,94 @@ def api_analyze():
             'success': False, 
             'error': f'📢 ميزة تحليل {platform_names.get(platform, platform)} قيد التطوير حالياً، ستكون متاحة قريباً!'
         }), 501
+    
+    elif platform == 'tiktok':
+        from utils.tiktok_analyzer import get_tiktok_token, format_tiktok_report
+        from utils.db import get_user_info, increment_usage, get_remaining_analyses
+        from datetime import datetime
+        import asyncio
+        
+        # تنظيف اسم المستخدم (إزالة @ والرابط)
+        username_clean = identifier
+        username_clean = username_clean.replace('https://tiktok.com/@', '')
+        username_clean = username_clean.replace('https://www.tiktok.com/@', '')
+        if username_clean.startswith('@'):
+            username_clean = username_clean[1:]
+        
+        # التحقق من وجود توكن TikTok للمستخدم
+        tiktok_token_data = get_tiktok_token(user_id)
+        
+        if not tiktok_token_data:
+            # لا يوجد توكن → عرض رابط التفعيل
+            from utils.tiktok_analyzer import get_tiktok_auth_url
+            auth_url = get_tiktok_auth_url(user_id)
+            return jsonify({
+                'success': False,
+                'need_auth': True,
+                'auth_url': auth_url,
+                'error': '🔐 تحتاج إلى تفعيل حساب TikTok أولاً'
+            }), 401
+        
+        # يوجد توكن → تنفيذ التحليل
+        try:
+            # استدعاء دالة التقرير الموجودة
+            report_text = await format_tiktok_report(user_id, username_clean)
+            
+            if not report_text or "❌" in report_text:
+                return jsonify({
+                    'success': False,
+                    'error': report_text or 'فشل في تحليل حساب TikTok'
+                }), 500
+            
+            # تحديث عداد الاستخدام
+            increment_usage(user_id, 'tiktok', {
+                'account_name': username_clean,
+                'platform': 'tiktok'
+            })
+            
+            # حساب عدد التحليلات المتبقية
+            remaining_analyses = None
+            if not is_premium:
+                remaining = get_remaining_analyses(user_id)
+                remaining_analyses = remaining if remaining > 0 else 0
+            else:
+                remaining_analyses = "غير محدود"
+            
+            # إرسال التقرير إلى البوت تلقائياً
+            try:
+                BOT_TOKEN = os.environ.get('TELEGRAM_TOKEN')
+                if BOT_TOKEN:
+                    filename = f"تحليل_TikTok_{username_clean}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+                    files = {'document': (filename, report_text.encode('utf-8'), 'text/plain')}
+                    data = {'chat_id': user_id, 'caption': f"📊 تقرير تحليل حساب TikTok @{username_clean}"}
+                    
+                    requests.post(
+                        f'https://api.telegram.org/bot{BOT_TOKEN}/sendDocument',
+                        data=data,
+                        files=files,
+                        timeout=60
+                    )
+                    logger.info(f"✅ TikTok report sent to user {user_id} automatically")
+            except Exception as e:
+                logger.error(f"Error sending auto TikTok report: {e}")
+            
+            return jsonify({
+                'success': True,
+                'platform': 'tiktok',
+                'identifier': username_clean,
+                'report': report_text,
+                'file_content': report_text,
+                'account_name': username_clean,
+                'remaining_analyses': remaining_analyses
+            })
+            
+        except Exception as e:
+            logger.error(f"TikTok analysis error: {e}")
+            return jsonify({
+                'success': False,
+                'error': f'فشل تحليل TikTok: {str(e)}'
+            }), 500
+        pass
     
     else:
         return jsonify({'success': False, 'error': f'منصة {platform} غير مدعومة'}), 400
