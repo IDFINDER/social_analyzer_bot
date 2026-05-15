@@ -60,6 +60,7 @@ async def exchange_code_for_token(code: str, user_id: int) -> Optional[Dict]:
         logger.error("TikTok API credentials not configured")
         return None
     
+    # ✅ استخدام البيانات الصحيحة فقط (بدون معاملات إضافية)
     data = {
         'client_key': TIKTOK_CLIENT_KEY,
         'client_secret': TIKTOK_CLIENT_SECRET,
@@ -68,15 +69,23 @@ async def exchange_code_for_token(code: str, user_id: int) -> Optional[Dict]:
         'redirect_uri': TIKTOK_REDIRECT_URI
     }
     
+    # ✅ طباعة البيانات للتصحيح (بدون الـ secret)
+    logger.info(f"Token exchange request for user {user_id}")
+    logger.info(f"Redirect URI: {TIKTOK_REDIRECT_URI}")
+    
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 'https://open-api.tiktok.com/oauth/access_token/',
-                data=data,
+                data=data,  # ✅ استخدام data وليس json
+                headers={'Content-Type': 'application/x-www-form-urlencoded'},
                 timeout=aiohttp.ClientTimeout(total=30)
             ) as response:
+                response_text = await response.text()
+                logger.info(f"TikTok response: {response_text}")
+                
                 if response.status == 200:
-                    result = await response.json()
+                    result = json.loads(response_text)
                     
                     if result.get('data', {}).get('access_token'):
                         token_data = {
@@ -92,8 +101,7 @@ async def exchange_code_for_token(code: str, user_id: int) -> Optional[Dict]:
                         logger.error(f"Token exchange failed: {result}")
                         return None
                 else:
-                    error_text = await response.text()
-                    logger.error(f"Token exchange error: {response.status} - {error_text}")
+                    logger.error(f"Token exchange error: {response.status} - {response_text}")
                     return None
                     
     except Exception as e:
