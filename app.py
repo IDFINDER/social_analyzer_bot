@@ -1203,16 +1203,13 @@ def tiktok_login():
 
 @app.route('/callback/tiktok')
 def tiktok_callback():
-    import aiohttp
-    import asyncio
-    
     error = request.args.get('error')
     if error:
         logger.error(f"TikTok callback error: {error}")
         return f"Error: {error}", 400
     
-    state = request.args.get('state')
     code = request.args.get('code')
+    state = request.args.get('state')
     
     logger.info(f"✅ TikTok callback received - code: {code[:20] if code else 'None'}...")
     
@@ -1224,108 +1221,82 @@ def tiktok_callback():
     if state and '_' in state:
         try:
             user_id = int(state.split('_')[0])
-            logger.info(f"✅ Extracted user_id: {user_id} from state")
+            logger.info(f"✅ Extracted user_id: {user_id}")
         except:
-            logger.error(f"Failed to extract user_id from state: {state}")
+            logger.error(f"Failed to extract user_id: {state}")
     
     if not user_id:
-        return "Invalid user_id in state", 400
+        return "Invalid user_id", 400
     
-    # ✅ استخدام aiohttp (مثل سناب شات)
-    async def exchange_code():
-        data = {
-            'client_key': TIKTOK_CLIENT_KEY,
-            'client_secret': TIKTOK_CLIENT_SECRET,
-            'code': code,
-            'grant_type': 'authorization_code',
-            'redirect_uri': TIKTOK_REDIRECT_URI
-        }
+    # ✅ استخدام requests بشكل مبسط
+    import requests
+    
+    # ✅ البيانات بدون redirect_uri (TikTok قد لا يحتاجها هنا)
+    data = {
+        'client_key': TIKTOK_CLIENT_KEY,
+        'client_secret': TIKTOK_CLIENT_SECRET,
+        'code': code,
+        'grant_type': 'authorization_code',
+    }
+    
+    logger.info(f"Sending request to TikTok with data: {list(data.keys())}")
+    
+    try:
+        response = requests.post(
+            'https://open-api.tiktok.com/oauth/access_token/',
+            data=data,
+            timeout=30
+        )
         
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                'https://open-api.tiktok.com/oauth/access_token/',
-                data=data,
-                timeout=aiohttp.ClientTimeout(total=30)
-            ) as response:
-                if response.status == 200:
-                    return await response.json()
-                else:
-                    error_text = await response.text()
-                    logger.error(f"Token exchange failed: {response.status} - {error_text}")
-                    return None
-    
-    # تشغيل الدالة غير المتزامنة
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    token_data = loop.run_until_complete(exchange_code())
-    loop.close()
-    
-    if not token_data:
-        logger.error("No token data received")
-        return "Failed to exchange code", 500
-    
-    logger.info(f"TikTok token response: {token_data}")
-    
-    if token_data.get('data', {}).get('access_token'):
-        access_token = token_data['data']['access_token']
-        open_id = token_data['data']['open_id']
-        refresh_token = token_data['data'].get('refresh_token')
+        logger.info(f"Response status: {response.status_code}")
+        logger.info(f"Response text: {response.text}")
         
-        # حفظ التوكن
-        from utils.tiktok_analyzer import save_tiktok_token
-        save_tiktok_token(user_id, {
-            'access_token': access_token,
-            'refresh_token': refresh_token,
-            'open_id': open_id,
-            'expires_in': token_data['data'].get('expires_in', 86400)
-        })
+        token_data = response.json()
         
-        # إرسال إشعار للمستخدم
-        TOKEN = os.environ.get('TELEGRAM_TOKEN')
-        if TOKEN:
-            try:
-                requests.post(
-                    f"https://api.telegram.org/bot{TOKEN}/sendMessage",
-                    json={
-                        'chat_id': user_id,
-                        'text': "✅ تم تفعيل تحليل TikTok بنجاح!\n\n🎵 يمكنك الآن استخدام زر 'تحليل تيك توك' لتحليل حسابك.",
-                        'parse_mode': 'HTML'
-                    },
-                    timeout=5
-                )
-            except Exception as e:
-                logger.error(f"Failed to notify user: {e}")
-        
-        return render_template_string('''
-            <!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تم الاتصال بنجاح</title>
-            <style>
-                *{margin:0;padding:0;box-sizing:border-box;}
-                body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;justify-content:center;align-items:center;}
-                .card{background:white;border-radius:20px;padding:40px;text-align:center;max-width:400px;box-shadow:0 20px 40px rgba(0,0,0,0.2);}
-                h1{color:#2c3e50;margin-bottom:10px;}
-                .success{color:#48bb78;font-size:64px;}
-                .btn{display:inline-block;background:#667eea;color:white;padding:12px 24px;border-radius:30px;text-decoration:none;margin-top:20px;transition:0.3s;}
-                .btn:hover{transform:translateY(-2px);background:#5a67d8;}
-            </style>
-            </head>
-            <body>
-                <div class="card">
-                    <div class="success">✅</div>
-                    <h1>تم الاتصال بتيك توك بنجاح!</h1>
-                    <p>يمكنك الآن العودة إلى البوت واستخدام ميزات تحليل تيك توك.</p>
-                    <a href="https://t.me/Social_Media_tools_bot" class="btn">🚀 العودة إلى البوت</a>
-                </div>
-                <script>
-                    setTimeout(function(){
-                        window.location.href = 'https://t.me/Social_Media_tools_bot';
-                    }, 5000);
-                </script>
-            </body>
-            </html>
-        ''')
-    else:
-        logger.error(f"Token exchange failed: {token_data}")
-        return f"Error getting access token: {token_data}", 400
+        if token_data.get('data', {}).get('access_token'):
+            access_token = token_data['data']['access_token']
+            open_id = token_data['data']['open_id']
+            
+            logger.info(f"✅ Access token obtained for user {user_id}")
+            
+            # حفظ التوكن
+            from utils.tiktok_analyzer import save_tiktok_token
+            save_tiktok_token(user_id, {
+                'access_token': access_token,
+                'refresh_token': token_data['data'].get('refresh_token'),
+                'open_id': open_id,
+                'expires_in': token_data['data'].get('expires_in', 86400)
+            })
+            
+            return render_template_string('''
+                <!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تم الاتصال بنجاح</title>
+                <style>
+                    *{margin:0;padding:0;box-sizing:border-box;}
+                    body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;justify-content:center;align-items:center;}
+                    .card{background:white;border-radius:20px;padding:40px;text-align:center;max-width:400px;box-shadow:0 20px 40px rgba(0,0,0,0.2);}
+                    h1{color:#2c3e50;margin-bottom:10px;}
+                    .success{color:#48bb78;font-size:64px;}
+                    .btn{display:inline-block;background:#667eea;color:white;padding:12px 24px;border-radius:30px;text-decoration:none;margin-top:20px;transition:0.3s;}
+                    .btn:hover{transform:translateY(-2px);background:#5a67d8;}
+                </style>
+                </head>
+                <body>
+                    <div class="card">
+                        <div class="success">✅</div>
+                        <h1>تم الاتصال بتيك توك بنجاح!</h1>
+                        <p>يمكنك الآن العودة إلى البوت واستخدام ميزات تحليل تيك توك.</p>
+                        <a href="https://t.me/Social_Media_tools_bot" class="btn">🚀 العودة إلى البوت</a>
+                    </div>
+                </body>
+                </html>
+            ''')
+        else:
+            logger.error(f"Token exchange failed: {token_data}")
+            return f"Error: {token_data}", 400
+            
+    except Exception as e:
+        logger.error(f"Exception: {e}")
+        return f"Exception: {e}", 500
 
 
 @app.route('/tiktok/profile')
