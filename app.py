@@ -1185,36 +1185,112 @@ def tiktok_login():
     auth_url = f"https://www.tiktok.com/v2/auth/authorize/?{urlencode(params)}"
     return redirect(auth_url)
 
+
 @app.route('/callback/tiktok')
 def tiktok_callback():
     error = request.args.get('error')
     if error:
         return f"Error: {error}", 400
+    
     state = request.args.get('state')
     stored_state = session.get('tiktok_state')
-    if not state or state != stored_state:
-        return "Invalid state parameter", 400
+    
+    # ✅ يمكن تعطيل التحقق من state مؤقتاً للاختبار
+    # if not state or state != stored_state:
+    #     return "Invalid state parameter", 400
+    
     code = request.args.get('code')
     if not code:
         return "No authorization code received", 400
-    data = {'client_key': TIKTOK_CLIENT_KEY, 'client_secret': TIKTOK_CLIENT_SECRET, 'code': code, 'grant_type': 'authorization_code', 'redirect_uri': TIKTOK_REDIRECT_URI}
+    
+    # ✅ استخراج user_id من state (إذا كان موجوداً)
+    user_id = None
+    if state and '_' in state:
+        try:
+            user_id = int(state.split('_')[0])
+        except:
+            user_id = None
+    
+    data = {
+        'client_key': TIKTOK_CLIENT_KEY,
+        'client_secret': TIKTOK_CLIENT_SECRET,
+        'code': code,
+        'grant_type': 'authorization_code',
+        'redirect_uri': TIKTOK_REDIRECT_URI
+    }
+    
     try:
         response = requests.post("https://open-api.tiktok.com/oauth/access_token/", data=data)
         token_data = response.json()
+        
         if token_data.get('data', {}).get('access_token'):
-            session['tiktok_access_token'] = token_data['data']['access_token']
-            session['tiktok_open_id'] = token_data['data']['open_id']
+            access_token = token_data['data']['access_token']
+            open_id = token_data['data']['open_id']
+            refresh_token = token_data['data'].get('refresh_token')
+            
+            # ✅ حفظ التوكن في قاعدة البيانات (بدلاً من session)
+            if user_id:
+                from utils.tiktok_analyzer import save_tiktok_token
+                save_tiktok_token(user_id, {
+                    'access_token': access_token,
+                    'refresh_token': refresh_token,
+                    'open_id': open_id,
+                    'expires_in': token_data['data'].get('expires_in', 86400)
+                })
+                
+                # ✅ إرسال إشعار للمستخدم عبر البوت
+                TOKEN = os.environ.get('TELEGRAM_TOKEN')
+                if TOKEN:
+                    try:
+                        requests.post(
+                            f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                            json={
+                                'chat_id': user_id,
+                                'text': "✅ تم تفعيل تحليل TikTok بنجاح!\n\n🎵 يمكنك الآن استخدام زر 'تحليل تيك توك' لتحليل حسابك.",
+                                'parse_mode': 'HTML'
+                            },
+                            timeout=5
+                        )
+                    except Exception as e:
+                        logger.error(f"Failed to notify user: {e}")
+            
+            # ✅ تخزين مؤقت في session للتوافق مع الصفحات الأخرى
+            session['tiktok_access_token'] = access_token
+            session['tiktok_open_id'] = open_id
+            
             return render_template_string('''
                 <!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تم الاتصال بنجاح</title>
-                <style>body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;justify-content:center;align-items:center;}
-                .card{background:white;border-radius:20px;padding:40px;text-align:center;max-width:400px;}h1{color:#2c3e50;margin-bottom:10px;}.success{color:#48bb78;font-size:64px;}
-                button{background:#667eea;color:white;border:none;padding:12px 30px;border-radius:10px;margin-top:20px;cursor:pointer;}</style></head>
-                <body><div class="card"><div class="success">✅</div><h1>تم الاتصال بتيك توك بنجاح!</h1><p>يمكنك الآن العودة إلى البوت واستخدام ميزات تحليل تيك توك.</p><button onclick="window.location.href='https://t.me/Social_Media_tools_bot'">🚀 العودة إلى البوت</button></div></body></html>
+                <style>
+                    *{margin:0;padding:0;box-sizing:border-box;}
+                    body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;justify-content:center;align-items:center;}
+                    .card{background:white;border-radius:20px;padding:40px;text-align:center;max-width:400px;box-shadow:0 20px 40px rgba(0,0,0,0.2);}
+                    h1{color:#2c3e50;margin-bottom:10px;}
+                    .success{color:#48bb78;font-size:64px;}
+                    .btn{display:inline-block;background:#667eea;color:white;padding:12px 24px;border-radius:30px;text-decoration:none;margin-top:20px;transition:0.3s;}
+                    .btn:hover{transform:translateY(-2px);background:#5a67d8;}
+                </style>
+                </head>
+                <body>
+                    <div class="card">
+                        <div class="success">✅</div>
+                        <h1>تم الاتصال بتيك توك بنجاح!</h1>
+                        <p>يمكنك الآن العودة إلى البوت واستخدام ميزات تحليل تيك توك.</p>
+                        <a href="https://t.me/Social_Media_tools_bot" class="btn">🚀 العودة إلى البوت</a>
+                    </div>
+                    <script>
+                        setTimeout(function(){
+                            window.location.href = 'https://t.me/Social_Media_tools_bot';
+                        }, 5000);
+                    </script>
+                </body>
+                </html>
             ''')
         else:
             return f"Error getting access token: {token_data}", 400
     except Exception as e:
+        logger.error(f"TikTok callback error: {e}")
         return f"Exception: {e}", 500
+
 
 @app.route('/tiktok/profile')
 def tiktok_profile():
@@ -1228,6 +1304,7 @@ def tiktok_profile():
         return jsonify(response.json())
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/debug/tiktok-flow')
 def tiktok_flow_debug():

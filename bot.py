@@ -760,7 +760,7 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode='HTML',
         reply_markup=get_analysis_keyboard()
     )
-
+# =================================================================================
 async def analyze_youtube(update: Update, context: ContextTypes.DEFAULT_TYPE, query=None):
     """تحليل قناة يوتيوب (نسخة محسنة وشاملة مع حفظ التحليلات)"""
     user_id = update.effective_user.id if not query else query.from_user.id
@@ -981,6 +981,71 @@ async def analyze_snapchat_command(update: Update, context: ContextTypes.DEFAULT
     # تسجيل الاستخدام
     if not is_premium:
         increment_usage(user_id, 'snapchat', {})
+
+# =================================================================================
+async def analyze_tiktok_command(update: Update, context: ContextTypes.DEFAULT_TYPE, query=None):
+    """بدء تحليل TikTok"""
+    user_id = update.effective_user.id if not query else query.from_user.id
+    
+    if query:
+        await query.answer()
+        message = query.message
+    else:
+        message = update.message
+    
+    # التحقق من حصة المستخدم للمجانيين
+    user_info = get_user_info(user_id)
+    is_premium = user_info['status'] == 'premium' if user_info else False
+    
+    if not is_premium:
+        can_analyze_bool, current_uses = can_analyze(user_id)
+        if not can_analyze_bool:
+            remaining = FREE_LIMIT - current_uses
+            await message.reply_text(
+                f"⚠️ <b>لقد وصلت للحد اليومي المجاني!</b>\n\n"
+                f"📊 الحد المسموح: {FREE_LIMIT} تحليل يومياً\n"
+                f"✅ التحليلات اليوم: {current_uses}\n"
+                f"🎯 المتبقي اليوم: {remaining}\n\n"
+                f"💎 <b>للتحليل غير المحدود:</b> اشترك في الخطة المميزة",
+                parse_mode='HTML'
+            )
+            return
+    
+    # التحقق من وجود توكن مفعل
+    from utils.tiktok_analyzer import get_tiktok_token, get_tiktok_auth_url
+    
+    token_data = get_tiktok_token(user_id)
+    
+    if not token_data:
+        # المرة الأولى: طلب تفعيل
+        auth_url = get_tiktok_auth_url(user_id)
+        keyboard = InlineKeyboardMarkup([[
+            InlineKeyboardButton("🔐 تفعيل تيك توك", url=auth_url)
+        ]])
+        await message.reply_text(
+            "🔐 <b>تفعيل تحليل تيك توك</b>\n\n"
+            "هذه المرة الأولى لاستخدامك لهذه الميزة.\n"
+            "تحتاج إلى تفعيل الصلاحيات (مرة واحدة فقط).\n\n"
+            "📌 <b>بعد التفعيل، لن تحتاج إلى تكرار هذه الخطوة أبداً!</b>\n\n"
+            "🔽 اضغط الزر أدناه للبدء:",
+            parse_mode='HTML',
+            reply_markup=keyboard
+        )
+        return
+    
+    # لدينا توكن - نحلل فوراً
+    status_msg = await message.reply_text("⏳ جاري تحليل حساب تيك توك...")
+    
+    from utils.tiktok_analyzer import format_tiktok_report
+    
+    report = await format_tiktok_report(user_id)
+    
+    await status_msg.delete()
+    await message.reply_text(report, parse_mode='HTML')
+    
+    # تسجيل الاستخدام
+    if not is_premium:
+        increment_usage(user_id, 'tiktok', {})       
 # =================================================================================
 # القسم 10: أوامر البوت - توصيات الذكاء الاصطناعي (AI Recommendations)
 # =================================================================================
@@ -1933,7 +1998,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "analyze_instagram":
         await query.answer("📸 هذه الميزة قيد التطوير حالياً", show_alert=True)
     elif data == "analyze_tiktok":
-        await query.answer("🎵 هذه الميزة قيد التطوير حالياً", show_alert=True)
+        await analyze_tiktok_command(update, context, query)
     elif data == "analyze_facebook":
         await query.answer("📘 هذه الميزة قيد التطوير حالياً", show_alert=True)
     elif data == "analyze_snapchat":
