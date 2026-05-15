@@ -187,6 +187,10 @@ def terms_of_service():
         return render_template('terms.html')
     except Exception as e:
         return "Terms of Service page", 200
+# =================================================================================
+@app.route('/tiktokw9Ukfj91mI3iM5jQUAxlKiItQbyu9i8j.txt')
+def serve_tiktok_verification():
+    return send_from_directory('static/tiktok', 'tiktokw9Ukfj91mI3iM5jQUAxlKiItQbyu9i8j.txt')
 
 # =================================================================================
 # القسم 6: نقاط نهاية فحص الصحة (Health Checks)
