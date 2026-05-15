@@ -1201,102 +1201,158 @@ def tiktok_login():
     return redirect(auth_url)
 
 
+import os
+import requests
+import logging
+from flask import request, render_template_string, session, url_for, redirect, jsonify
+
+# إعداد الـ Logger لمراقبة العمليات
+logger = logging.getLogger(__name__)
+
 @app.route('/callback/tiktok')
 def tiktok_callback():
+    # 1. التحقق من وجود أخطاء قادمة من تيك توك في الرابط
     error = request.args.get('error')
     if error:
-        logger.error(f"TikTok callback error: {error}")
-        return f"Error: {error}", 400
+        logger.error(f"❌ TikTok Redirect Error: {error}")
+        return f"خطأ من تيك توك: {error}", 400
     
     code = request.args.get('code')
     state = request.args.get('state')
     
-    logger.info(f"✅ TikTok callback received - code: {code[:20] if code else 'None'}...")
+    # طباعة تشخيصية للـ Code المستلم
+    logger.info(f"📡 Callback Received - Code: {code[:10]}... | State: {state}")
     
     if not code:
-        return "No authorization code received", 400
+        logger.error("❌ No authorization code found in request")
+        return "لم يتم استلام كود التفويض", 400
     
-    # استخراج user_id من state
+    # 2. استخراج user_id من الـ state
     user_id = None
     if state and '_' in state:
         try:
             user_id = int(state.split('_')[0])
-            logger.info(f"✅ Extracted user_id: {user_id}")
-        except:
-            logger.error(f"Failed to extract user_id: {state}")
+            logger.info(f"👤 Extracted user_id: {user_id}")
+        except Exception as e:
+            logger.error(f"❌ Failed to parse user_id from state: {e}")
     
     if not user_id:
-        return "Invalid user_id", 400
+        logger.error("❌ Invalid or missing user_id in state")
+        return "معرف المستخدم غير صالحة", 400
+
+    # 3. جلب الإعدادات من رندر (Render Environment Variables)
+    TIKTOK_CLIENT_KEY = os.getenv("TIKTOK_CLIENT_KEY")
+    TIKTOK_CLIENT_SECRET = os.getenv("TIKTOK_CLIENT_SECRET")
+    TIKTOK_REDIRECT_URI = os.getenv("TIKTOK_REDIRECT_URI") # تأكد من إضافته في رندر
+
+    # الرابط الجديد للإصدار الثاني V2
+    TOKEN_URL = 'https://open.tiktokapis.com/v2/oauth/token/'
     
-    # ✅ استخدام requests بشكل مبسط
-    import requests
-    
-    # ✅ البيانات بدون redirect_uri (TikTok قد لا يحتاجها هنا)
+    # تجهيز البيانات (Data Payload)
     data = {
         'client_key': TIKTOK_CLIENT_KEY,
         'client_secret': TIKTOK_CLIENT_SECRET,
         'code': code,
         'grant_type': 'authorization_code',
+        'redirect_uri': TIKTOK_REDIRECT_URI, # 👈 السر في حل خطأ 10014
     }
     
-    logger.info(f"Sending request to TikTok with data: {list(data.keys())}")
-    
+    headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Cache-Control': 'no-cache'
+    }
+
+    logger.info(f"🔄 Attempting Token Exchange for user {user_id}...")
+    logger.info(f"🔗 Using Redirect URI: {TIKTOK_REDIRECT_URI}")
+
     try:
-        response = requests.post(
-            'https://open-api.tiktok.com/oauth/access_token/',
-            data=data,
-            timeout=30
-        )
+        # إرسال الطلب لتيك توك
+        response = requests.post(TOKEN_URL, data=data, headers=headers, timeout=30)
         
-        logger.info(f"Response status: {response.status_code}")
-        logger.info(f"Response text: {response.text}")
+        # طباعة تفصيلية للرد لمعرفة الخلل
+        logger.info(f"📊 TikTok Response Status: {response.status_code}")
         
         token_data = response.json()
         
-        if token_data.get('data', {}).get('access_token'):
-            access_token = token_data['data']['access_token']
-            open_id = token_data['data']['open_id']
+        # التحقق من نجاح الحصول على التوكن
+        if 'access_token' in token_data:
+            access_token = token_data['access_token']
+            refresh_token = token_data.get('refresh_token')
+            open_id = token_data.get('open_id')
+            expires_in = token_data.get('expires_in', 86400)
+
+            logger.info(f"✅ SUCCESS: Access token obtained for user {user_id}")
             
-            logger.info(f"✅ Access token obtained for user {user_id}")
-            
-            # حفظ التوكن
+            # حفظ التوكن في قاعدة البيانات باستخدام دالتك الأصلية
             from utils.tiktok_analyzer import save_tiktok_token
             save_tiktok_token(user_id, {
                 'access_token': access_token,
-                'refresh_token': token_data['data'].get('refresh_token'),
+                'refresh_token': refresh_token,
                 'open_id': open_id,
-                'expires_in': token_data['data'].get('expires_in', 86400)
+                'expires_in': expires_in
             })
             
             return render_template_string('''
                 <!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تم الاتصال بنجاح</title>
                 <style>
                     *{margin:0;padding:0;box-sizing:border-box;}
-                    body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;justify-content:center;align-items:center;}
+                    body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#fe2c55,#25f4ee);min-height:100vh;display:flex;justify-content:center;align-items:center;}
                     .card{background:white;border-radius:20px;padding:40px;text-align:center;max-width:400px;box-shadow:0 20px 40px rgba(0,0,0,0.2);}
-                    h1{color:#2c3e50;margin-bottom:10px;}
-                    .success{color:#48bb78;font-size:64px;}
-                    .btn{display:inline-block;background:#667eea;color:white;padding:12px 24px;border-radius:30px;text-decoration:none;margin-top:20px;transition:0.3s;}
-                    .btn:hover{transform:translateY(-2px);background:#5a67d8;}
+                    h1{color:#121212;margin-bottom:10px;}
+                    .success{color:#fe2c55;font-size:64px;margin-bottom:10px;}
+                    .btn{display:inline-block;background:#121212;color:white;padding:12px 24px;border-radius:30px;text-decoration:none;margin-top:20px;transition:0.3s;font-weight:bold;}
+                    .btn:hover{transform:scale(1.05);background:#000;}
                 </style>
                 </head>
                 <body>
                     <div class="card">
-                        <div class="success">✅</div>
-                        <h1>تم الاتصال بتيك توك بنجاح!</h1>
-                        <p>يمكنك الآن العودة إلى البوت واستخدام ميزات تحليل تيك توك.</p>
-                        <a href="https://t.me/Social_Media_tools_bot" class="btn">🚀 العودة إلى البوت</a>
+                        <div class="success">🎵</div>
+                        <h1>تم ربط تيك توك بنجاح!</h1>
+                        <p>عظيم! حسابك متصل الآن بـ Social Analyzer AI. يمكنك العودة للبوت والبدء بالتحليل.</p>
+                        <a href="https://t.me/Social_Media_tools_bot" class="btn">🚀 اذهب للبوت الآن</a>
                     </div>
                 </body>
                 </html>
             ''')
         else:
-            logger.error(f"Token exchange failed: {token_data}")
-            return f"Error: {token_data}", 400
+            # هنا يطبع الخلل الحقيقي إذا لم ينجح الطلب
+            logger.error(f"❌ Token Exchange Failed! Response: {token_data}")
+            return f"فشل تبادل التوكن: {token_data}", 400
             
     except Exception as e:
-        logger.error(f"Exception: {e}")
-        return f"Exception: {e}", 500
+        logger.error(f"🔥 Critical Exception in TikTok Callback: {str(e)}")
+        return f"حدث خطأ داخلي: {str(e)}", 500
+
+
+@app.route('/tiktok/profile')
+def tiktok_profile():
+    """جلب بيانات الملف الشخصي باستخدام الإصدار V2"""
+    # يفضل جلب التوكن من قاعدة البيانات باستخدام user_id، ولكن هنا سنتبع نهجك الحالي
+    access_token = session.get('tiktok_access_token')
+    if not access_token:
+        return "يجب تسجيل الدخول أولاً", 401
+
+    # رابط المعلومات الشخصية الجديد V2
+    USER_INFO_URL = "https://open.tiktokapis.com/v2/user/info/"
+    
+    # في V2 التوكن يرسل في الـ Header وليس الـ Params
+    headers = {
+        'Authorization': f'Bearer {access_token}'
+    }
+    
+    # تحديد الحقول المطلوبة (Scopes)
+    params = {
+        'fields': 'open_id,union_id,avatar_url,display_name,bio_description,is_verified'
+    }
+    
+    try:
+        response = requests.get(USER_INFO_URL, headers=headers, params=params)
+        logger.info(f"Profile Request Status: {response.status_code}")
+        return jsonify(response.json())
+    except Exception as e:
+        logger.error(f"❌ Error fetching TikTok profile: {e}")
+        return jsonify({'error': str(e)}), 500
+
 
 
 @app.route('/tiktok/profile')
