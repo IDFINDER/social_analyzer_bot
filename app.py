@@ -1355,18 +1355,7 @@ def tiktok_profile():
 
 
 
-@app.route('/tiktok/profile')
-def tiktok_profile():
-    access_token = session.get('tiktok_access_token')
-    open_id = session.get('tiktok_open_id')
-    if not access_token:
-        return redirect(url_for('tiktok_login'))
-    params = {'access_token': access_token, 'open_id': open_id}
-    try:
-        response = requests.get("https://open-api.tiktok.com/user/info/", params=params)
-        return jsonify(response.json())
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+
 
 
 @app.route('/debug/tiktok-flow')

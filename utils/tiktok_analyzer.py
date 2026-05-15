@@ -23,13 +23,27 @@ TIKTOK_REDIRECT_URI = os.environ.get('TIKTOK_REDIRECT_URI')
 BASE_URL_V2 = "https://open.tiktokapis.com/v2"
 
 def get_tiktok_auth_url(user_id: int) -> str:
-    """إنشاء رابط مصادقة TikTok V2"""
+    """إصدار V2: إنشاء رابط مصادقة TikTok مع تحديث حي للمتغيرات"""
     import secrets
     import urllib.parse
+    import os
+
+    # 1. جلب المفتاح الأساسي (Client Key) من رندر
+    client_key = os.environ.get('TIKTOK_CLIENT_KEY')
     
+    # 2. جلب رابط الـ Redirect URI من رندر "في كل مرة تُطلب فيها الدالة"
+    # هذا يضمن أن الزر لن يحمل قيمة None بعد الآن
+    redirect_uri = os.environ.get('TIKTOK_REDIRECT_URI')
+    
+    # 💡 معالجة احتياطية: إذا لم يجد المتغير في رندر، يقوم ببنائه تلقائياً
+    if not redirect_uri or redirect_uri == "None":
+        render_url = os.environ.get('RENDER_URL', 'social-analyzer-flask.onrender.com')
+        redirect_uri = f"https://{render_url}/callback/tiktok"
+
+    # إنشاء حالة فريدة (State) للأمان وربطها بـ user_id
     state = f"{user_id}_{secrets.token_urlsafe(16)}"
     
-    # Scopes المحدثة لـ V2
+    # الصلاحيات المطلوبة (Scopes) لـ V2
     scope = [
         'user.info.basic',
         'user.info.profile',
@@ -37,16 +51,21 @@ def get_tiktok_auth_url(user_id: int) -> str:
         'video.list'
     ]
     
+    # بناء المعاملات (Parameters)
     params = {
-        'client_key': TIKTOK_CLIENT_KEY,
+        'client_key': client_key,
         'scope': ','.join(scope),
         'response_type': 'code',
-        'redirect_uri': TIKTOK_REDIRECT_URI,
+        'redirect_uri': redirect_uri,
         'state': state
     }
     
-    # رابط المصادقة V2
+    # الرابط الرسمي للإصدار الثاني V2
     auth_url = f"https://www.tiktok.com/v2/auth/authorize/?{urllib.parse.urlencode(params)}"
+    
+    # طباعة في سجلات رندر للتأكد عند الفحص (اختياري)
+    print(f"DEBUG: Redirect URI used: {redirect_uri}")
+    
     return auth_url
 
 
