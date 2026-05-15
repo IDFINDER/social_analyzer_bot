@@ -39,7 +39,7 @@ from utils.db import (
 )
 from utils.helpers import escape_html, verify_token, create_secure_token
 from utils.snapchat_auth import save_token
-
+from datetime import datetime, timezone, timedelta
 # إعدادات التسجيل (Logging)
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -414,7 +414,7 @@ def bio_page(page_url):
         return f"Internal error: {e}", 500
 
 # =================================================================================
-# القسم 10: API المصادقة مع Snapchat OAuth (نسخة محسنة)
+# القسم 10: API المصادقة مع Snapchat OAuth
 # =================================================================================
 
 @app.route('/snapchat/callback')
@@ -424,139 +424,49 @@ def snapchat_callback():
     
     # تحسين: التحقق من وجود المتغيرات
     if not code or not user_id:
-        logger.error(f"Missing code or user_id: code={code}, user_id={user_id}")
         return "Missing code or user_id", 400
     
-    try:
-        user_id = int(user_id)
-    except ValueError:
-        logger.error(f"Invalid user_id: {user_id}")
-        return "Invalid user_id", 400
-    
-    # الحصول على رابط إعادة التوجيه من متغير البيئة أو استخدام الافتراضي
-    redirect_uri = os.environ.get('SNAPCHAT_REDIRECT_URI', 'https://social-analyzer-flask.onrender.com/snapchat/callback')
-    
     async def exchange_code():
-        try:
-            async with aiohttp.ClientSession() as session:
-                # تحسين: إضافة timeout
-                async with session.post(
-                    'https://accounts.snapchat.com/login/oauth2/access_token',
-                    data={
-                        'grant_type': 'authorization_code',
-                        'code': code,
-                        'redirect_uri': redirect_uri,
-                        'client_id': os.environ.get('SNAPCHAT_CLIENT_ID'),
-                        'client_secret': os.environ.get('SNAPCHAT_CLIENT_SECRET')
-                    },
-                    timeout=aiohttp.ClientTimeout(total=30)
-                ) as response:
-                    if response.status == 200:
-                        return await response.json()
-                    else:
-                        error_text = await response.text()
-                        logger.error(f"Token exchange failed with status {response.status}: {error_text}")
-                        return None
-        except asyncio.TimeoutError:
-            logger.error("Token exchange timeout")
-            return None
-        except Exception as e:
-            logger.error(f"Token exchange exception: {e}")
-            return None
+        async with aiohttp.ClientSession() as session:
+            async with session.post('https://accounts.snapchat.com/login/oauth2/access_token', data={
+                'grant_type': 'authorization_code',
+                'code': code,
+                'redirect_uri': os.environ.get('SNAPCHAT_REDIRECT_URI', 'https://social-analyzer-flask.onrender.com/snapchat/callback'),
+                'client_id': os.environ.get('SNAPCHAT_CLIENT_ID'),
+                'client_secret': os.environ.get('SNAPCHAT_CLIENT_SECRET')
+            }) as response:
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    logger.error(f"Token exchange failed: {await response.text()}")
+                    return None
     
-    # تشغيل الدالة غير المتزامنة
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    token_data = loop.run_until_complete(exchange_code())
-    loop.close()
-    
+    channel_details, error = asyncio.run(get_channel_details(channel_clean))
     if not token_data:
         return "Failed to exchange code", 500
-    
-    # حفظ التوكن
-    if not save_token(user_id, token_data):
-        logger.error(f"Failed to save token for user {user_id}")
-        return "Failed to save token", 500
-    
-    # إرسال إشعار للمستخدم
+    save_token(int(user_id), token_data)
     TOKEN = os.environ.get('TELEGRAM_TOKEN')
-    if TOKEN:
-        try:
-            requests.post(
-                f"https://api.telegram.org/bot{TOKEN}/sendMessage",
-                json={
-                    'chat_id': user_id,
-                    'text': "✅ تم تفعيل تحليل Snapchat بنجاح!\n\n📸 يمكنك الآن استخدام زر 'تحليل سناب شات' لتحليل حسابك.",
-                    'parse_mode': 'HTML'
-                },
-                timeout=5
-            )
-        except Exception as e:
-            logger.error(f"Failed to notify user {user_id}: {e}")
-    
-    # صفحة النجاح
+    try:
+        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", json={'chat_id': user_id, 'text': "✅ تم تفعيل تحليل Snapchat بنجاح!\n\n📸 يمكنك الآن استخدام زر 'تحليل سناب شات' لتحليل حسابك.", 'parse_mode': 'HTML'})
+    except Exception as e:
+        logger.error(f"Failed to notify user: {e}")
     return """
     <!DOCTYPE html>
     <html dir="rtl" lang="ar">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>تم التفعيل بنجاح - Social Analyzer Bot</title>
-        <style>
-            *{margin:0;padding:0;box-sizing:border-box;}
-            body{
-                font-family:'Segoe UI',sans-serif;
-                background:linear-gradient(135deg,#667eea,#764ba2);
-                min-height:100vh;
-                display:flex;
-                justify-content:center;
-                align-items:center;
-                padding:20px;
-            }
-            .card{
-                background:white;
-                border-radius:24px;
-                padding:40px;
-                text-align:center;
-                max-width:400px;
-                box-shadow:0 20px 40px rgba(0,0,0,0.2);
-                animation:fadeInUp 0.5s ease;
-            }
-            .icon{font-size:64px;margin-bottom:20px;}
-            h1{color:#2c3e50;margin-bottom:10px;}
-            p{color:#666;line-height:1.6;}
-            .btn{
-                display:inline-block;
-                background:#667eea;
-                color:white;
-                padding:12px 24px;
-                border-radius:30px;
-                text-decoration:none;
-                margin-top:20px;
-                transition:0.3s;
-            }
-            .btn:hover{
-                transform:translateY(-2px);
-                background:#5a67d8;
-            }
-            @keyframes fadeInUp{
-                from{opacity:0;transform:translateY(30px);}
-                to{opacity:1;transform:translateY(0);}
-            }
-        </style>
+    <head><meta charset="UTF-8"><title>تم التفعيل بنجاح</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px;}
+        .card{background:white;border-radius:24px;padding:40px;text-align:center;max-width:400px;box-shadow:0 20px 40px rgba(0,0,0,0.2);}
+        .icon{font-size:64px;margin-bottom:20px;}
+        h1{color:#2c3e50;margin-bottom:10px;}
+        p{color:#666;line-height:1.6;}
+        .btn{display:inline-block;background:#667eea;color:white;padding:12px 24px;border-radius:30px;text-decoration:none;margin-top:20px;}
+    </style>
     </head>
     <body>
-        <div class="card">
-            <div class="icon">✅</div>
-            <h1>تم التفعيل بنجاح!</h1>
-            <p>يمكنك الآن العودة إلى البوت واستخدام ميزة تحليل Snapchat.</p>
-            <a href="https://t.me/Social_Media_tools_bot" class="btn">🚀 العودة إلى البوت</a>
-        </div>
-        <script>
-            setTimeout(function(){
-                window.location.href = 'https://t.me/Social_Media_tools_bot';
-            }, 5000);
-        </script>
+    <div class="card"><div class="icon">✅</div><h1>تم التفعيل بنجاح!</h1><p>يمكنك الآن العودة إلى البوت واستخدام ميزة تحليل Snapchat.</p><a href="https://t.me/Social_Media_tools_bot" class="btn">🚀 العودة إلى البوت</a></div>
+    <script>setTimeout(() => { window.location.href = 'https://t.me/Social_Media_tools_bot'; }, 3000);</script>
     </body>
     </html>
     """
@@ -1391,7 +1301,7 @@ def api_analyze():
     if not platform or not identifier:
         return jsonify({'success': False, 'error': 'Missing platform or identifier'}), 400
     
-    # التحقق من صلاحية المستخدم (حصص التحليل)
+        # التحقق من صلاحية المستخدم (حصص التحليل)
     user_info = get_user_info(user_id)
     is_premium = user_info.get('status') == 'premium' if user_info else False
     
@@ -1406,7 +1316,7 @@ def api_analyze():
                 'error': f'⚠️ لقد وصلت للحد اليومي المجاني!\n\n📊 الحد المسموح: {free_limit} تحليل يومياً\n✅ التحليلات اليوم: {current_uses}\n🎯 المتبقي اليوم: {remaining}\n\n💎 للتحليل غير المحدود، اشترك في الخطة المميزة'
             }), 403
     
-    # ========== تحليل YouTube ==========
+            # ========== تحليل YouTube ==========
     if platform == 'youtube':
         try:
             # تنظيف المعرف (إزالة @ والرابط)
@@ -1417,10 +1327,7 @@ def api_analyze():
                 channel_clean = channel_clean[1:]
             
             # استخدام دالة get_channel_details الموجودة
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            channel_details, error = loop.run_until_complete(get_channel_details(channel_clean))
-            loop.close()
+            channel_details, error = asyncio.run(get_channel_details(channel_clean))
             
         except Exception as e:
             logger.error(f"YouTube analysis error: {e}")
@@ -1445,40 +1352,160 @@ def api_analyze():
             remaining_analyses
         )
         
-        # ========== تخزين البيانات في analysis_history ==========
+        # ========== تخزين البيانات في analysis_history (نسخة محسنة) ==========
         try:
             # تحويل قائمة الفيديوهات إلى JSON
-            top_posts_json = json.dumps(channel_details.get('latest_videos', []), ensure_ascii=False)
+            latest_videos = channel_details.get('latest_videos', [])
+            top_posts_json = latest_videos if latest_videos else None
             
-            # الحصول على اسم المستخدم من user_info
-            username = user_info.get('username') if user_info else None
-            first_name = user_info.get('first_name') if user_info else None
+            # حساب engagement_rate
+            subscribers_raw = channel_details.get('subscribers_raw', 0)
+            avg_views_raw = channel_details.get('avg_views_raw', 0)
+            engagement_rate = None
+            if subscribers_raw > 0 and avg_views_raw > 0:
+                engagement_rate = round((avg_views_raw / subscribers_raw) * 100, 2)
+            
+            # حساب best_posting_hour
+            best_posting_hour = None
+            hour_counts = {}
+            for video in latest_videos:
+                published_at = video.get('published_at', '')
+                if published_at and 'T' in published_at:
+                    try:
+                        hour = int(published_at.split('T')[1].split(':')[0])
+                        hour_counts[hour] = hour_counts.get(hour, 0) + 1
+                    except:
+                        pass
+            if hour_counts:
+                best_posting_hour = max(hour_counts, key=hour_counts.get)
+            
+            # حساب best_posting_day
+            best_posting_day = None
+            day_counts = {}
+            days_map = {
+                'Monday': 'الإثنين', 'Tuesday': 'الثلاثاء', 'Wednesday': 'الأربعاء',
+                'Thursday': 'الخميس', 'Friday': 'الجمعة', 'Saturday': 'السبت', 'Sunday': 'الأحد'
+            }
+            for video in latest_videos:
+                published_at = video.get('published_at', '')
+                if published_at:
+                    try:
+                        from datetime import datetime
+                        dt = datetime.strptime(published_at[:10], '%Y-%m-%d')
+                        day_name = dt.strftime('%A')
+                        day_counts[day_name] = day_counts.get(day_name, 0) + 1
+                    except:
+                        pass
+            if day_counts:
+                best_day_en = max(day_counts, key=day_counts.get)
+                best_posting_day = days_map.get(best_day_en, best_day_en)
+            
+            # حساب avg_posts_per_week
+            avg_posts_per_week = None
+            if latest_videos:
+                dates = []
+                for video in latest_videos:
+                    pub_date = video.get('published_at', '')[:10]
+                    if pub_date and len(pub_date) >= 10:
+                        dates.append(pub_date)
+                if len(dates) >= 2:
+                    try:
+                        from datetime import datetime
+                        d1 = datetime.strptime(min(dates), '%Y-%m-%d')
+                        d2 = datetime.strptime(max(dates), '%Y-%m-%d')
+                        weeks = max(1, (d2 - d1).days / 7)
+                        avg_posts_per_week = round(len(latest_videos) / weeks, 1)
+                    except:
+                        pass
+            
+            # حساب إجمالي الإعجابات والتعليقات
+            total_likes = sum(v.get('likes', 0) for v in latest_videos)
+            total_comments = sum(v.get('comments', 0) for v in latest_videos)
+            avg_likes_per_post = round(total_likes / len(latest_videos), 2) if latest_videos else 0
+            avg_comments_per_post = round(total_comments / len(latest_videos), 2) if latest_videos else 0
+            
+            # حساب analysis_number (الرقم التسلسلي)
+            max_number_result = supabase.table('analysis_history')\
+                .select('analysis_number')\
+                .eq('user_id', user_id)\
+                .order('analysis_number', desc=True)\
+                .limit(1)\
+                .execute()
+            
+            next_number = 1
+            if max_number_result.data and max_number_result.data[0].get('analysis_number'):
+                next_number = max_number_result.data[0]['analysis_number'] + 1
+            
+            # التحقق مما إذا كان هذا هو أول تحليل لهذه القناة
+            first_check = supabase.table('analysis_history')\
+                .select('id')\
+                .eq('user_id', user_id)\
+                .eq('account_name', channel_details.get('title'))\
+                .execute()
+            is_first_analysis = (first_check.count == 0)
+            
+            # بناء سجل التحليل (صف واحد كامل مع جميع الحقول)
+            from datetime import timezone, timedelta
+            local_tz = timezone(timedelta(hours=3))
+            local_now = datetime.now(local_tz)
             
             analysis_record = {
-                # الأعمدة الموجودة فقط
+                # الحقول الأساسية
                 'user_id': user_id,
-                'username': username,
-                'first_name': first_name,
+                'username': user_info.get('username') if user_info else None,
+                'first_name': user_info.get('first_name') if user_info else None,
                 'platform': 'youtube',
                 'analyzed_user_id': channel_details.get('channel_id'),
                 'analyzed_username': channel_clean,
                 'account_name': channel_details.get('title'),
-                'analysis_date': datetime.now().isoformat(),
-                'subscribers': channel_details.get('subscribers_raw', 0),
+                'analysis_type': 'first' if is_first_analysis else 'latest',
+                'analysis_date': local_now.isoformat(),
+                
+                # الإحصائيات الأساسية
+                'subscribers': subscribers_raw,
                 'total_views': channel_details.get('total_views_raw', 0),
                 'total_posts': channel_details.get('total_videos_raw', 0),
-                'avg_views_per_post': channel_details.get('avg_views_raw', 0),
+                'avg_views_per_post': avg_views_raw,
                 'top_posts': top_posts_json,
-                'is_premium': is_premium
+                
+                # المقاييس المتقدمة
+                'engagement_rate': engagement_rate,
+                'best_posting_hour': best_posting_hour,
+                'best_posting_day': best_posting_day,
+                'avg_posts_per_week': avg_posts_per_week,
+                
+                # حقول إضافية
+                'total_videos': channel_details.get('total_videos_raw', 0),
+                'total_likes': total_likes,
+                'total_comments': total_comments,
+                'followers': subscribers_raw,
+                'following': 0,
+                'avg_likes_per_post': avg_likes_per_post,
+                'avg_comments_per_post': avg_comments_per_post,
+                'avg_video_duration': 600,
+                'best_video_length': 0,
+                'best_video_category': None,
+                'analysis_duration': 0,
+                
+                # معلومات القناة
+                'country': channel_details.get('country'),
+                'published_at': channel_details.get('published_at'),
+                
+                # علامات
+                'is_premium': is_premium,
+                'analysis_number': next_number,
+                'is_first_analysis': is_first_analysis,
+                'updated_at': local_now.isoformat(),
             }
             
             # إدراج في قاعدة البيانات
-            supabase.table('analysis_history').insert(analysis_record).execute()
-            logger.info(f"Saved analysis for user {user_id}: {channel_details.get('title')}")
+            result = supabase.table('analysis_history').insert(analysis_record).execute()
+            logger.info(f"✅ Analysis saved for user {user_id}: {channel_details.get('title')} (Analysis #{next_number})")
             
         except Exception as e:
             logger.error(f"Error saving analysis to history: {e}")
-            # لا نريد إفشال الطلب بسبب خطأ في الحفظ
+            import traceback
+            traceback.print_exc()
             pass
         
         # تحديث إحصائيات المستخدم (للحد اليومي)
@@ -1491,7 +1518,55 @@ def api_analyze():
         except Exception as e:
             logger.error(f"Error incrementing usage: {e}")
         
-        # استخراج نص التقرير من الملف (للتنزيل)
+        # ========== إرسال التقرير إلى البوت تلقائياً (باستخدام القالب) ==========
+        try:
+            from utils.texts import ReportTemplates
+            from datetime import datetime
+            
+            # تنسيق قائمة الفيديوهات
+            videos_list = ""
+            for i, video in enumerate(latest_videos[:5], 1):
+                title = video.get('title', 'بدون عنوان')[:60]
+                video_id = video.get('video_id', '')
+                if video_id:
+                    videos_list += f"{i}. <a href='https://youtu.be/{video_id}'>{title}</a>\n"
+                else:
+                    videos_list += f"{i}. {title}\n"
+            
+            # بناء التقرير باستخدام القالب
+            report_text = ReportTemplates.ANALYSIS_REPORT.format(
+                analysis_date=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                platform='يوتيوب',
+                account_name=channel_details.get('title'),
+                subscribers=format_number(subscribers_raw),
+                total_views=format_number(total_views_raw),
+                total_posts=total_videos_raw,
+                avg_views=format_number(avg_views_raw)
+            )
+            
+            # إضافة الفيديوهات إلى التقرير
+            if latest_videos:
+                report_text += f"\n\n🎬 أحدث الفيديوهات:\n{videos_list}"
+            
+            # إرسال التقرير إلى البوت
+            BOT_TOKEN = os.environ.get('TELEGRAM_TOKEN')
+            if BOT_TOKEN:
+                filename = f"تحليل_{channel_details.get('title')[:30]}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+                files = {'document': (filename, report_text.encode('utf-8'), 'text/plain')}
+                data = {'chat_id': user_id, 'caption': f"📊 تقرير تحليل قناة {channel_details.get('title')}"}
+                
+                requests.post(
+                    f'https://api.telegram.org/bot{BOT_TOKEN}/sendDocument',
+                    data=data,
+                    files=files,
+                    timeout=60
+                )
+                logger.info(f"✅ Report sent to user {user_id} automatically")
+                
+        except Exception as e:
+            logger.error(f"Error sending auto report: {e}")
+        
+        # استخراج نص التقرير من الملف (للتنزيل في الواجهة)
         file_content = file_data[0] if file_data else report_message
         
         return jsonify({
@@ -1529,12 +1604,17 @@ def api_analyze():
 
 
 # =================================================================================
-# API لجلب تاريخ التحليلات (لـ WebApp)
+# API لجلب تاريخ التحليلات (لـ WebApp) - النسخة المحسنة
 # =================================================================================
 
 @app.route('/api/analysis/history')
 def get_analysis_history():
-    """جلب آخر التحليلات للمستخدم"""
+    """
+    جلب آخر التحليلات للمستخدم
+    - يعرض فقط التحليلات الكاملة (حيث top_posts ليس null)
+    - يزيل التكرارات (نفس account_name يظهر مرة واحدة فقط)
+    - يعرض آخر 3 تحليلات افتراضياً
+    """
     token = request.args.get('token')
     if not token:
         return jsonify({'success': False, 'error': 'Missing token'}), 401
@@ -1544,20 +1624,47 @@ def get_analysis_history():
     except:
         return jsonify({'success': False, 'error': 'Invalid token'}), 401
     
+    # الحد الأقصى للنتائج (افتراضي 10، لكننا سنأخذ آخر 3 فقط بعد الفلترة)
     limit = int(request.args.get('limit', 10))
     
     try:
-        # جلب آخر التحليلات من جدول analysis_history
+        # جلب التحليلات الكاملة فقط (حيث top_posts ليس null)
         response = supabase.table('analysis_history')\
             .select('*')\
             .eq('user_id', user_id)\
+            .not_.is_('top_posts', 'null')\
             .order('analysis_date', desc=True)\
             .limit(limit)\
             .execute()
         
-        # تحويل البيانات إلى صيغة مناسبة
-        analyses = []
+        # إزالة التكرارات (نفس account_name يظهر مرة واحدة فقط)
+        # نأخذ أحدث تحليل لكل حساب
+        unique_analyses = {}
         for item in (response.data or []):
+            account_name = item.get('account_name', '')
+            if not account_name:
+                continue
+            
+            # إذا لم نشاهد هذا الحساب من قبل، أو هذا التحليل أحدث
+            if account_name not in unique_analyses:
+                unique_analyses[account_name] = item
+            else:
+                existing_date = unique_analyses[account_name].get('analysis_date', '')
+                current_date = item.get('analysis_date', '')
+                if current_date > existing_date:
+                    unique_analyses[account_name] = item
+        
+        # تحويل البيانات إلى صيغة مناسبة (نأخذ آخر 3 تحليلات فقط)
+        analyses = []
+        for item in list(unique_analyses.values())[:3]:  # آخر 3 تحليلات فريدة
+            # معالجة top_posts (تحويل JSON إلى array)
+            top_posts = item.get('top_posts')
+            if top_posts and isinstance(top_posts, str):
+                try:
+                    top_posts = json.loads(top_posts)
+                except:
+                    top_posts = []
+            
             analyses.append({
                 'id': item.get('id'),
                 'platform': item.get('platform'),
@@ -1568,12 +1675,15 @@ def get_analysis_history():
                 'total_views': item.get('total_views', 0),
                 'total_posts': item.get('total_posts', 0),
                 'avg_views_per_post': item.get('avg_views_per_post', 0),
-                'top_posts': item.get('top_posts'),
+                'top_posts': top_posts,
                 'country': item.get('country'),
-                'published_at': item.get('published_at')
+                'published_at': item.get('published_at'),
+                'is_first_analysis': item.get('is_first_analysis', False),
+                'analysis_number': item.get('analysis_number')  # ✅ جديد
             })
         
         return jsonify({'success': True, 'data': analyses})
+        
     except Exception as e:
         logger.error(f"Error fetching analysis history: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -1602,6 +1712,15 @@ def get_analysis_details():
         
         if response.data:
             item = response.data[0]
+            
+            # معالجة top_posts
+            top_posts = item.get('top_posts')
+            if top_posts and isinstance(top_posts, str):
+                try:
+                    top_posts = json.loads(top_posts)
+                except:
+                    top_posts = []
+            
             details = {
                 'id': item.get('id'),
                 'platform': item.get('platform'),
@@ -1612,15 +1731,96 @@ def get_analysis_details():
                 'total_views': item.get('total_views', 0),
                 'total_posts': item.get('total_posts', 0),
                 'avg_views_per_post': item.get('avg_views_per_post', 0),
-                'top_posts': item.get('top_posts'),
+                'top_posts': top_posts,
                 'country': item.get('country'),
-                'published_at': item.get('published_at')
+                'published_at': item.get('published_at'),
+                'is_first_analysis': item.get('is_first_analysis', False)
             }
             return jsonify({'success': True, 'data': details})
         else:
             return jsonify({'success': False, 'error': 'Analysis not found'}), 404
     except Exception as e:
         logger.error(f"Error fetching analysis details: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# =================================================================================
+# API جديد: جلب أول تحليل (نقطة البداية المرجعية)
+# =================================================================================
+
+@app.route('/api/analysis/first-analysis')
+def get_first_analysis():
+    """جلب أول تحليل للمستخدم (نقطة البداية المرجعية)"""
+    token = request.args.get('token')
+    if not token:
+        return jsonify({'success': False, 'error': 'Missing token'}), 401
+    
+    try:
+        user_id = int(token.split(':')[0])
+    except:
+        return jsonify({'success': False, 'error': 'Invalid token'}), 401
+    
+    try:
+        # جلب التحليل الذي تم وضع علامة is_first_analysis = True
+        # ✅ إزالة asc=True
+        response = supabase.table('analysis_history')\
+            .select('*')\
+            .eq('user_id', user_id)\
+            .eq('is_first_analysis', True)\
+            .order('analysis_date')\
+            .limit(1)\
+            .execute()
+        
+        if response.data:
+            item = response.data[0]
+            return jsonify({
+                'success': True,
+                'data': {
+                    'id': item.get('id'),
+                    'platform': item.get('platform'),
+                    'account_name': item.get('account_name'),
+                    'account_identifier': item.get('analyzed_username'),
+                    'analysis_date': item.get('analysis_date'),
+                    'subscribers': item.get('subscribers', 0),
+                    'total_views': item.get('total_views', 0),
+                    'total_posts': item.get('total_posts', 0),
+                    'avg_views_per_post': item.get('avg_views_per_post', 0),
+                    'analysis_number': item.get('analysis_number')  # ✅ جديد
+                }
+            })
+        else:
+            # إذا لم يوجد تحليل مميز بـ is_first_analysis
+            # نحاول جلب أقدم تحليل للمستخدم
+            # ✅ إزالة asc=True
+            fallback_response = supabase.table('analysis_history')\
+                .select('*')\
+                .eq('user_id', user_id)\
+                .not_.is_('top_posts', 'null')\
+                .order('analysis_date')\
+                .limit(1)\
+                .execute()
+            
+            if fallback_response.data:
+                item = fallback_response.data[0]
+                return jsonify({
+                    'success': True,
+                    'data': {
+                        'id': item.get('id'),
+                        'platform': item.get('platform'),
+                        'account_name': item.get('account_name'),
+                        'account_identifier': item.get('analyzed_username'),
+                        'analysis_date': item.get('analysis_date'),
+                        'subscribers': item.get('subscribers', 0),
+                        'total_views': item.get('total_views', 0),
+                        'total_posts': item.get('total_posts', 0),
+                        'avg_views_per_post': item.get('avg_views_per_post', 0)
+                    }
+                })
+            else:
+                return jsonify({'success': True, 'data': None})
+        
+    except Exception as e:
+        logger.error(f"Error fetching first analysis: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 # =================================================================================
 # القسم 27: واجهات API الخاصة بالتبويبات (للإصدارات الجديدة)
@@ -1854,11 +2054,8 @@ def send_report_to_bot():
         is_premium = user_info.get('status') == 'premium' if user_info else False
         remaining_analyses = None
         
-        # استخدام دالة البوت الأصلية للحصول على التقرير المفصل
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        channel_details, error = loop.run_until_complete(get_channel_details(channel_username))
-        loop.close()
+                # استخدام دالة البوت الأصلية للحصول على التقرير المفصل
+        channel_details, error = asyncio.run(get_channel_details(channel_username))
         
         if error or not channel_details:
             return jsonify({'success': False, 'error': error or 'لم يتم العثور على القناة'}), 404
@@ -1966,31 +2163,18 @@ def api_recommendations():
     
     account_identifier = youtube_account['account_identifier'].replace('@', '')
     
-    # ✅ استخدام asyncio.run() لتشغيل الدوال غير المتزامنة
-    async def fetch_data():
-        channel_details, error = await get_channel_details(account_identifier)
-        return channel_details, error
-    
+        # ✅ استخدام asyncio.run() لتشغيل الدوال غير المتزامنة
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        channel_details, error = loop.run_until_complete(fetch_data())
-        loop.close()
+        channel_details, error = asyncio.run(get_channel_details(account_identifier))
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
     
     if error or not channel_details:
         return jsonify({'success': False, 'error': error or 'لم يتم العثور على القناة'}), 404
     
-    # ✅ تشغيل دالة التوصيات غير المتزامنة
-    async def fetch_recommendations():
-        return await get_advanced_recommendations(channel_details)
-    
+        # ✅ تشغيل دالة التوصيات غير المتزامنة
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        recommendations = loop.run_until_complete(fetch_recommendations())
-        loop.close()
+        recommendations = asyncio.run(get_advanced_recommendations(channel_details))
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
     
@@ -2129,7 +2313,149 @@ def chat_stats(user_id):  # ✅ أضف user_id
         print(f"Chat stats error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-
+# ========== API فحص توافر اليوزرنيم على يوتيوب ==========
+@app.route('/api/check-username', methods=['POST'])
+@token_required
+def check_username_api(user_id):
+    """
+    API لفحص توافر اسم مستخدم على يوتيوب
+    متاح فقط للمستخدمين المميزين
+    """
+    from utils.username_checker import check_single_platform
+    from utils.db import get_user_info
+    import asyncio
+    
+    try:
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        
+        if not username:
+            return jsonify({'success': False, 'error': 'اسم المستخدم مطلوب'}), 400
+        
+        # تنظيف الاسم من @ والمسافات
+        username = username.replace('@', '').replace(' ', '').replace('/', '')
+        
+        if len(username) < 3:
+            return jsonify({'success': False, 'error': 'اسم المستخدم يجب أن يكون 3 أحرف على الأقل'}), 400
+        
+        if len(username) > 30:
+            return jsonify({'success': False, 'error': 'اسم المستخدم طويل جداً (الحد الأقصى 30 حرف)'}), 400
+        
+        # التحقق من أن المستخدم مميز
+        user_info = get_user_info(user_id)
+        if not user_info or user_info.get('status') != 'premium':
+            return jsonify({
+                'success': False, 
+                'error': '💎 هذه الميزة متاحة فقط للمستخدمين المميزين!\n\nللاشتراك، تواصل مع المطور @Alshabany_Ai'
+            }), 403
+        
+                # استدعاء دالة فحص اليوزرنيم (متوافقة مع async)
+        result = asyncio.run(check_single_platform(username, platform='youtube'))
+        
+        # معالجة النتيجة حسب الهيكل الموجود في username_checker.py
+        if result.get('status') == 'available':
+            return jsonify({
+                'success': True,
+                'available': True,
+                'username': username,
+                'message': f'✅ اسم المستخدم @{username} متاح! يمكنك استخدام هذا الاسم.',
+                'detail': result.get('detail', '')
+            })
+        elif result.get('status') == 'taken':
+            return jsonify({
+                'success': True,
+                'available': False,
+                'username': username,
+                'message': f'❌ اسم المستخدم @{username} غير متاح. يرجى اختيار اسم آخر.',
+                'detail': result.get('detail', '')
+            })
+        elif result.get('status') == 'error':
+            return jsonify({
+                'success': False,
+                'error': result.get('detail', 'حدث خطأ أثناء الفحص')
+            }), 500
+        else:
+            return jsonify({
+                'success': False,
+                'error': result.get('detail', 'لم نتمكن من التحقق من الاسم')
+            }), 500
+            
+    except ImportError as e:
+        print(f"❌ Username checker import error: {e}")
+        return jsonify({
+            'success': False,
+            'error': '⚠️ وحدة فحص اليوزرنيم غير متاحة حالياً. يرجى إبلاغ المطور.'
+        }), 500
+    except Exception as e:
+        print(f"❌ Username check error: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'حدث خطأ: {str(e)}'
+        }), 500
+# ================================================================================
+@app.route('/api/send-recommendation-to-bot', methods=['POST'])
+def send_recommendation_to_bot():
+    """إرسال توصية كملف نصي إلى البوت"""
+    from utils.helpers import verify_token
+    import io
+    from telegram import InputFile
+    
+    data = request.get_json()
+    token = data.get('token')
+    recommendation_id = data.get('recommendation_id')
+    
+    if not token or not recommendation_id:
+        return jsonify({'success': False, 'error': 'Missing parameters'}), 400
+    
+    user_id = verify_token(token)
+    if not user_id:
+        return jsonify({'success': False, 'error': 'Invalid token'}), 401
+    
+    # جلب التوصية من قاعدة البيانات
+    response = supabase.table('recommendations_history')\
+        .select('recommendation_text, account_identifier')\
+        .eq('id', recommendation_id)\
+        .eq('user_id', user_id)\
+        .execute()
+    
+    if not response.data:
+        return jsonify({'success': False, 'error': 'Recommendation not found'}), 404
+    
+    rec = response.data[0]
+    recommendation_text = rec.get('recommendation_text', '')
+    account_name = rec.get('account_identifier', 'توصية')
+    
+    BOT_TOKEN = os.environ.get('TELEGRAM_TOKEN')
+    if not BOT_TOKEN:
+        return jsonify({'success': False, 'error': 'Bot token not configured'}), 500
+    
+    now = datetime.now()
+    filename = f"توصية_{account_name}_{now.strftime('%Y%m%d_%H%M%S')}.txt"
+    
+    # إرسال الملف
+    files = {'document': (filename, recommendation_text.encode('utf-8'), 'text/plain')}
+    data = {'chat_id': user_id, 'caption': f"🤖 توصية ذكاء اصطناعي لـ {account_name}"}
+    
+    response = requests.post(
+        f'https://api.telegram.org/bot{BOT_TOKEN}/sendDocument',
+        data=data,
+        files=files,
+        timeout=60
+    )
+    
+    if response.status_code == 200:
+        return jsonify({'success': True, 'message': 'تم إرسال التوصية إلى البوت'})
+    else:
+        return jsonify({'success': False, 'error': 'Failed to send'}), 500
+# =================================================================================
+@app.route('/api/prices')
+def get_prices():
+    """جلب جميع الأسعار والإعدادات للدفع"""
+    try:
+        prices = get_all_prices()  # من utils.db
+        return jsonify({'success': True, **prices})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 # =================================================================================
 # القسم 29: تشغيل التطبيق (Main)
 # =================================================================================
