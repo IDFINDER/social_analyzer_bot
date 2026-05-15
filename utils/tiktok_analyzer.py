@@ -347,64 +347,55 @@ async def get_user_videos(access_token: str, limit: int = 5) -> list:
 
 async def format_tiktok_report(user_id: int) -> str:
     """تنسيق تقرير تحليل حساب TikTok وإرساله للمستخدم"""
-    token_data = get_tiktok_token(user_id)
-    
-    if not token_data:
-        return "❌ لم يتم تفعيل حساب TikTok بعد. يرجى استخدام زر التفعيل أولاً."
-    
-    access_token = token_data.get('access_token')
-    open_id = token_data.get('open_id')
-    
-    # جلب معلومات المستخدم
-    user_info = await get_user_info(access_token, open_id)
-    if not user_info:
-        return "❌ فشل في جلب معلومات حساب TikTok. يرجى المحاولة مرة أخرى."
-    
-    # جلب الفيديوهات
-    videos = await get_user_videos(access_token, open_id, limit=5)
-    
-    # بناء التقرير
-    report = f"""
+    try:
+        from utils.tiktok_analyzer import get_tiktok_token, get_user_info, get_user_videos
+        
+        # 1. جلب التوكن من قاعدة البيانات
+        token_data = get_tiktok_token(user_id)
+        if not token_data:
+            return "❌ لم يتم العثور على بيانات الربط. يرجى إعادة تفعيل الحساب."
+        
+        access_token = token_data.get('access_token')
+        
+        # 2. جلب معلومات المستخدم (لاحظ: نرسل التوكن فقط في V2)
+        user_info = await get_user_info(access_token)
+        if not user_info:
+            return "❌ فشل في جلب معلومات الحساب من تيك توك. قد يكون التوكن قد انتهى، جرب إعادة الربط."
+        
+        # 3. جلب الفيديوهات
+        videos = await get_user_videos(access_token, limit=5)
+        
+        # 4. بناء نص التقرير
+        report = f"""
 📊 <b>تقرير تحليل حساب TikTok</b>
 
 👤 <b>المعلومات الأساسية:</b>
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━
 • الاسم: {user_info.get('display_name', 'غير معروف')}
 • المعرف: @{user_info.get('username', 'غير معروف')}
-• البايو: {user_info.get('bio_description', 'لا يوجد')[:100]}
 • موثق: {'✅ نعم' if user_info.get('is_verified') else '❌ لا'}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📊 <b>الإحصائيات:</b>
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 <b>الإحصائيات الحالية:</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━
 👥 المتابعين: {user_info.get('follower_count', 0):,}
 👤 يتابع: {user_info.get('following_count', 0):,}
 🎬 فيديوهات: {user_info.get('video_count', 0):,}
-❤️ إجمالي الإعجابات: {user_info.get('like_count', 0):,}
+❤️ الإعجابات: {user_info.get('like_count', 0):,}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎥 <b>أحدث الفيديوهات:</b>
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎥 <b>أحدث 5 فيديوهات:</b>
+━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
-    
-    if videos:
-        for i, video in enumerate(videos[:5], 1):
-            from datetime import datetime
-            video_date = datetime.fromtimestamp(video.get('create_time', 0)).strftime('%Y-%m-%d') if video.get('create_time') else 'تاريخ غير معروف'
+        if videos:
+            for i, video in enumerate(videos, 1):
+                report += f"{i}. 🎬 {video.get('title')[:30]}...\n   👁️ {video.get('play_count', 0):,} | ❤️ {video.get('like_count', 0):,}\n"
+        else:
+            report += "❌ لا توجد فيديوهات عامة متاحة للتحليل حالياً.\n"
             
-            report += f"""
-{i}. 🎬 {video.get('title', 'بدون عنوان')[:50]}
-   👁️ مشاهدات: {video.get('play_count', 0):,} | ❤️ إعجابات: {video.get('like_count', 0):,}
-   💬 تعليقات: {video.get('comment_count', 0):,} | 📅 {video_date}
-"""
-    else:
-        report += "\n❌ لا توجد فيديوهات لعرضها\n"
-    
-    report += """
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🤖 تم التحليل بواسطة <b>Social Analyzer Bot</b>
-📌 للاشتراك المميز: @Social_Media_tools_bot
-👨‍💻 المطور: @Alshabany_Ai
-"""
-    
-    return report
+        report += f"\n🤖 تم التحليل بواسطة <b>@Logistics_Bot</b>" # اسم مشروعك المحدث
+        
+        return report
+
+    except Exception as e:
+        import logging
+        logging.error(f"Error in format_tiktok_report: {e}")
+        return "⚠️ حدث خطأ فني أثناء إنشاء التقرير. يرجى المحاولة لاحقاً."
