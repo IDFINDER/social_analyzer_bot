@@ -1196,43 +1196,32 @@ def tiktok_login():
 
 @app.route('/callback/tiktok')
 def tiktok_callback():
-    import logging
-    logger = logging.getLogger(__name__)
-    
     error = request.args.get('error')
     if error:
         logger.error(f"TikTok callback error: {error}")
         return f"Error: {error}", 400
     
     state = request.args.get('state')
-    stored_state = session.get('tiktok_state')
-    
-    # ✅ يمكن تعطيل التحقق من state مؤقتاً للاختبار
-    # if not state or state != stored_state:
-    #     return "Invalid state parameter", 400
-    
     code = request.args.get('code')
+    
+    logger.info(f"✅ TikTok callback received - code: {code[:20] if code else 'None'}...")
+    
     if not code:
-        logger.error("No authorization code received")
         return "No authorization code received", 400
     
-    logger.info(f"✅ TikTok callback received - code: {code[:20]}...")
-    
-    # ✅ استخراج user_id من state
+    # استخراج user_id من state
     user_id = None
     if state and '_' in state:
         try:
             user_id = int(state.split('_')[0])
             logger.info(f"✅ Extracted user_id: {user_id} from state")
-        except Exception as e:
-            logger.error(f"Failed to extract user_id from state '{state}': {e}")
-    else:
-        logger.warning(f"State format invalid: {state}")
+        except:
+            logger.error(f"Failed to extract user_id from state: {state}")
     
     if not user_id:
-        logger.error("Cannot proceed without user_id")
         return "Invalid user_id in state", 400
     
+    # ✅ استخدام json بدلاً من data
     data = {
         'client_key': TIKTOK_CLIENT_KEY,
         'client_secret': TIKTOK_CLIENT_SECRET,
@@ -1243,7 +1232,15 @@ def tiktok_callback():
     
     try:
         logger.info("Exchanging code for access token...")
-        response = requests.post("https://open-api.tiktok.com/oauth/access_token/", data=data, timeout=30)
+        
+        # ✅ التعديل هنا: استخدام json و headers
+        response = requests.post(
+            "https://open-api.tiktok.com/oauth/access_token/",
+            json=data,  # ✅ تغيير من data إلى json
+            headers={'Content-Type': 'application/json'},
+            timeout=30
+        )
+        
         token_data = response.json()
         logger.info(f"TikTok token response: {token_data}")
         
@@ -1252,100 +1249,46 @@ def tiktok_callback():
             open_id = token_data['data']['open_id']
             refresh_token = token_data['data'].get('refresh_token')
             
-            logger.info(f"✅ Access token obtained for user {user_id}")
-            
-            # ✅ حفظ التوكن في قاعدة البيانات
+            # حفظ التوكن في قاعدة البيانات
             from utils.tiktok_analyzer import save_tiktok_token
-            
-            save_result = save_tiktok_token(user_id, {
+            save_tiktok_token(user_id, {
                 'access_token': access_token,
                 'refresh_token': refresh_token,
                 'open_id': open_id,
                 'expires_in': token_data['data'].get('expires_in', 86400)
             })
             
-            if save_result:
-                logger.info(f"✅ Token saved successfully for user {user_id}")
-            else:
-                logger.error(f"❌ Failed to save token for user {user_id}")
-            
-            # ✅ إرسال إشعار للمستخدم عبر البوت
+            # إرسال إشعار للمستخدم
             TOKEN = os.environ.get('TELEGRAM_TOKEN')
             if TOKEN:
                 try:
-                    notify_response = requests.post(
+                    requests.post(
                         f"https://api.telegram.org/bot{TOKEN}/sendMessage",
                         json={
                             'chat_id': user_id,
                             'text': "✅ تم تفعيل تحليل TikTok بنجاح!\n\n🎵 يمكنك الآن استخدام زر 'تحليل تيك توك' لتحليل حسابك.",
                             'parse_mode': 'HTML'
                         },
-                        timeout=10
+                        timeout=5
                     )
-                    if notify_response.status_code == 200:
-                        logger.info(f"✅ Notification sent to user {user_id}")
-                    else:
-                        logger.error(f"Failed to send notification: {notify_response.text}")
                 except Exception as e:
-                    logger.error(f"Error sending notification: {e}")
-            
-            # ✅ تخزين مؤقت في session للتوافق مع الصفحات الأخرى
-            session['tiktok_access_token'] = access_token
-            session['tiktok_open_id'] = open_id
+                    logger.error(f"Failed to notify user: {e}")
             
             return render_template_string('''
-                <!DOCTYPE html>
-                <html dir="rtl" lang="ar">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>تم الاتصال بنجاح - Social Analyzer Bot</title>
-                    <style>
-                        *{margin:0;padding:0;box-sizing:border-box;}
-                        body{
-                            font-family:'Segoe UI',sans-serif;
-                            background:linear-gradient(135deg,#667eea,#764ba2);
-                            min-height:100vh;
-                            display:flex;
-                            justify-content:center;
-                            align-items:center;
-                            padding:20px;
-                        }
-                        .card{
-                            background:white;
-                            border-radius:24px;
-                            padding:40px;
-                            text-align:center;
-                            max-width:400px;
-                            box-shadow:0 20px 40px rgba(0,0,0,0.2);
-                            animation:fadeInUp 0.5s ease;
-                        }
-                        .icon{font-size:64px;margin-bottom:20px;}
-                        h1{color:#2c3e50;margin-bottom:10px;font-size:24px;}
-                        p{color:#666;line-height:1.6;margin-bottom:20px;}
-                        .btn{
-                            display:inline-block;
-                            background:#667eea;
-                            color:white;
-                            padding:12px 24px;
-                            border-radius:30px;
-                            text-decoration:none;
-                            transition:0.3s;
-                            font-weight:bold;
-                        }
-                        .btn:hover{
-                            transform:translateY(-2px);
-                            background:#5a67d8;
-                        }
-                        @keyframes fadeInUp{
-                            from{opacity:0;transform:translateY(30px);}
-                            to{opacity:1;transform:translateY(0);}
-                        }
-                    </style>
+                <!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>تم الاتصال بنجاح</title>
+                <style>
+                    *{margin:0;padding:0;box-sizing:border-box;}
+                    body{font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;justify-content:center;align-items:center;}
+                    .card{background:white;border-radius:20px;padding:40px;text-align:center;max-width:400px;box-shadow:0 20px 40px rgba(0,0,0,0.2);}
+                    h1{color:#2c3e50;margin-bottom:10px;}
+                    .success{color:#48bb78;font-size:64px;}
+                    .btn{display:inline-block;background:#667eea;color:white;padding:12px 24px;border-radius:30px;text-decoration:none;margin-top:20px;transition:0.3s;}
+                    .btn:hover{transform:translateY(-2px);background:#5a67d8;}
+                </style>
                 </head>
                 <body>
                     <div class="card">
-                        <div class="icon">✅</div>
+                        <div class="success">✅</div>
                         <h1>تم الاتصال بتيك توك بنجاح!</h1>
                         <p>يمكنك الآن العودة إلى البوت واستخدام ميزات تحليل تيك توك.</p>
                         <a href="https://t.me/Social_Media_tools_bot" class="btn">🚀 العودة إلى البوت</a>
@@ -1359,17 +1302,12 @@ def tiktok_callback():
                 </html>
             ''')
         else:
-            error_msg = token_data.get('message', 'Unknown error')
             logger.error(f"Token exchange failed: {token_data}")
-            return f"Error getting access token: {error_msg}", 400
-    except requests.exceptions.Timeout:
-        logger.error("TikTok token exchange timeout")
-        return "Request timeout, please try again", 500
+            return f"Error getting access token: {token_data}", 400
+            
     except Exception as e:
         logger.error(f"TikTok callback exception: {e}")
-        import traceback
-        traceback.print_exc()
-        return f"Exception: {str(e)}", 500
+        return f"Exception: {e}", 500
 
 
 @app.route('/tiktok/profile')
