@@ -113,11 +113,18 @@ def save_tiktok_token(user_id: int, token_data: Dict) -> bool:
     """حفظ توكن TikTok في قاعدة البيانات"""
     try:
         from utils.db import supabase
+        from datetime import datetime
         
+        logger.info(f"Saving token for user {user_id}")
+        logger.info(f"Token data: {token_data.keys() if token_data else 'None'}")
+        
+        # التحقق من وجود سجل مسبق
         existing = supabase.table('tiktok_tokens')\
             .select('id')\
             .eq('user_id', user_id)\
             .execute()
+        
+        logger.info(f"Existing record: {existing.data}")
         
         record = {
             'user_id': user_id,
@@ -129,17 +136,19 @@ def save_tiktok_token(user_id: int, token_data: Dict) -> bool:
         }
         
         if existing.data:
-            supabase.table('tiktok_tokens').update(record).eq('user_id', user_id).execute()
+            result = supabase.table('tiktok_tokens').update(record).eq('user_id', user_id).execute()
             logger.info(f"✅ TikTok token updated for user {user_id}")
         else:
             record['created_at'] = datetime.now().isoformat()
-            supabase.table('tiktok_tokens').insert(record).execute()
+            result = supabase.table('tiktok_tokens').insert(record).execute()
             logger.info(f"✅ TikTok token saved for user {user_id}")
         
         return True
         
     except Exception as e:
         logger.error(f"Error saving TikTok token: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
