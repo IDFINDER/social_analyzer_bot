@@ -186,68 +186,82 @@ async def get_user_videos(access_token: str, limit: int = 5) -> list:
         return []
 
 
-async def format_tiktok_report(user_id: int) -> str:
-    """تنسيق تقرير تحليل حساب TikTok بالتنسيق الفاخر المطلوب"""
+async def log_tiktok_analysis(user_id: int, user_info: Dict, videos: list, tg_user: Any = None):
+    """حفظ سجل التحليل في قاعدة البيانات بنفس أسلوب يوتيوب"""
     try:
-        from datetime import datetime
-        now = datetime.now()
+        from utils.db import supabase
         
+        total_v = sum(v.get('view_count', 0) for v in videos)
+        avg_views = total_v / len(videos) if videos else 0
+        
+        top_posts_data = []
+        for v in videos:
+            top_posts_data.append({
+                "title": v.get('title', 'بدون عنوان'),
+                "video_url": v.get('video_url', '#'),
+                "views": v.get('view_count', 0),
+                "likes": v.get('like_count', 0),
+                "comments": v.get('comment_count', 0),
+                "published_at": datetime.fromtimestamp(v.get('create_time', 0)).strftime('%Y-%m-%d') if v.get('create_time') else 'N/A'
+            })
+
+        check = supabase.table('tiktok_analysis_logs').select('id', count='exact').eq('user_id', user_id).execute()
+        analysis_num = (check.count if check.count is not None else 0) + 1
+
+        record = {
+            "user_id": user_id,
+            "username": getattr(tg_user, 'username', 'Unknown'),
+            "first_name": getattr(tg_user, 'first_name', 'User'),
+            "platform": "tiktok",
+            "analyzed_user_id": user_info.get('open_id'),
+            "analyzed_username": user_info.get('username'),
+            "account_name": user_info.get('display_name'),
+            "followers": user_info.get('follower_count', 0),
+            "following": user_info.get('following_count', 0),
+            "total_videos": user_info.get('video_count', 0),
+            "total_likes": user_info.get('like_count', 0),
+            "avg_views_per_post": float(avg_views),
+            "top_posts": top_posts_data,
+            "is_first_analysis": analysis_num == 1,
+            "analysis_number": analysis_num,
+            "analysis_date": datetime.now().isoformat()
+        }
+        supabase.table('tiktok_analysis_logs').insert(record).execute()
+    except Exception as e:
+        logger.error(f"Error logging analysis: {e}")
+
+async def format_tiktok_report(user_id: int, tg_user: Any = None) -> str:
+    """تنسيق تقرير تحليل حساب TikTok وحفظه في السجلات"""
+    try:
         token_data = get_tiktok_token(user_id)
-        if not token_data:
-            return "❌ لم يتم العثور على بيانات الربط. يرجى إعادة تفعيل الحساب."
+        if not token_data: return "❌ لم يتم العثور على بيانات الربط."
         
         access_token = token_data.get('access_token')
         user_info = await get_user_info(access_token)
-        
-        if not user_info:
-            return "❌ فشل في جلب معلومات الحساب. قد يكون التوكن قد انتهى."
+        if not user_info: return "❌ فشل في جلب معلومات الحساب."
         
         videos = await get_user_videos(access_token, limit=5)
         
-        # ✅ بناء التقرير بالتنسيق الاحترافي
+        # حفظ السجل أوتوماتيكياً
+        await log_tiktok_analysis(user_id, user_info, videos, tg_user)
+        
+        now = datetime.now()
         report = f"╔══════════════════════════════════╗\n"
         report += f"║          📊 تقرير تحليل حساب TikTok          ║\n"
         report += f"║             @{user_info.get('username', 'غير معروف')}             ║\n"
         report += f"╚══════════════════════════════════╝\n\n"
-        
         report += f"📅 تاريخ التحليل: {now.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-        
-        report += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         report += f"👤 <b>معلومات الحساب:</b>\n"
-        report += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        report += f"• الاسم: {user_info.get('display_name', 'غير معروف')}\n"
-        report += f"• المعرف: @{user_info.get('username', 'غير معروف')}\n"
-        report += f"• البايو: {user_info.get('bio_description', 'لا يوجد')[:100]}\n"
-        report += f"• موثق: {'✅ نعم' if user_info.get('is_verified') else '❌ لا'}\n\n"
-        
-        report += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        report += f"📊 <b>الإحصائيات:</b>\n"
-        report += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        report += f"👥 المتابعين: {user_info.get('follower_count', 0):,}\n"
-        report += f"👤 يتابع: {user_info.get('following_count', 0):,}\n"
-        report += f"🎬 فيديوهات: {user_info.get('video_count', 0):,}\n"
-        report += f"❤️ إجمالي الإعجابات: {user_info.get('like_count', 0):,}\n\n"
-        
-        report += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        report += f"• الاسم: {user_info.get('display_name')}\n"
+        report += f"• المتابعين: {user_info.get('follower_count', 0):,}\n"
+        report += f"• الإعجابات: {user_info.get('like_count', 0):,}\n\n"
         report += f"🎥 <b>أحدث الفيديوهات:</b>\n"
-        report += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         
-        if videos:
-            for i, video in enumerate(videos, 1):
-                video_date = datetime.fromtimestamp(video.get('create_time', 0)).strftime('%Y-%m-%d') if video.get('create_time') else 'تاريخ غير معروف'
-                report += f"{i}. 📹 {video.get('title', 'بدون عنوان')[:40]}...\n"
-                report += f"   👁️ {video.get('view_count', 0):,} | ❤️ {video.get('like_count', 0):,} | 💬 {video.get('comment_count', 0):,}\n"
-                report += f"   📅 {video_date} | 🔗 <a href='{video.get('video_url')}'>مشاهدة</a>\n\n"
-        else:
-            report += "❌ لا توجد فيديوهات عامة متاحة للتحليل حالياً.\n"
+        for i, v in enumerate(videos, 1):
+            report += f"{i}. 📹 {v.get('title')[:30]}... | 👁️ {v.get('view_count', 0):,}\n"
             
-        report += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        report += f"🤖 تم التحليل بواسطة <b>@Logistics_Bot</b>\n"
-        report += f"📌 للاشتراك المميز: @Social_Media_tools_bot\n"
-        report += f"👨‍💻 المطور: @Alshabany_Ai"
-        
+        report += f"\n🤖 بواسطة <b>@Logistics_Bot</b> | @Alshabany_Ai"
         return report
-
     except Exception as e:
-        logger.error(f"Error in format_tiktok_report: {e}")
-        return "⚠️ حدث خطأ فني أثناء إنشاء التقرير."
+        logger.error(f"Report Error: {e}")
+        return "⚠️ حدث خطأ فني."
