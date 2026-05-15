@@ -191,7 +191,11 @@ def terms_of_service():
 @app.route('/tiktokw9Ukfj91mI3iM5jQUAxlKiItQbyu9i8j.txt')
 def serve_tiktok_verification():
     return send_from_directory('static/tiktok', 'tiktokw9Ukfj91mI3iM5jQUAxlKiItQbyu9i8j.txt')
-
+# =================================================================================
+# TikTok domain verification for the new app
+@app.route('/tiktokwlX4EbdbLSiAmI4QADbFjxTG1za9a4ZA.txt')
+def serve_tiktok_verification_new():
+    return send_from_directory('static/tiktok', 'tiktokwlX4EbdbLSiAmI4QADbFjxTG1za9a4ZA.txt')
 # =================================================================================
 # القسم 6: نقاط نهاية فحص الصحة (Health Checks)
 # =================================================================================
