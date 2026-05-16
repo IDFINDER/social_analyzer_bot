@@ -247,31 +247,31 @@ async def format_tiktok_report(user_id: int, tg_user: Any = None) -> str:
         
         now = datetime.now()
         # التنسيق الشامل الذي أعجبك
-        report = f"╔══════════════════════════════════╗\n"
+        report = f"╔════════════════════════╗\n"
         report += f"║           📊 تقرير تحليل حساب TikTok          ║\n"
         report += f"║             @{user_info.get('username', 'غير معروف')}             ║\n"
-        report += f"╚══════════════════════════════════╝\n\n"
+        report += f"╚════════════════════════╝\n\n"
         report += f"📅 تاريخ التحليل: {now.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
         
-        report += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        report += f"━━━━━━━━━━━━━━━━━━━━\n"
         report += f"👤 <b>معلومات الحساب:</b>\n"
-        report += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        report += f"━━━━━━━━━━━━━━━━━━━━\n"
         report += f"• الاسم: {user_info.get('display_name', 'غير معروف')}\n"
         report += f"• المعرف: @{user_info.get('username', 'غير معروف')}\n"
         report += f"• البايو: {user_info.get('bio_description', 'لا يوجد')[:100]}\n"
         report += f"• موثق: {'✅ نعم' if user_info.get('is_verified') else '❌ لا'}\n\n"
         
-        report += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        report += f"━━━━━━━━━━━━━━━━━━━━\n"
         report += f"📊 <b>الإحصائيات:</b>\n"
-        report += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        report += f"━━━━━━━━━━━━━━━━━━━━\n"
         report += f"👥 المتابعين: {user_info.get('follower_count', 0):,}\n"
         report += f"👤 يتابع: {user_info.get('following_count', 0):,}\n"
         report += f"🎬 فيديوهات: {user_info.get('video_count', 0):,}\n"
         report += f"❤️ إجمالي الإعجابات: {user_info.get('like_count', 0):,}\n\n"
         
-        report += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        report += f"━━━━━━━━━━━━━━━━━━━━\n"
         report += f"🎥 <b>أحدث الفيديوهات:</b>\n"
-        report += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        report += f"━━━━━━━━━━━━━━━━━━━━\n"
         
         if videos:
             for i, video in enumerate(videos, 1):
@@ -282,7 +282,7 @@ async def format_tiktok_report(user_id: int, tg_user: Any = None) -> str:
         else:
             report += "❌ لا توجد فيديوهات متاحة للتحليل.\n"
             
-        report += f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        report += f"━━━━━━━━━━━━━━━━━━━━\n"
         report += f"🤖 تم التحليل بواسطة <b>Social Analyzer Bot</b>\n"
         report += f"📌 للاشتراك المميز: @Social_Media_tools_bot\n"
         report += f"👨‍💻 المطور: @Alshabany_Ai"
